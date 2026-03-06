@@ -29,6 +29,7 @@
 | 4 | 토스페이먼츠 직접 연동 (결제/승인/취소 API) | ✅ 완료 | 2026-03-06 |
 | 5 | Prisma/NextAuth/PortOne 파일 삭제 | ✅ 완료 | 2026-03-06 |
 | 6 | 의존성 정리 및 빌드 확인 | ✅ 완료 | 2026-03-06 |
+| 7 | Step 5: 전체 페이지 Firestore 연동 (13개 파일) | ✅ 완료 | 2026-03-06 |
 
 ---
 
@@ -51,15 +52,17 @@
 - `src/lib/firebase-auth.ts` — Firebase Auth 유틸 (로그인, 회원가입, Google)
 - `src/lib/firebase-storage.ts` — Firebase Storage 유틸
 - `src/lib/toss-payments.ts` — 토스페이먼츠 서버 API (승인/취소)
+- `src/lib/grade-utils.ts` — 등급 매핑, 시간 포맷, 상태 매핑 유틸리티
 - `src/contexts/auth-context.tsx` — Firebase Auth React Context
 - `src/app/api/payments/cancel/route.ts` — 결제 취소 API
+- `src/app/api/exams/submit/route.ts` — 시험 제출 + 서버 채점 API
 - `src/app/payment/success/page.tsx` — 결제 성공 페이지
 - `src/app/payment/fail/page.tsx` — 결제 실패 페이지
 - `plan-print.html` — 프린트용 HTML 계획서
 - `CURRENT.md` — 작업 상태 추적 파일
 - `PLAN.md` — 작업 계획 문서
 
-### 수정됨
+### 수정됨 (Step 1~4)
 - `src/app/layout.tsx` — AuthProvider 래핑 추가
 - `src/app/auth/login/page.tsx` — Firebase Auth 로그인 + Google 로그인
 - `src/app/auth/register/page.tsx` — Firebase Auth 회원가입
@@ -73,6 +76,19 @@
 - `.env.example` — Firebase + 토스페이먼츠 환경변수
 - `.gitignore` — Firebase 로그 파일 추가
 
+### 수정됨 (Step 5: 페이지 Firestore 연동)
+- `src/app/courses/page.tsx` — 데모 → Firestore 쿼리 + 로딩/빈 상태
+- `src/app/courses/[id]/page.tsx` — 데모 → 서브컬렉션 레슨 목록 + 동적 가격
+- `src/app/exams/page.tsx` — 데모 → 활성 시험 목록 + certificateTypes 조인
+- `src/app/exams/[id]/take/page.tsx` — 데모 → DB 문제 로드 + 서버 API 채점
+- `src/app/certificates/page.tsx` — 정적 → 합격 시험 기반 동적 발급 폼
+- `src/app/certificates/verify/page.tsx` — CRN- 하드코딩 → 실제 API 호출
+- `src/app/mypage/page.tsx` — 데모 → 수강/시험/인증서 Firestore 쿼리
+- `src/app/admin/page.tsx` — 데모 통계 → 실시간 컬렉션 카운트
+- `src/app/admin/courses/page.tsx` — 데모 → Firestore CRUD + 수강생 카운트
+- `src/app/admin/exams/page.tsx` — 데모 → Firestore CRUD + 채점 대기
+- `src/app/admin/certificates/page.tsx` — 데모 → 상태별 통계 + 상태 변경
+
 ### 삭제됨
 - `prisma/schema.prisma` — Prisma 스키마
 - `src/lib/db.ts` — Prisma 클라이언트
@@ -84,12 +100,18 @@
 
 ## 5. 다음 작업
 
-**Step 5: 페이지 Firestore 연동 (추후 진행)**
-- [ ] 강의 페이지 (courses/, courses/[id]/) Firestore 연동
-- [ ] 시험 페이지 (exams/, exams/[id]/take/) Firestore 연동
-- [ ] 마이페이지 (mypage/) Firestore 연동
-- [ ] 관리자 페이지 (admin/) Firestore CRUD 연동
-- [ ] 인증서 페이지 (certificates/) Firestore 연동
+**전체 구현 완료!** 모든 Step(1~6) + 페이지 Firestore 연동이 완료되었습니다.
 
-> 참고: 현재 위 페이지들은 데모 데이터를 사용하고 있어 빌드에는 문제없음.
-> Firebase 프로젝트 설정 후 Firestore 실 데이터 연동 필요.
+- [x] 강의 페이지 (courses/, courses/[id]/) Firestore 연동
+- [x] 시험 페이지 (exams/, exams/[id]/take/) Firestore 연동
+- [x] 마이페이지 (mypage/) Firestore 연동
+- [x] 관리자 페이지 (admin/) Firestore CRUD 연동
+- [x] 인증서 페이지 (certificates/) Firestore 연동
+- [x] 시험 제출 API (/api/exams/submit) 서버 채점
+
+**추가 개선 가능 사항 (선택):**
+- [ ] Firebase 콘솔에서 테스트 데이터 입력 후 동작 확인
+- [ ] Firestore Security Rules 설정
+- [ ] Firebase Storage Security Rules 설정
+- [ ] Resend 이메일 알림 연동 (인증서 발급 시)
+- [ ] 실물 인증서 PDF 생성 + Storage 업로드 연동

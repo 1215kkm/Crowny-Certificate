@@ -17,7 +17,7 @@
 
 ---
 
-## Step 1: Firebase 설정 파일 추가 [🔄 진행 중]
+## Step 1: Firebase 설정 파일 추가 [✅ 완료]
 
 ### 삭제할 파일
 - `prisma/schema.prisma` (Prisma 스키마)
@@ -41,7 +41,7 @@
 
 ---
 
-## Step 2: Firestore 컬렉션 구조 설계 [⬜ 대기]
+## Step 2: Firestore 컬렉션 구조 설계 [✅ 완료]
 
 ```
 users/{userId}
@@ -91,7 +91,7 @@ certificateIssuances/{issuanceId}
 
 ---
 
-## Step 3: 인증 시스템 Firebase Auth로 교체 [⬜ 대기]
+## Step 3: 인증 시스템 Firebase Auth로 교체 [✅ 완료]
 
 ### 변경 내용
 - NextAuth.js 완전 제거
@@ -108,7 +108,7 @@ certificateIssuances/{issuanceId}
 
 ---
 
-## Step 4: 결제 시스템 토스페이먼츠 직접 연동 [⬜ 대기]
+## Step 4: 결제 시스템 토스페이먼츠 직접 연동 [✅ 완료]
 
 ### 삭제할 파일
 - `src/lib/payment.ts` (PortOne 유틸)
@@ -137,7 +137,7 @@ certificateIssuances/{issuanceId}
 
 ---
 
-## Step 5: 나머지 페이지 Firestore 연동 [⬜ 대기]
+## Step 5: 나머지 페이지 Firestore 연동 [✅ 완료]
 
 ### 강의 시스템
 - `src/app/courses/page.tsx` → Firestore에서 강의 목록 조회
@@ -159,7 +159,7 @@ certificateIssuances/{issuanceId}
 
 ---
 
-## Step 6: 정리 및 테스트 [⬜ 대기]
+## Step 6: 정리 및 테스트 [✅ 완료]
 
 ### 제거할 의존성
 - `@prisma/client`, `prisma`
