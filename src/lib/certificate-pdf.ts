@@ -2,11 +2,14 @@
 // 실제 구현 시 @react-pdf/renderer 또는 Puppeteer 사용
 
 export interface CertificateData {
+  certificateName: string;
   recipientName: string;
   issueNumber: string;
   gradeName: string;
   gradeTitle: string;
   issuedAt: Date;
+  organizationName: string;
+  signatureImageUrl?: string;
   qrCodeUrl: string;
 }
 
@@ -153,10 +156,10 @@ export function generateCertificateHTML(data: CertificateData): string {
     </div>
 
     <div class="body">
-      <div class="grade-badge">Crowny AI 활용 자격증 ${data.gradeName} - ${data.gradeTitle}</div>
+      <div class="grade-badge">${data.certificateName} ${data.gradeName} - ${data.gradeTitle}</div>
       <div class="recipient-name">${data.recipientName}</div>
       <div class="description">
-        위 사람은 Crowny AI 활용 자격증 ${data.gradeName} 시험에 합격하였으므로<br>
+        위 사람은 ${data.certificateName} ${data.gradeName} 시험에 합격하였으므로<br>
         이 자격증을 수여합니다.
       </div>
     </div>
@@ -168,8 +171,11 @@ export function generateCertificateHTML(data: CertificateData): string {
       </div>
 
       <div class="seal-area">
-        <div class="seal">직인</div>
-        <div class="org-name">Crowny Certificate</div>
+        ${data.signatureImageUrl
+          ? `<img src="${data.signatureImageUrl}" alt="직인" style="width: 25mm; height: 25mm; object-fit: contain;" />`
+          : `<div class="seal">직인</div>`
+        }
+        <div class="org-name">${data.organizationName}</div>
       </div>
 
       <div class="qr-area">

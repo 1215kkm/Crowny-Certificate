@@ -16,6 +16,8 @@ import {
 } from "@/lib/firestore";
 import { getDocs, collection } from "firebase/firestore";
 import { getFirebaseFirestore } from "@/lib/firebase";
+import { getDocument } from "@/lib/firestore";
+import { SampleDataToggle } from "@/components/admin/sample-data-toggle";
 
 const MENU_ITEMS = [
   { title: "회원 관리", desc: "회원 목록, 검색, 역할 변경", href: "/admin/users", icon: "👤" },
@@ -37,6 +39,7 @@ export default function AdminPage() {
   const [stats, setStats] = useState<StatItem[]>([]);
   const [recentActivities, setRecentActivities] = useState<{ time: string; action: string; user: string; status: string; statusColor: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSampleData, setShowSampleData] = useState(false);
 
   useEffect(() => {
     if (authLoading || !user || !isAdmin) {
@@ -91,6 +94,10 @@ export default function AdminPage() {
         }));
 
         setRecentActivities(activities);
+
+        // 샘플 데이터 설정 로드
+        const siteSettings = await getDocument<{ showSampleData: boolean }>("settings", "site");
+        setShowSampleData(siteSettings?.showSampleData ?? false);
       } catch (error) {
         console.error("관리자 통계 로드 실패:", error);
       } finally {
@@ -143,6 +150,14 @@ export default function AdminPage() {
             <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
           </div>
         ))}
+      </div>
+
+      {/* 샘플 데이터 토글 */}
+      <div className="border border-border rounded-xl p-4 mb-6 bg-muted">
+        <SampleDataToggle enabled={showSampleData} onChange={setShowSampleData} />
+        <p className="text-xs text-muted-foreground mt-1">
+          활성화하면 사용자 페이지(강의, 시험 등)에 샘플 데이터가 표시됩니다.
+        </p>
       </div>
 
       {/* 관리 메뉴 */}

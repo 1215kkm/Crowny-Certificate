@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDocuments, where, type CourseDoc, type CertificateTypeDoc } from "@/lib/firestore";
+import { getDocuments, getDocument, where, type CourseDoc, type CertificateTypeDoc, Timestamp } from "@/lib/firestore";
 import { getGradeInfo } from "@/lib/grade-utils";
 
 export default function CoursesPage() {
-  const [courses, setCourses] = useState<(CourseDoc & { id: string })[]>([]);
+  const [courses, setCourses] = useState<(CourseDoc & { id: string; isSample?: boolean })[]>([]);
   const [certTypes, setCertTypes] = useState<Record<string, CertificateTypeDoc & { id: string }>>({});
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +21,44 @@ export default function CoursesPage() {
         const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
         typesData.forEach((t) => { typesMap[t.id] = t; });
 
-        setCourses(coursesData);
+        // 샘플 데이터 설정 확인
+        const settings = await getDocument<{ showSampleData: boolean }>("settings", "site");
+        let allCourses: (CourseDoc & { id: string; isSample?: boolean })[] = coursesData;
+
+        if (settings?.showSampleData && coursesData.length === 0) {
+          const now = Timestamp.now();
+          const sampleCourses: (CourseDoc & { id: string; isSample: boolean })[] = [
+            {
+              id: "sample-1",
+              title: "[샘플] AI 기초 활용 과정 - 3급 대비",
+              description: "AI 도구의 기본 사용법을 배우고 실무에 적용하는 방법을 학습합니다.",
+              thumbnailUrl: null,
+              certificateTypeId: Object.keys(typesMap)[0] || "",
+              totalDuration: 1800,
+              lessonCount: 12,
+              isPublished: true,
+              createdAt: now,
+              updatedAt: now,
+              isSample: true,
+            },
+            {
+              id: "sample-2",
+              title: "[샘플] AI 심화 활용 과정 - 2급 대비",
+              description: "프롬프트 엔지니어링과 AI 워크플로우 자동화를 심도있게 학습합니다.",
+              thumbnailUrl: null,
+              certificateTypeId: Object.keys(typesMap)[1] || Object.keys(typesMap)[0] || "",
+              totalDuration: 3600,
+              lessonCount: 24,
+              isPublished: true,
+              createdAt: now,
+              updatedAt: now,
+              isSample: true,
+            },
+          ];
+          allCourses = [...sampleCourses, ...coursesData];
+        }
+
+        setCourses(allCourses);
         setCertTypes(typesMap);
       } catch (error) {
         console.error("강의 목록 로드 실패:", error);
@@ -74,7 +111,7 @@ export default function CoursesPage() {
             return (
               <div
                 key={course.id}
-                className="border border-border rounded-xl overflow-hidden hover:shadow-lg transition"
+                className={`border rounded-xl overflow-hidden hover:shadow-lg transition ${(course as { isSample?: boolean }).isSample ? "border-dashed border-orange-300" : "border-border"}`}
               >
                 <div className="bg-gray-100 h-48 flex items-center justify-center">
                   {course.thumbnailUrl ? (
@@ -89,6 +126,9 @@ export default function CoursesPage() {
                 </div>
                 <div className="p-6">
                   <div className="flex items-center gap-2 mb-3">
+                    {(course as { isSample?: boolean }).isSample && (
+                      <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded font-medium">샘플</span>
+                    )}
                     {gradeInfo && (
                       <span className={`${gradeInfo.color} text-white text-xs px-2 py-1 rounded font-medium`}>
                         {gradeInfo.label}

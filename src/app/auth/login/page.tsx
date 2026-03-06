@@ -42,8 +42,23 @@ export default function LoginPage() {
     try {
       await loginWithGoogle();
       router.push("/mypage");
-    } catch {
-      setError("Google 로그인에 실패했습니다.");
+    } catch (err: unknown) {
+      const firebaseError = err as { code?: string; message?: string };
+      console.error("Google login error:", firebaseError.code, firebaseError.message);
+
+      // Firebase Console > Authentication > Settings > Authorized domains에
+      // 배포 도메인이 추가되어 있는지 확인 필요
+      if (firebaseError.code === "auth/popup-closed-by-user") {
+        setError("로그인 팝업이 닫혔습니다. 다시 시도해주세요.");
+      } else if (firebaseError.code === "auth/popup-blocked") {
+        setError("팝업이 차단되었습니다. 브라우저 팝업 차단을 해제해주세요.");
+      } else if (firebaseError.code === "auth/unauthorized-domain") {
+        setError("승인되지 않은 도메인입니다. Firebase Console에서 도메인을 추가해주세요.");
+      } else if (firebaseError.code === "auth/operation-not-allowed") {
+        setError("Google 로그인이 비활성화되어 있습니다. 관리자에게 문의하세요.");
+      } else {
+        setError("Google 로그인에 실패했습니다. 다시 시도해주세요.");
+      }
     } finally {
       setLoading(false);
     }

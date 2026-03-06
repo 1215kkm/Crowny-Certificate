@@ -29,6 +29,7 @@ interface ExamRow {
 
 interface PendingSubmission {
   id: string;
+  examId: string;
   userId: string;
   examTitle: string;
   submittedAt: string;
@@ -88,6 +89,7 @@ export default function AdminExamsPage() {
           const exam = examDocs.find((e) => e.id === s.examId);
           return {
             id: s.id,
+            examId: s.examId,
             userId: s.userId.substring(0, 8) + "...",
             examTitle: exam?.title ?? "알 수 없음",
             submittedAt: formatTimestamp(s.submittedAt),
@@ -279,6 +281,7 @@ export default function AdminExamsPage() {
                       </span>
                     </td>
                     <td className="p-4">
+                      <Link href={`/admin/exams/${exam.id}/questions`} className="text-purple-600 hover:underline text-sm mr-3">문제 관리</Link>
                       <button onClick={() => {
                         setEditingId(exam.id);
                         setFormData({ title: exam.title, certificateTypeId: exam.certificateTypeId, duration: 60, questionCount: exam.questionCount, isActive: exam.active });
@@ -315,7 +318,7 @@ export default function AdminExamsPage() {
                     <td className="p-3">{p.userId}</td>
                     <td className="p-3">{p.submittedAt}</td>
                     <td className="p-3">
-                      <button className="text-primary hover:underline text-sm">채점하기</button>
+                      <Link href={`/admin/exams/${p.examId}/grade/${p.id}`} className="text-primary hover:underline text-sm">채점하기</Link>
                     </td>
                   </tr>
                 ))}
