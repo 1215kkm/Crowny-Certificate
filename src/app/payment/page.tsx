@@ -1,15 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { v4 as uuidv4 } from "uuid";
+
+declare global {
+  interface Window {
+    TossPayments?: (clientKey: string) => {
+      widgets: (options: { customerKey: string }) => {
+        setAmount: (amount: { currency: string; value: number }) => Promise<void>;
+        renderPaymentMethods: (options: { selector: string; variantKey?: string }) => Promise<void>;
+        renderAgreement: (options: { selector: string; variantKey?: string }) => Promise<void>;
+        requestPayment: (options: {
+          orderId: string;
+          orderName: string;
+          successUrl: string;
+          failUrl: string;
+        }) => Promise<void>;
+      };
+    };
+  }
+}
 
 function PaymentContent() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type") || "course";
-  const [paymentMethod, setPaymentMethod] = useState("card");
-  const [agreed, setAgreed] = useState(false);
+  const targetId = searchParams.get("targetId") || "";
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [widgetReady, setWidgetReady] = useState(false);
+  const widgetsRef = useRef<ReturnType<ReturnType<NonNullable<Window["TossPayments"]>>["widgets"]> | null>(null);
 
   const paymentInfo = {
     course: {
@@ -29,26 +51,51 @@ function PaymentContent() {
     },
   }[type] || { title: "결제", subtitle: "", price: 0 };
 
+  useEffect(() => {
+    const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
+    if (!clientKey || !user) return;
+
+    const script = document.createElement("script");
+    script.src = "https://js.tosspayments.com/v2/standard";
+    script.onload = async () => {
+      if (!window.TossPayments) return;
+
+      const tossPayments = window.TossPayments(clientKey);
+      const widgets = tossPayments.widgets({ customerKey: user.uid });
+
+      await widgets.setAmount({ currency: "KRW", value: paymentInfo.price });
+      await widgets.renderPaymentMethods({ selector: "#payment-method" });
+      await widgets.renderAgreement({ selector: "#agreement" });
+
+      widgetsRef.current = widgets;
+      setWidgetReady(true);
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, [user, paymentInfo.price]);
+
   const handlePayment = async () => {
-    if (!agreed) {
-      alert("결제 약관에 동의해주세요.");
-      return;
-    }
+    if (!widgetsRef.current) return;
     setLoading(true);
 
-    // 실제 구현 시 PortOne SDK 호출
-    // const response = await PortOne.requestPayment({
-    //   storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID,
-    //   orderName: paymentInfo.title,
-    //   totalAmount: paymentInfo.price,
-    //   pgProvider: 'PG_PROVIDER_TOSSPAYMENTS',
-    //   payMethod: paymentMethod === 'card' ? 'CARD' : 'TRANSFER',
-    // });
+    try {
+      const orderId = `ORDER-${uuidv4().slice(0, 8).toUpperCase()}`;
+      const origin = window.location.origin;
 
-    alert(
-      `결제 시뮬레이션: ${paymentInfo.title} - ${paymentInfo.price.toLocaleString()}원\n\n실제 서비스에서는 PortOne 결제창이 열립니다.`
-    );
-    setLoading(false);
+      await widgetsRef.current.requestPayment({
+        orderId,
+        orderName: paymentInfo.title,
+        successUrl: `${origin}/payment/success?type=${type}&targetId=${targetId}`,
+        failUrl: `${origin}/payment/fail`,
+      });
+    } catch {
+      setLoading(false);
+    }
   };
 
   return (
@@ -71,44 +118,15 @@ function PaymentContent() {
         </div>
       </div>
 
-      {/* 결제 수단 */}
+      {/* 토스페이먼츠 결제위젯 */}
       <div className="border border-border rounded-xl p-6 mb-6">
         <h2 className="font-bold mb-4">결제 수단</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { id: "card", label: "신용/체크카드" },
-            { id: "transfer", label: "계좌이체" },
-            { id: "kakaopay", label: "카카오페이" },
-            { id: "tosspay", label: "토스페이" },
-          ].map((method) => (
-            <button
-              key={method.id}
-              onClick={() => setPaymentMethod(method.id)}
-              className={`p-3 rounded-lg border text-sm font-medium transition ${
-                paymentMethod === method.id
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-border hover:border-primary/50"
-              }`}
-            >
-              {method.label}
-            </button>
-          ))}
-        </div>
+        <div id="payment-method" />
       </div>
 
-      {/* 약관 동의 */}
+      {/* 약관 동의 (토스페이먼츠 위젯) */}
       <div className="mb-6">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={(e) => setAgreed(e.target.checked)}
-            className="w-4 h-4 text-primary"
-          />
-          <span className="text-sm">
-            결제 약관 및 환불 정책에 동의합니다.
-          </span>
-        </label>
+        <div id="agreement" />
       </div>
 
       {/* 결제 요약 */}
@@ -132,13 +150,19 @@ function PaymentContent() {
 
       <button
         onClick={handlePayment}
-        disabled={loading || !agreed}
+        disabled={loading || !widgetReady}
         className="w-full bg-primary text-white py-4 rounded-lg font-bold text-lg hover:bg-primary-dark transition disabled:opacity-50"
       >
         {loading
           ? "결제 처리 중..."
           : `${paymentInfo.price.toLocaleString()}원 결제하기`}
       </button>
+
+      {!user && (
+        <p className="text-center text-sm text-red-500 mt-4">
+          결제하려면 먼저 로그인해주세요.
+        </p>
+      )}
     </div>
   );
 }

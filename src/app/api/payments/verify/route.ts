@@ -1,58 +1,69 @@
 import { NextResponse } from "next/server";
-import { verifyPayment } from "@/lib/payment";
-import { db } from "@/lib/db";
+import { confirmPayment } from "@/lib/toss-payments";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 
 export async function POST(request: Request) {
   try {
-    const { paymentId, txId, type, targetId, userId } = await request.json();
+    // 인증 확인
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
 
-    if (!paymentId || !userId) {
+    const token = authHeader.split("Bearer ")[1];
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    const userId = decodedToken.uid;
+
+    const { paymentKey, orderId, amount, type, targetId } = await request.json();
+
+    if (!paymentKey || !orderId || !amount) {
       return NextResponse.json(
         { error: "필수 정보가 누락되었습니다." },
         { status: 400 }
       );
     }
 
-    // PortOne API로 결제 검증
-    const isValid = await verifyPayment(paymentId);
-    if (!isValid) {
-      return NextResponse.json(
-        { error: "결제 검증에 실패했습니다." },
-        { status: 400 }
-      );
-    }
+    // 토스페이먼츠 결제 승인
+    const tossResult = await confirmPayment({ paymentKey, orderId, amount });
 
-    // 결제 정보 저장
-    const payment = await db.payment.create({
-      data: {
-        userId,
-        type: type as "COURSE" | "EXAM" | "CERTIFICATE",
-        amount: 0, // 실제로는 PortOne에서 가져온 금액
-        status: "COMPLETED",
-        pgTransactionId: txId,
-        pgProvider: "TOSSPAYMENTS",
-      },
+    // Firestore에 결제 정보 저장
+    const paymentRef = await adminDb.collection("payments").add({
+      userId,
+      type: type || "COURSE",
+      amount: tossResult.totalAmount,
+      method: tossResult.method || null,
+      status: "COMPLETED",
+      tossOrderId: tossResult.orderId,
+      tossPaymentKey: tossResult.paymentKey,
+      receiptUrl: tossResult.receipt?.url || null,
+      refundedAt: null,
+      refundReason: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
     // 타입별 후처리
     if (type === "COURSE" && targetId) {
-      await db.enrollment.create({
-        data: {
-          userId,
-          courseId: targetId,
-          paymentId: payment.id,
-        },
+      await adminDb.collection("enrollments").add({
+        userId,
+        courseId: targetId,
+        progress: 0,
+        completedAt: null,
+        paymentId: paymentRef.id,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
     }
 
     return NextResponse.json({
       success: true,
-      paymentId: payment.id,
+      paymentId: paymentRef.id,
     });
-  } catch (error) {
-    console.error("Payment verification error:", error);
+  } catch (error: unknown) {
+    console.error("Payment confirmation error:", error);
+    const message = error instanceof Error ? error.message : "결제 처리 중 오류가 발생했습니다.";
     return NextResponse.json(
-      { error: "결제 처리 중 오류가 발생했습니다." },
+      { error: message },
       { status: 500 }
     );
   }

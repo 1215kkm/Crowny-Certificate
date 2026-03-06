@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import bcrypt from "bcryptjs";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { z } from "zod";
 
 const registerSchema = z.object({
@@ -24,34 +23,39 @@ export async function POST(request: Request) {
 
     const { name, email, password, phone } = result.data;
 
-    const existingUser = await db.user.findUnique({
-      where: { email },
+    // Firebase Auth에 사용자 생성
+    const userRecord = await adminAuth.createUser({
+      email,
+      password,
+      displayName: name,
     });
 
-    if (existingUser) {
+    // Firestore에 사용자 프로필 저장
+    await adminDb.collection("users").doc(userRecord.uid).set({
+      email,
+      name,
+      phone: phone || null,
+      address: null,
+      role: "STUDENT",
+      image: null,
+      emailVerified: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return NextResponse.json(
+      { message: "회원가입이 완료되었습니다.", userId: userRecord.uid },
+      { status: 201 }
+    );
+  } catch (error: unknown) {
+    console.error("Registration error:", error);
+    const firebaseError = error as { code?: string };
+    if (firebaseError.code === "auth/email-already-exists") {
       return NextResponse.json(
         { error: "이미 등록된 이메일입니다." },
         { status: 400 }
       );
     }
-
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const user = await db.user.create({
-      data: {
-        name,
-        email,
-        hashedPassword,
-        phone: phone || null,
-      },
-    });
-
-    return NextResponse.json(
-      { message: "회원가입이 완료되었습니다.", userId: user.id },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Registration error:", error);
     return NextResponse.json(
       { error: "서버 오류가 발생했습니다." },
       { status: 500 }

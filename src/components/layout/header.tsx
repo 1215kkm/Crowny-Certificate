@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useAuth } from "@/contexts/auth-context";
+import { signOut } from "@/lib/firebase-auth";
 
 const NAV_ITEMS = [
   { label: "강의", href: "/courses" },
@@ -12,6 +14,12 @@ const NAV_ITEMS = [
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, loading } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    setIsMenuOpen(false);
+  };
 
   return (
     <header className="bg-white border-b border-border sticky top-0 z-50">
@@ -37,18 +45,44 @@ export function Header() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link
-            href="/auth/login"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition"
-          >
-            로그인
-          </Link>
-          <Link
-            href="/auth/register"
-            className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
-          >
-            회원가입
-          </Link>
+          {loading ? (
+            <div className="w-20 h-8 bg-muted rounded animate-pulse" />
+          ) : user ? (
+            <>
+              <span className="text-sm text-muted-foreground">
+                {user.displayName || user.email}
+              </span>
+              {user.role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  className="text-sm font-medium text-primary hover:underline"
+                >
+                  관리자
+                </Link>
+              )}
+              <button
+                onClick={handleSignOut}
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition"
+              >
+                로그아웃
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/auth/login"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition"
+              >
+                로그인
+              </Link>
+              <Link
+                href="/auth/register"
+                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
+              >
+                회원가입
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Toggle */}
@@ -97,20 +131,36 @@ export function Header() {
               </Link>
             ))}
             <hr className="border-border" />
-            <Link
-              href="/auth/login"
-              className="block text-sm font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              로그인
-            </Link>
-            <Link
-              href="/auth/register"
-              className="block bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium text-center"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              회원가입
-            </Link>
+            {user ? (
+              <>
+                <div className="text-sm text-muted-foreground">
+                  {user.displayName || user.email}
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="block text-sm font-medium text-red-500"
+                >
+                  로그아웃
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="block text-sm font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  로그인
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="block bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium text-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  회원가입
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

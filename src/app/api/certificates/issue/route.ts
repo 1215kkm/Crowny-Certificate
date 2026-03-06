@@ -1,12 +1,22 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { generateIssueNumber } from "@/lib/utils";
 
 export async function POST(request: Request) {
   try {
-    const { userId, certificateTypeId, deliveryMethod, mailingAddress, mailingZipCode, recipientName, recipientPhone } = await request.json();
+    // 인증 확인
+    const authHeader = request.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return NextResponse.json({ error: "인증이 필요합니다." }, { status: 401 });
+    }
 
-    if (!userId || !certificateTypeId) {
+    const token = authHeader.split("Bearer ")[1];
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    const userId = decodedToken.uid;
+
+    const { certificateTypeId, deliveryMethod, mailingAddress, mailingZipCode, recipientName, recipientPhone } = await request.json();
+
+    if (!certificateTypeId) {
       return NextResponse.json(
         { error: "필수 정보가 누락되었습니다." },
         { status: 400 }
@@ -14,46 +24,54 @@ export async function POST(request: Request) {
     }
 
     // 합격 여부 확인
-    const passedExam = await db.examSubmission.findFirst({
-      where: {
-        userId,
-        passed: true,
-        exam: { certificateTypeId },
-      },
-    });
+    const submissionsSnapshot = await adminDb
+      .collection("examSubmissions")
+      .where("userId", "==", userId)
+      .where("passed", "==", true)
+      .get();
 
-    if (!passedExam) {
+    let hasPassed = false;
+    for (const doc of submissionsSnapshot.docs) {
+      const submission = doc.data();
+      const examDoc = await adminDb.collection("exams").doc(submission.examId).get();
+      if (examDoc.exists && examDoc.data()?.certificateTypeId === certificateTypeId) {
+        hasPassed = true;
+        break;
+      }
+    }
+
+    if (!hasPassed) {
       return NextResponse.json(
         { error: "해당 자격증의 합격 기록이 없습니다." },
         { status: 400 }
       );
     }
 
-    // 인증번호 생성
     const issueNumber = generateIssueNumber();
 
-    // 인증서 발급 레코드 생성
-    const issuance = await db.certificateIssuance.create({
-      data: {
-        userId,
-        certificateTypeId,
-        issueNumber,
-        deliveryMethod: deliveryMethod || "EMAIL",
-        mailingAddress: mailingAddress || null,
-        mailingZipCode: mailingZipCode || null,
-        recipientName: recipientName || null,
-        recipientPhone: recipientPhone || null,
-        status: "PENDING",
-      },
+    const issuanceRef = await adminDb.collection("certificateIssuances").add({
+      userId,
+      certificateTypeId,
+      issueNumber,
+      deliveryMethod: deliveryMethod || "EMAIL",
+      mailingAddress: mailingAddress || null,
+      mailingZipCode: mailingZipCode || null,
+      recipientName: recipientName || null,
+      recipientPhone: recipientPhone || null,
+      status: "PENDING",
+      issuedAt: null,
+      pdfUrl: null,
+      trackingNumber: null,
+      paymentId: null,
+      qrCodeUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
-
-    // TODO: PDF 생성 및 이메일 발송 로직 추가
-    // TODO: QR 코드 생성
 
     return NextResponse.json({
       success: true,
-      issueNumber: issuance.issueNumber,
-      issuanceId: issuance.id,
+      issueNumber,
+      issuanceId: issuanceRef.id,
     });
   } catch (error) {
     console.error("Certificate issuance error:", error);

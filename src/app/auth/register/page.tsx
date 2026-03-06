@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { registerWithEmail } from "@/lib/firebase-auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -37,27 +38,22 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "회원가입에 실패했습니다.");
-        return;
+      await registerWithEmail(
+        formData.email,
+        formData.password,
+        formData.name,
+        formData.phone || undefined
+      );
+      router.push("/mypage");
+    } catch (err: unknown) {
+      const firebaseError = err as { code?: string };
+      if (firebaseError.code === "auth/email-already-in-use") {
+        setError("이미 등록된 이메일입니다.");
+      } else if (firebaseError.code === "auth/weak-password") {
+        setError("비밀번호가 너무 약합니다.");
+      } else {
+        setError("회원가입 중 오류가 발생했습니다.");
       }
-
-      router.push("/auth/login?registered=true");
-    } catch {
-      setError("회원가입 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
