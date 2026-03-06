@@ -1,43 +1,107 @@
-import Link from "next/link";
+"use client";
 
-// 데모 강의 상세 (실제로는 DB에서 가져옴)
-const DEMO_LESSONS = [
-  { id: "1", title: "AI 도구 개요 및 활용 전략", duration: "25분", isFree: true },
-  { id: "2", title: "ChatGPT 프롬프트 엔지니어링 기초", duration: "35분", isFree: true },
-  { id: "3", title: "Claude를 활용한 문서 분석 및 요약", duration: "30분", isFree: false },
-  { id: "4", title: "Midjourney / DALL-E 이미지 생성", duration: "40분", isFree: false },
-  { id: "5", title: "AI 코딩 어시스턴트 (Cursor, Copilot)", duration: "45분", isFree: false },
-  { id: "6", title: "AI 자동화 워크플로우 구축", duration: "35분", isFree: false },
-  { id: "7", title: "프롬프트 체이닝 심화", duration: "30분", isFree: false },
-  { id: "8", title: "실전 프로젝트: AI로 블로그 자동화", duration: "50분", isFree: false },
-];
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import {
+  getDocument,
+  getDocs,
+  query,
+  orderBy,
+  lessonsCollection,
+  type CourseDoc,
+  type LessonDoc,
+  type CertificateTypeDoc,
+} from "@/lib/firestore";
+import { getGradeInfo, formatDuration } from "@/lib/grade-utils";
 
 export default function CourseDetailPage() {
+  const params = useParams();
+  const courseId = params.id as string;
+
+  const [course, setCourse] = useState<(CourseDoc & { id: string }) | null>(null);
+  const [lessons, setLessons] = useState<(LessonDoc & { id: string })[]>([]);
+  const [certType, setCertType] = useState<(CertificateTypeDoc & { id: string }) | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const courseData = await getDocument<CourseDoc>("courses", courseId);
+        if (!courseData) {
+          setLoading(false);
+          return;
+        }
+        setCourse(courseData);
+
+        const [lessonsSnap, typeData] = await Promise.all([
+          getDocs(query(lessonsCollection(courseId), orderBy("order"))),
+          getDocument<CertificateTypeDoc>("certificateTypes", courseData.certificateTypeId),
+        ]);
+
+        const lessonsData = lessonsSnap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as LessonDoc),
+        }));
+        setLessons(lessonsData);
+        setCertType(typeData);
+      } catch (error) {
+        console.error("강의 상세 로드 실패:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [courseId]);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 animate-pulse">
+        <div className="h-6 bg-gray-200 rounded w-16 mb-3" />
+        <div className="h-8 bg-gray-200 rounded w-2/3 mb-2" />
+        <div className="h-4 bg-gray-200 rounded w-full mb-8" />
+        <div className="bg-muted rounded-xl p-6 mb-8 h-24" />
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold mb-4">강의를 찾을 수 없습니다</h1>
+        <Link href="/courses" className="text-primary hover:underline">
+          강의 목록으로 돌아가기
+        </Link>
+      </div>
+    );
+  }
+
+  const gradeInfo = certType ? getGradeInfo(certType.grade) : null;
+  const price = certType?.coursePrice ?? 0;
+  const totalMinutes = Math.round(course.totalDuration / 60);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       {/* 강의 헤더 */}
       <div className="mb-8">
-        <span className="bg-blue-500 text-white text-sm px-3 py-1 rounded font-medium">
-          3급
-        </span>
-        <h1 className="text-3xl font-bold mt-3 mb-2">
-          AI 기초 활용 마스터 과정
-        </h1>
-        <p className="text-muted-foreground">
-          ChatGPT, Claude, Midjourney 등 주요 AI 도구를 실무에서 활용하는 방법을
-          배웁니다. 프롬프트 엔지니어링부터 AI 자동화까지 체계적으로 학습합니다.
-        </p>
+        {gradeInfo && (
+          <span className={`${gradeInfo.color} text-white text-sm px-3 py-1 rounded font-medium`}>
+            {gradeInfo.label}
+          </span>
+        )}
+        <h1 className="text-3xl font-bold mt-3 mb-2">{course.title}</h1>
+        <p className="text-muted-foreground">{course.description}</p>
       </div>
 
       {/* 강의 정보 카드 */}
       <div className="bg-muted rounded-xl p-6 mb-8">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
           <div>
-            <div className="text-2xl font-bold text-primary">8강</div>
+            <div className="text-2xl font-bold text-primary">{lessons.length}강</div>
             <div className="text-sm text-muted-foreground">총 강의 수</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-primary">4.5시간</div>
+            <div className="text-2xl font-bold text-primary">{formatDuration(totalMinutes)}</div>
             <div className="text-sm text-muted-foreground">총 학습 시간</div>
           </div>
           <div>
@@ -54,45 +118,51 @@ export default function CourseDetailPage() {
       {/* 커리큘럼 */}
       <div className="mb-8">
         <h2 className="text-xl font-bold mb-4">커리큘럼</h2>
-        <div className="border border-border rounded-xl overflow-hidden">
-          {DEMO_LESSONS.map((lesson, idx) => (
-            <div
-              key={lesson.id}
-              className="flex items-center justify-between p-4 border-b border-border last:border-b-0 hover:bg-muted/50 transition"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground w-6">
-                  {idx + 1}
-                </span>
-                <div>
-                  <span className="text-sm font-medium">{lesson.title}</span>
-                  {lesson.isFree && (
-                    <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                      무료
-                    </span>
-                  )}
+        {lessons.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground border border-border rounded-xl">
+            아직 등록된 레슨이 없습니다.
+          </div>
+        ) : (
+          <div className="border border-border rounded-xl overflow-hidden">
+            {lessons.map((lesson, idx) => (
+              <div
+                key={lesson.id}
+                className="flex items-center justify-between p-4 border-b border-border last:border-b-0 hover:bg-muted/50 transition"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground w-6">
+                    {idx + 1}
+                  </span>
+                  <div>
+                    <span className="text-sm font-medium">{lesson.title}</span>
+                    {lesson.isFree && (
+                      <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                        무료
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <span className="text-sm text-muted-foreground">
+                  {formatDuration(lesson.duration)}
+                </span>
               </div>
-              <span className="text-sm text-muted-foreground">
-                {lesson.duration}
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 수강 신청 */}
       <div className="bg-card border border-border rounded-xl p-6 sticky bottom-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-3xl font-bold">59,000원</div>
+            <div className="text-3xl font-bold">{price.toLocaleString()}원</div>
             <div className="text-sm text-muted-foreground mt-1">
               수강료 (무제한 수강)
             </div>
           </div>
           <div className="flex gap-3">
             <Link
-              href="/payment?type=course&id=1"
+              href={`/payment?type=course&id=${course.id}`}
               className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition"
             >
               수강 신청하기

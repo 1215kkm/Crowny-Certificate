@@ -1,86 +1,121 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  getDocument,
+  getDocs,
+  query,
+  orderBy,
+  questionsCollection,
+  type ExamDoc,
+  type ExamQuestionDoc,
+} from "@/lib/firestore";
 
-// 데모 시험 문제
-const DEMO_QUESTIONS = [
-  {
-    id: "1",
-    type: "MULTIPLE_CHOICE",
-    content: "다음 중 대규모 언어 모델(LLM)의 특징으로 올바르지 않은 것은?",
-    options: [
-      "자연어를 이해하고 생성할 수 있다",
-      "학습된 데이터를 기반으로 응답한다",
-      "실시간 인터넷 검색이 항상 가능하다",
-      "프롬프트에 따라 다양한 형식의 출력이 가능하다",
-    ],
-    points: 5,
-  },
-  {
-    id: "2",
-    type: "MULTIPLE_CHOICE",
-    content: "프롬프트 엔지니어링에서 'Few-shot' 기법이란?",
-    options: [
-      "AI에게 매우 짧은 프롬프트를 주는 것",
-      "예시를 몇 개 포함하여 원하는 형식을 안내하는 것",
-      "프롬프트를 여러 번 반복하는 것",
-      "AI의 온도 설정을 낮추는 것",
-    ],
-    points: 5,
-  },
-  {
-    id: "3",
-    type: "MULTIPLE_CHOICE",
-    content: "AI 이미지 생성 도구가 아닌 것은?",
-    options: ["Midjourney", "DALL-E", "Stable Diffusion", "GitHub Copilot"],
-    points: 5,
-  },
-  {
-    id: "4",
-    type: "MULTIPLE_CHOICE",
-    content:
-      "ChatGPT에서 시스템 프롬프트(System Prompt)의 역할은?",
-    options: [
-      "사용자의 입력을 차단하는 것",
-      "AI의 행동 방식과 역할을 설정하는 것",
-      "대화 내용을 저장하는 것",
-      "AI의 학습 데이터를 업데이트하는 것",
-    ],
-    points: 5,
-  },
-  {
-    id: "5",
-    type: "MULTIPLE_CHOICE",
-    content:
-      "AI를 활용한 코드 작성 시 가장 중요한 점은?",
-    options: [
-      "AI가 생성한 코드를 그대로 사용한다",
-      "생성된 코드를 검토하고 테스트한 후 사용한다",
-      "가능한 한 긴 프롬프트를 작성한다",
-      "하나의 AI 도구만 사용한다",
-    ],
-    points: 5,
-  },
-];
+interface Question {
+  id: string;
+  type: string;
+  content: string;
+  options: string[];
+  points: number;
+}
 
 export default function ExamTakePage() {
+  const params = useParams();
+  const router = useRouter();
+  const examId = params.id as string;
+  const { user, loading: authLoading } = useAuth();
+
+  const [exam, setExam] = useState<(ExamDoc & { id: string }) | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
-  const [timeLeft, setTimeLeft] = useState(60 * 60); // 60분 (초)
+  const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [score, setScore] = useState<number | null>(null);
-
-  // 정답 (데모)
-  const correctAnswers: Record<string, number> = {
-    "1": 2,
-    "2": 1,
-    "3": 3,
-    "4": 1,
-    "5": 1,
-  };
+  const [totalPoints, setTotalPoints] = useState(0);
+  const [passed, setPassed] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (isSubmitted) return;
+    if (authLoading) return;
+    if (!user) {
+      router.push("/auth/login");
+      return;
+    }
+
+    async function fetchExam() {
+      try {
+        const examData = await getDocument<ExamDoc>("exams", examId);
+        if (!examData) {
+          setLoading(false);
+          return;
+        }
+        setExam(examData);
+        setTimeLeft(examData.duration * 60);
+
+        // 문제 로드 (correctAnswer 제외 — 클라이언트에 노출하지 않음)
+        const qSnap = await getDocs(
+          query(questionsCollection(examId), orderBy("order"))
+        );
+        const qs: Question[] = qSnap.docs.map((d) => {
+          const data = d.data() as ExamQuestionDoc;
+          return {
+            id: d.id,
+            type: data.type,
+            content: data.content,
+            options: data.options || [],
+            points: data.points,
+          };
+        });
+        setQuestions(qs);
+        setTotalPoints(qs.reduce((sum, q) => sum + q.points, 0));
+      } catch (error) {
+        console.error("시험 로드 실패:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchExam();
+  }, [examId, user, authLoading, router]);
+
+  const handleSubmit = useCallback(async () => {
+    if (isSubmitted || submitting || !user) return;
+    setSubmitting(true);
+
+    try {
+      const { getFirebaseAuth } = await import("@/lib/firebase");
+      const token = await getFirebaseAuth().currentUser?.getIdToken();
+
+      const res = await fetch("/api/exams/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ examId, answers }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setScore(data.score);
+        setTotalPoints(data.totalPoints);
+        setPassed(data.passed);
+        setIsSubmitted(true);
+      } else {
+        alert(data.error || "제출에 실패했습니다.");
+      }
+    } catch {
+      alert("제출 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [examId, answers, user, isSubmitted, submitting]);
+
+  useEffect(() => {
+    if (isSubmitted || loading || !exam) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -91,25 +126,12 @@ export default function ExamTakePage() {
       });
     }, 1000);
     return () => clearInterval(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSubmitted]);
+  }, [isSubmitted, loading, exam, handleSubmit]);
 
   const handleAnswer = (questionId: string, optionIndex: number) => {
     if (isSubmitted) return;
     setAnswers((prev) => ({ ...prev, [questionId]: optionIndex }));
   };
-
-  const handleSubmit = useCallback(() => {
-    let totalScore = 0;
-    DEMO_QUESTIONS.forEach((q) => {
-      if (answers[q.id] === correctAnswers[q.id]) {
-        totalScore += q.points;
-      }
-    });
-    setScore(totalScore);
-    setIsSubmitted(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answers]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -117,9 +139,27 @@ export default function ExamTakePage() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const totalPoints = DEMO_QUESTIONS.reduce((sum, q) => sum + q.points, 0);
-  const question = DEMO_QUESTIONS[currentQuestion];
-  const passed = score !== null && score >= totalPoints * 0.7;
+  if (authLoading || loading) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-12 text-center">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/2 mx-auto" />
+          <div className="h-4 bg-gray-200 rounded w-1/3 mx-auto" />
+          <div className="h-64 bg-gray-200 rounded" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!exam || questions.length === 0) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold mb-4">시험을 찾을 수 없습니다</h1>
+        <p className="text-muted-foreground mb-4">시험 정보가 없거나 문제가 등록되지 않았습니다.</p>
+        <a href="/exams" className="text-primary hover:underline">시험 목록으로 돌아가기</a>
+      </div>
+    );
+  }
 
   if (isSubmitted && score !== null) {
     return (
@@ -157,13 +197,15 @@ export default function ExamTakePage() {
     );
   }
 
+  const question = questions[currentQuestion];
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       {/* 타이머 & 진행 상황 */}
       <div className="flex items-center justify-between mb-6 bg-muted rounded-xl p-4">
         <div className="text-sm">
           <span className="font-medium">
-            문제 {currentQuestion + 1} / {DEMO_QUESTIONS.length}
+            문제 {currentQuestion + 1} / {questions.length}
           </span>
         </div>
         <div
@@ -176,8 +218,8 @@ export default function ExamTakePage() {
       </div>
 
       {/* 문제 번호 네비게이션 */}
-      <div className="flex gap-2 mb-6">
-        {DEMO_QUESTIONS.map((q, idx) => (
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {questions.map((q, idx) => (
           <button
             key={q.id}
             onClick={() => setCurrentQuestion(idx)}
@@ -200,7 +242,9 @@ export default function ExamTakePage() {
           <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded font-medium">
             {question.points}점
           </span>
-          <span className="text-xs text-muted-foreground">객관식</span>
+          <span className="text-xs text-muted-foreground">
+            {question.type === "MULTIPLE_CHOICE" ? "객관식" : question.type}
+          </span>
         </div>
         <h2 className="text-lg font-bold mb-6">{question.content}</h2>
         <div className="space-y-3">
@@ -232,19 +276,18 @@ export default function ExamTakePage() {
         >
           이전 문제
         </button>
-        {currentQuestion === DEMO_QUESTIONS.length - 1 ? (
+        {currentQuestion === questions.length - 1 ? (
           <button
             onClick={handleSubmit}
-            className="bg-red-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-600 transition"
+            disabled={submitting}
+            className="bg-red-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-red-600 transition disabled:opacity-50"
           >
-            시험 제출하기
+            {submitting ? "제출 중..." : "시험 제출하기"}
           </button>
         ) : (
           <button
             onClick={() =>
-              setCurrentQuestion(
-                Math.min(DEMO_QUESTIONS.length - 1, currentQuestion + 1)
-              )
+              setCurrentQuestion(Math.min(questions.length - 1, currentQuestion + 1))
             }
             className="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary-dark transition"
           >

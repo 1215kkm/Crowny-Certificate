@@ -1,61 +1,65 @@
-import Link from "next/link";
+"use client";
 
-const DEMO_EXAMS = [
-  {
-    id: "1",
-    grade: "3급",
-    gradeColor: "bg-blue-500",
-    title: "Crowny AI 활용 자격증 3급 - 2026년 4월 정기시험",
-    format: "객관식 40문항 + 실습 2개",
-    duration: "60분",
-    passingScore: 70,
-    price: 30000,
-    registrationEnd: "2026-03-31",
-    scheduledDate: "2026-04-15",
-    seats: "제한 없음 (온라인)",
-  },
-  {
-    id: "2",
-    grade: "2급",
-    gradeColor: "bg-purple-500",
-    title: "Crowny AI 활용 자격증 2급 - 2026년 4월 정기시험",
-    format: "실기 시험 (화면 녹화 제출)",
-    duration: "120분",
-    passingScore: 70,
-    price: 50000,
-    registrationEnd: "2026-03-31",
-    scheduledDate: "2026-04-15",
-    seats: "제한 없음 (온라인)",
-  },
-  {
-    id: "3",
-    grade: "1급",
-    gradeColor: "bg-orange-500",
-    title: "Crowny AI 활용 자격증 1급 - 2026년 4월 정기시험",
-    format: "프로젝트 제출 + 코드 리뷰",
-    duration: "7일",
-    passingScore: 80,
-    price: 80000,
-    registrationEnd: "2026-03-31",
-    scheduledDate: "2026-04-15",
-    seats: "제한 없음 (온라인)",
-  },
-  {
-    id: "4",
-    grade: "특급",
-    gradeColor: "bg-red-500",
-    title: "Crowny AI 활용 자격증 특급 - 2026년 5월 특별시험",
-    format: "실무 과제 해결 (해커톤)",
-    duration: "48시간",
-    passingScore: 80,
-    price: 120000,
-    registrationEnd: "2026-04-30",
-    scheduledDate: "2026-05-10",
-    seats: "30명 제한",
-  },
-];
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { getDocuments, where, type ExamDoc, type CertificateTypeDoc } from "@/lib/firestore";
+import { getGradeInfo, formatTimestamp } from "@/lib/grade-utils";
 
 export default function ExamsPage() {
+  const [exams, setExams] = useState<(ExamDoc & { id: string })[]>([]);
+  const [certTypes, setCertTypes] = useState<Record<string, CertificateTypeDoc & { id: string }>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [examsData, typesData] = await Promise.all([
+          getDocuments<ExamDoc>("exams", where("isActive", "==", true)),
+          getDocuments<CertificateTypeDoc>("certificateTypes"),
+        ]);
+
+        const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
+        typesData.forEach((t) => { typesMap[t.id] = t; });
+
+        setExams(examsData);
+        setCertTypes(typesMap);
+      } catch (error) {
+        console.error("시험 목록 로드 실패:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-12">
+        <h1 className="text-3xl font-bold mb-2">시험 신청</h1>
+        <p className="text-muted-foreground mb-8">원하는 등급의 시험을 선택하고 신청하세요</p>
+        <div className="space-y-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border border-border rounded-xl p-6 animate-pulse">
+              <div className="h-6 bg-gray-200 rounded w-1/4 mb-3" />
+              <div className="h-4 bg-gray-200 rounded w-2/3 mb-4" />
+              <div className="grid grid-cols-4 gap-3">
+                {[1, 2, 3, 4].map((j) => (
+                  <div key={j} className="h-10 bg-gray-200 rounded" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const formatExamDuration = (minutes: number): string => {
+    if (minutes < 60) return `${minutes}분`;
+    if (minutes < 1440) return `${Math.round(minutes / 60)}시간`;
+    return `${Math.round(minutes / 1440)}일`;
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-2">시험 신청</h1>
@@ -63,63 +67,76 @@ export default function ExamsPage() {
         원하는 등급의 시험을 선택하고 신청하세요
       </p>
 
-      <div className="space-y-6">
-        {DEMO_EXAMS.map((exam) => (
-          <div
-            key={exam.id}
-            className="border border-border rounded-xl p-6 hover:shadow-md transition"
-          >
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className={`${exam.gradeColor} text-white text-xs px-2 py-1 rounded font-medium`}
-                  >
-                    {exam.grade}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    접수마감: {exam.registrationEnd}
-                  </span>
-                </div>
-                <h2 className="text-lg font-bold mb-3">{exam.title}</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">시험 형식</span>
-                    <div className="font-medium">{exam.format}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">시험 시간</span>
-                    <div className="font-medium">{exam.duration}</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">합격 기준</span>
-                    <div className="font-medium">{exam.passingScore}점 이상</div>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">정원</span>
-                    <div className="font-medium">{exam.seats}</div>
-                  </div>
-                </div>
-              </div>
+      {exams.length === 0 ? (
+        <div className="text-center py-16 text-muted-foreground">
+          현재 접수 가능한 시험이 없습니다.
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {exams.map((exam) => {
+            const certType = certTypes[exam.certificateTypeId];
+            const gradeInfo = certType ? getGradeInfo(certType.grade) : null;
+            const price = certType?.price ?? 0;
+            const passingScore = certType?.passingScore ?? 70;
 
-              <div className="flex flex-col items-end gap-2">
-                <div className="text-xl font-bold text-primary">
-                  {exam.price.toLocaleString()}원
+            return (
+              <div
+                key={exam.id}
+                className="border border-border rounded-xl p-6 hover:shadow-md transition"
+              >
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {gradeInfo && (
+                        <span className={`${gradeInfo.color} text-white text-xs px-2 py-1 rounded font-medium`}>
+                          {gradeInfo.label}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        접수마감: {formatTimestamp(exam.registrationEnd)}
+                      </span>
+                    </div>
+                    <h2 className="text-lg font-bold mb-3">{exam.title}</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">시험 형식</span>
+                        <div className="font-medium">{certType?.examFormat === "MULTIPLE_CHOICE" ? "객관식" : certType?.examFormat === "PRACTICAL" ? "실기" : certType?.examFormat === "PROJECT" ? "프로젝트" : "해커톤"}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">시험 시간</span>
+                        <div className="font-medium">{formatExamDuration(exam.duration)}</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">합격 기준</span>
+                        <div className="font-medium">{passingScore}점 이상</div>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">문제 수</span>
+                        <div className="font-medium">{exam.questionCount}문항</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="text-xl font-bold text-primary">
+                      {price.toLocaleString()}원
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      시험일: {formatTimestamp(exam.scheduledDate)}
+                    </div>
+                    <Link
+                      href={`/payment?type=exam&id=${exam.id}`}
+                      className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
+                    >
+                      시험 신청하기
+                    </Link>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  시험일: {exam.scheduledDate}
-                </div>
-                <Link
-                  href={`/payment?type=exam&id=${exam.id}`}
-                  className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
-                >
-                  시험 신청하기
-                </Link>
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

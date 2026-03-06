@@ -2,19 +2,42 @@
 
 import { useState } from "react";
 
+interface VerifyResult {
+  valid: boolean;
+  certificate?: {
+    issueNumber: string;
+    certificateName: string;
+    grade: string;
+    recipientName: string;
+    issuedAt: string;
+    status: string;
+  };
+}
+
 export default function CertificateVerifyPage() {
   const [issueNumber, setIssueNumber] = useState("");
-  const [result, setResult] = useState<"valid" | "invalid" | null>(null);
+  const [result, setResult] = useState<VerifyResult | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setResult(null);
 
-    // 데모: 실제로는 API에서 검증
-    await new Promise((r) => setTimeout(r, 1000));
-    setResult(issueNumber.startsWith("CRN-") ? "valid" : "invalid");
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/certificates/verify?issueNumber=${encodeURIComponent(issueNumber)}`);
+      const data = await res.json();
+
+      if (res.ok && data.valid) {
+        setResult({ valid: true, certificate: data.certificate });
+      } else {
+        setResult({ valid: false });
+      }
+    } catch {
+      setResult({ valid: false });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -54,7 +77,7 @@ export default function CertificateVerifyPage() {
         </button>
       </form>
 
-      {result === "valid" && (
+      {result?.valid && result.certificate && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
@@ -78,23 +101,22 @@ export default function CertificateVerifyPage() {
           </div>
           <div className="space-y-2 text-sm text-green-700">
             <div>
-              <span className="font-medium">인증번호:</span> {issueNumber}
+              <span className="font-medium">인증번호:</span> {result.certificate.issueNumber}
             </div>
             <div>
-              <span className="font-medium">자격명:</span> Crowny AI 활용 자격증
-              3급
+              <span className="font-medium">자격명:</span> {result.certificate.certificateName}
             </div>
             <div>
-              <span className="font-medium">취득자:</span> 홍길동
+              <span className="font-medium">취득자:</span> {result.certificate.recipientName}
             </div>
             <div>
-              <span className="font-medium">발급일:</span> 2026년 3월 1일
+              <span className="font-medium">발급일:</span> {result.certificate.issuedAt}
             </div>
           </div>
         </div>
       )}
 
-      {result === "invalid" && (
+      {result && !result.valid && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
