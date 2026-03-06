@@ -30,6 +30,7 @@
 | 5 | Prisma/NextAuth/PortOne 파일 삭제 | ✅ 완료 | 2026-03-06 |
 | 6 | 의존성 정리 및 빌드 확인 | ✅ 완료 | 2026-03-06 |
 | 7 | Step 5: 전체 페이지 Firestore 연동 (13개 파일) | ✅ 완료 | 2026-03-06 |
+| 8 | Vercel 배포 설정 (vercel.json, next.config.ts 최적화) | ✅ 완료 | 2026-03-06 |
 
 ---
 
@@ -46,6 +47,7 @@
 ## 4. 변경된 파일 목록
 
 ### 새로 생성
+- `vercel.json` — Vercel 배포 설정 (API 타임아웃, 보안 헤더)
 - `src/lib/firebase.ts` — Firebase 클라이언트 SDK 초기화 (지연 로딩)
 - `src/lib/firebase-admin.ts` — Firebase Admin SDK (Proxy 기반 지연 초기화)
 - `src/lib/firestore.ts` — Firestore 컬렉션 타입 정의 + CRUD 헬퍼
@@ -73,8 +75,9 @@
 - `src/app/api/certificates/verify/route.ts` — Firestore 조회
 - `src/app/api/payments/verify/route.ts` — 토스페이먼츠 승인 API
 - `package.json` — Firebase/토스 추가, Prisma/NextAuth 제거
-- `.env.example` — Firebase + 토스페이먼츠 환경변수
+- `.env.example` — Firebase + 토스페이먼츠 + BASE_URL 환경변수
 - `.gitignore` — Firebase 로그 파일 추가
+- `next.config.ts` — standalone 출력 모드 추가 (Vercel 최적화)
 
 ### 수정됨 (Step 5: 페이지 Firestore 연동)
 - `src/app/courses/page.tsx` — 데모 → Firestore 쿼리 + 로딩/빈 상태
@@ -109,7 +112,10 @@
 - [x] 인증서 페이지 (certificates/) Firestore 연동
 - [x] 시험 제출 API (/api/exams/submit) 서버 채점
 
+**배포 준비 완료!** Vercel 대시보드에서 GitHub 레포 연결 후 환경변수 입력하면 배포됩니다.
+
 **추가 개선 가능 사항 (선택):**
+- [ ] Vercel 배포 후 커스텀 도메인 연결
 - [ ] Firebase 콘솔에서 테스트 데이터 입력 후 동작 확인
 - [ ] Firestore Security Rules 설정
 - [ ] Firebase Storage Security Rules 설정
