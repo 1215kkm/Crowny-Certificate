@@ -41,9 +41,9 @@ export default function CourseDetailPage() {
             const now = Timestamp.now();
             setCourse({ id: courseId, ...sample, thumbnailUrl: null, certificateTypeId: "", isPublished: true, createdAt: now, updatedAt: now });
             setLessons([
-              { id: "s-lesson-1", title: "강의 소개 및 환경 설정", videoUrl: "", duration: 15, order: 1, isFree: true, createdAt: now, updatedAt: now },
-              { id: "s-lesson-2", title: "기본 개념 학습", videoUrl: "", duration: 30, order: 2, isFree: false, createdAt: now, updatedAt: now },
-              { id: "s-lesson-3", title: "실습 프로젝트", videoUrl: "", duration: 45, order: 3, isFree: false, createdAt: now, updatedAt: now },
+              { id: "s-lesson-1", courseId, title: "강의 소개 및 환경 설정", description: null, videoUrl: null, duration: 15, order: 1, isFree: true, createdAt: now, updatedAt: now },
+              { id: "s-lesson-2", courseId, title: "기본 개념 학습", description: null, videoUrl: null, duration: 30, order: 2, isFree: false, createdAt: now, updatedAt: now },
+              { id: "s-lesson-3", courseId, title: "실습 프로젝트", description: null, videoUrl: null, duration: 45, order: 3, isFree: false, createdAt: now, updatedAt: now },
             ]);
           }
           setLoading(false);
