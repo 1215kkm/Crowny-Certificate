@@ -20,7 +20,7 @@ export default function MyPage() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [enrollments, setEnrollments] = useState<{ id: string; courseTitle: string; grade: string; gradeColor: string; progress: number; courseId: string }[]>([]);
-  const [examResults, setExamResults] = useState<{ id: string; examTitle: string; grade: string; score: number | null; passed: boolean | null; date: string }[]>([]);
+  const [examResults, setExamResults] = useState<{ id: string; examTitle: string; grade: string; score: number | null; passed: boolean | null; date: string; feedback: string | null }[]>([]);
   const [certificates, setCertificates] = useState<{ id: string; grade: string; issueNumber: string; issuedAt: string; status: string; pdfUrl: string | null }[]>([]);
 
   useEffect(() => {
@@ -89,6 +89,7 @@ export default function MyPage() {
               score: s.score,
               passed: s.passed,
               date: formatTimestamp(s.submittedAt),
+              feedback: s.feedback,
             };
           })
         );
@@ -202,20 +203,27 @@ export default function MyPage() {
         {examResults.length > 0 ? (
           <div className="space-y-4">
             {examResults.map((result) => (
-              <div key={result.id} className="border border-border rounded-xl p-5 flex items-center justify-between">
-                <div>
-                  <span className={`text-xs px-2 py-0.5 rounded mr-2 ${result.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                    {result.passed ? "합격" : "불합격"}
-                  </span>
-                  <span className="font-medium">{result.examTitle}</span>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    점수: {result.score ?? "-"}점 | 응시일: {result.date}
+              <div key={result.id} className="border border-border rounded-xl p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className={`text-xs px-2 py-0.5 rounded mr-2 ${result.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {result.passed ? "합격" : "불합격"}
+                    </span>
+                    <span className="font-medium">{result.examTitle}</span>
+                    <div className="text-sm text-muted-foreground mt-1">
+                      점수: {result.score ?? "-"}점 | 응시일: {result.date}
+                    </div>
                   </div>
+                  {result.passed && (
+                    <Link href="/certificates" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+                      인증서 발급
+                    </Link>
+                  )}
                 </div>
-                {result.passed && (
-                  <Link href="/certificates" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
-                    인증서 발급
-                  </Link>
+                {!result.passed && result.feedback && (
+                  <div className="text-sm text-red-600 mt-3 bg-red-50 rounded-lg p-3">
+                    <span className="font-medium">불합격 사유: </span>{result.feedback}
+                  </div>
                 )}
               </div>
             ))}

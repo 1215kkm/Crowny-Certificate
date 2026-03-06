@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDocuments, where, type ExamDoc, type CertificateTypeDoc } from "@/lib/firestore";
+import { getDocuments, getDocument, where, type ExamDoc, type CertificateTypeDoc, Timestamp } from "@/lib/firestore";
 import { getGradeInfo, formatTimestamp } from "@/lib/grade-utils";
 
 export default function ExamsPage() {
-  const [exams, setExams] = useState<(ExamDoc & { id: string })[]>([]);
+  const [exams, setExams] = useState<(ExamDoc & { id: string; isSample?: boolean })[]>([]);
   const [certTypes, setCertTypes] = useState<Record<string, CertificateTypeDoc & { id: string }>>({});
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +21,34 @@ export default function ExamsPage() {
         const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
         typesData.forEach((t) => { typesMap[t.id] = t; });
 
-        setExams(examsData);
+        // 샘플 데이터 설정 확인
+        const settings = await getDocument<{ showSampleData: boolean }>("settings", "site");
+        let allExams: (ExamDoc & { id: string; isSample?: boolean })[] = examsData;
+
+        if (settings?.showSampleData && examsData.length === 0) {
+          const now = Timestamp.now();
+          const sampleExams: (ExamDoc & { id: string; isSample: boolean })[] = [
+            {
+              id: "sample-exam-1",
+              certificateTypeId: Object.keys(typesMap)[0] || "",
+              title: "[샘플] AI 활용 자격증 3급 정기시험",
+              description: "AI 기본 활용 능력을 평가하는 3급 자격시험입니다.",
+              scheduledDate: now,
+              registrationStart: now,
+              registrationEnd: now,
+              duration: 60,
+              questionCount: 30,
+              maxAttempts: 3,
+              isActive: true,
+              createdAt: now,
+              updatedAt: now,
+              isSample: true,
+            },
+          ];
+          allExams = [...sampleExams, ...examsData];
+        }
+
+        setExams(allExams);
         setCertTypes(typesMap);
       } catch (error) {
         console.error("시험 목록 로드 실패:", error);
@@ -82,11 +109,14 @@ export default function ExamsPage() {
             return (
               <div
                 key={exam.id}
-                className="border border-border rounded-xl p-6 hover:shadow-md transition"
+                className={`border rounded-xl p-6 hover:shadow-md transition ${(exam as { isSample?: boolean }).isSample ? "border-dashed border-orange-300" : "border-border"}`}
               >
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
+                      {(exam as { isSample?: boolean }).isSample && (
+                        <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded font-medium">샘플</span>
+                      )}
                       {gradeInfo && (
                         <span className={`${gradeInfo.color} text-white text-xs px-2 py-1 rounded font-medium`}>
                           {gradeInfo.label}

@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { getFirebaseAuth } from "@/lib/firebase";
+import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import type { UserDoc, UserRole } from "@/lib/firestore";
 import { getDocument } from "@/lib/firestore";
 
@@ -40,6 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      setLoading(false);
+      return;
+    }
+
     const firebaseAuth = getFirebaseAuth();
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (fbUser) => {
       if (fbUser) {
