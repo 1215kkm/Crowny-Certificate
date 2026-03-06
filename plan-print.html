@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crowny Certificate - Firebase 전환 계획서</title>
+<style>
+  @media print {
+    body { font-size: 11px; }
+    .page-break { page-break-before: always; }
+    table { page-break-inside: avoid; }
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; line-height: 1.6; padding: 40px; max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 24px; border-bottom: 3px solid #2563eb; padding-bottom: 10px; margin-bottom: 8px; color: #1e3a5f; }
+  h2 { font-size: 18px; color: #2563eb; margin-top: 28px; margin-bottom: 10px; border-left: 4px solid #2563eb; padding-left: 10px; }
+  h3 { font-size: 14px; color: #374151; margin-top: 16px; margin-bottom: 6px; }
+  p, li { font-size: 13px; }
+  .subtitle { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0 16px; font-size: 13px; }
+  th { background: #2563eb; color: white; padding: 8px 12px; text-align: left; font-weight: 600; }
+  td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  code { background: #f3f4f6; padding: 2px 6px; border-radius: 3px; font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+  pre { background: #1e293b; color: #e2e8f0; padding: 16px; border-radius: 8px; font-size: 12px; overflow-x: auto; margin: 10px 0; font-family: 'JetBrains Mono', monospace; line-height: 1.5; }
+  ul { padding-left: 20px; margin: 6px 0; }
+  li { margin-bottom: 4px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-before { background: #fecaca; color: #991b1b; }
+  .badge-after { background: #bbf7d0; color: #166534; }
+  .flow-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 10px 0; }
+  .flow-box ol { padding-left: 20px; }
+  .section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 10px 0; }
+  .env-block { background: #fefce8; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 10px 0; }
+  .env-block pre { background: #1e293b; }
+  .header-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .date-badge { background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>Crowny Certificate</h1>
+<div class="header-meta">
+  <div class="subtitle">Firebase 전환 + 토스페이먼츠 직접 연동 계획서</div>
+  <span class="date-badge">2026-03-06</span>
+</div>
+
+<h2>변경 요약</h2>
+<table>
+  <thead><tr><th>항목</th><th>변경 전</th><th>변경 후</th></tr></thead>
+  <tbody>
+    <tr><td>DB</td><td><span class="badge badge-before">PostgreSQL + Prisma</span></td><td><span class="badge badge-after">Firebase Firestore</span></td></tr>
+    <tr><td>인증</td><td><span class="badge badge-before">NextAuth.js</span></td><td><span class="badge badge-after">Firebase Authentication</span></td></tr>
+    <tr><td>파일저장</td><td><span class="badge badge-before">미구현 (S3 예정)</span></td><td><span class="badge badge-after">Firebase Storage</span></td></tr>
+    <tr><td>결제</td><td><span class="badge badge-before">PortOne V2</span></td><td><span class="badge badge-after">토스페이먼츠 직접 연동</span></td></tr>
+  </tbody>
+</table>
+
+<h2>Step 1: Firebase 설정 파일 생성</h2>
+
+<h3>삭제 대상</h3>
+<ul>
+  <li><code>prisma/schema.prisma</code> — Prisma 스키마</li>
+  <li><code>src/lib/db.ts</code> — Prisma 클라이언트</li>
+  <li><code>src/lib/auth.ts</code> — NextAuth 설정</li>
+  <li><code>src/app/api/auth/[...nextauth]/route.ts</code> — NextAuth API</li>
+</ul>
+
+<h3>생성 대상</h3>
+<ul>
+  <li><code>src/lib/firebase.ts</code> — Firebase 클라이언트 SDK 초기화</li>
+  <li><code>src/lib/firebase-admin.ts</code> — Firebase Admin SDK (서버)</li>
+  <li><code>src/lib/firestore.ts</code> — Firestore 컬렉션 타입 + CRUD 헬퍼</li>
+  <li><code>src/lib/firebase-auth.ts</code> — Firebase Auth 유틸</li>
+  <li><code>src/lib/firebase-storage.ts</code> — Storage 유틸</li>
+  <li><code>src/contexts/auth-context.tsx</code> — React Context 인증 상태 관리</li>
+</ul>
+
+<div class="page-break"></div>
+
+<h2>Step 2: Firestore 컬렉션 구조</h2>
+<pre>
+users/{uid}
+  email, name, phone, address, role, createdAt
+
+certificateTypes/{id}
+  name, grade, description, examFormat
+  price, coursePrice, certPrice, passingScore, duration, isActive
+
+courses/{id}
+  title, description, thumbnailUrl, certificateTypeId
+  totalDuration, lessonCount, isPublished
+  └─ lessons/{id}: title, videoUrl, duration, order, isFree
+
+enrollments/{id}
+  userId, courseId, progress, completedAt, paymentId
+  └─ lessonProgresses/{id}: completed, watchedSec
+
+exams/{id}
+  certificateTypeId, title, scheduledDate, duration
+  registrationStart, registrationEnd, isActive
+  └─ questions/{id}: type, content, options, correctAnswer, points
+
+examSubmissions/{id}
+  userId, examId, status, score, passed
+  startedAt, submittedAt, gradedAt
+  └─ answers/{id}: answer, fileUrl, points, isCorrect
+
+payments/{id}
+  userId, type, amount, method, status
+  tossOrderId, tossPaymentKey, receiptUrl, refundedAt
+
+certificateIssuances/{id}
+  userId, certificateTypeId, issueNumber
+  deliveryMethod, pdfUrl, mailingAddress
+  status, qrCodeUrl, issuedAt
+</pre>
+
+<h2>Step 3: 인증 시스템 교체</h2>
+<div class="section-box">
+  <ul>
+    <li>NextAuth.js 완전 제거</li>
+    <li>Firebase Auth: 이메일/비밀번호, Google, 카카오, 네이버</li>
+    <li><code>AuthContext</code>로 전역 인증 상태 관리</li>
+    <li>서버 API: Firebase Admin SDK로 토큰 검증</li>
+  </ul>
+  <h3>수정 대상 파일</h3>
+  <ul>
+    <li><code>src/app/auth/login/page.tsx</code></li>
+    <li><code>src/app/auth/register/page.tsx</code></li>
+    <li><code>src/app/api/auth/register/route.ts</code></li>
+    <li><code>src/components/layout/header.tsx</code></li>
+    <li><code>src/app/layout.tsx</code></li>
+  </ul>
+</div>
+
+<div class="page-break"></div>
+
+<h2>Step 4: 토스페이먼츠 직접 연동</h2>
+
+<h3>삭제</h3>
+<ul><li><code>src/lib/payment.ts</code> — PortOne 유틸</li></ul>
+
+<h3>생성</h3>
+<ul>
+  <li><code>src/lib/toss-payments.ts</code> — 승인/취소 API 유틸</li>
+  <li><code>src/app/api/payments/confirm/route.ts</code> — 결제 승인</li>
+  <li><code>src/app/api/payments/cancel/route.ts</code> — 결제 취소</li>
+  <li><code>src/app/payment/success/page.tsx</code> — 성공 페이지</li>
+  <li><code>src/app/payment/fail/page.tsx</code> — 실패 페이지</li>
+</ul>
+
+<h3>결제 흐름</h3>
+<div class="flow-box">
+  <ol>
+    <li>프론트: 토스페이먼츠 결제위젯 SDK 로드</li>
+    <li>사용자: 결제 수단 선택 → 결제 요청</li>
+    <li>토스: 인증 완료 → <code>successUrl</code>로 리다이렉트 (paymentKey, orderId, amount)</li>
+    <li>서버: <code>/api/payments/confirm</code>에서 토스 승인 API 호출 (시크릿키)</li>
+    <li>서버: 승인 성공 → Firestore에 결제 정보 저장</li>
+    <li>프론트: 결제 완료 페이지 표시</li>
+  </ol>
+</div>
+
+<h2>Step 5: 페이지 Firestore 연동</h2>
+<table>
+  <thead><tr><th>시스템</th><th>대상 파일</th><th>작업 내용</th></tr></thead>
+  <tbody>
+    <tr><td>강의</td><td><code>courses/</code>, <code>courses/[id]/</code></td><td>Firestore 목록/상세 조회</td></tr>
+    <tr><td>시험</td><td><code>exams/</code>, <code>exams/[id]/take/</code></td><td>Firestore 시험 조회/결과 저장</td></tr>
+    <tr><td>인증서</td><td><code>certificates/</code>, <code>verify/</code></td><td>Firestore 발급/검증</td></tr>
+    <tr><td>마이페이지</td><td><code>mypage/</code></td><td>사용자별 데이터 조회</td></tr>
+    <tr><td>관리자</td><td><code>admin/</code> 하위 전체</td><td>Firestore CRUD 연동</td></tr>
+  </tbody>
+</table>
+
+<h2>Step 6: 의존성 변경</h2>
+<table>
+  <thead><tr><th>구분</th><th>패키지</th></tr></thead>
+  <tbody>
+    <tr><td><span class="badge badge-before">제거</span></td><td><code>@prisma/client</code>, <code>prisma</code>, <code>next-auth</code>, <code>bcryptjs</code>, <code>tsx</code></td></tr>
+    <tr><td><span class="badge badge-after">추가</span></td><td><code>firebase</code>, <code>firebase-admin</code>, <code>@tosspayments/tosspayments-sdk</code></td></tr>
+  </tbody>
+</table>
+
+<h2>환경변수</h2>
+<div class="env-block">
+<pre>
+# Firebase (Client)
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+
+# Firebase Admin (Server)
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
+
+# 토스페이먼츠
+NEXT_PUBLIC_TOSS_CLIENT_KEY=
+TOSS_SECRET_KEY=
+
+# Email
+RESEND_API_KEY=
+</pre>
+</div>
+
+<h2>검증 방법</h2>
+<div class="section-box">
+  <ol>
+    <li><code>npm run dev</code> → 모든 페이지 접근 확인</li>
+    <li>Firebase 에뮬레이터로 Firestore CRUD 테스트</li>
+    <li>토스페이먼츠 테스트 키로 결제 플로우 검증</li>
+    <li><code>npm run build</code> → 빌드 오류 없음 확인</li>
+  </ol>
+</div>
+
+</body>
+</html>
