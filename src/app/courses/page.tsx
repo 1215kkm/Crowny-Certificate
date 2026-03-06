@@ -27,13 +27,14 @@ export default function CoursesPage() {
 
         if (settings?.showSampleData && coursesData.length === 0) {
           const now = Timestamp.now();
+          const typeKeys = Object.keys(typesMap);
           const sampleCourses: (CourseDoc & { id: string; isSample: boolean })[] = [
             {
               id: "sample-1",
               title: "[샘플] AI 기초 활용 과정 - 3급 대비",
-              description: "AI 도구의 기본 사용법을 배우고 실무에 적용하는 방법을 학습합니다.",
+              description: "AI 도구의 기본 사용법을 배우고 실무에 적용하는 방법을 학습합니다. ChatGPT, Claude 등 주요 AI 서비스 활용법을 다룹니다.",
               thumbnailUrl: null,
-              certificateTypeId: Object.keys(typesMap)[0] || "",
+              certificateTypeId: typeKeys[0] || "",
               totalDuration: 1800,
               lessonCount: 12,
               isPublished: true,
@@ -43,12 +44,38 @@ export default function CoursesPage() {
             },
             {
               id: "sample-2",
-              title: "[샘플] AI 심화 활용 과정 - 2급 대비",
-              description: "프롬프트 엔지니어링과 AI 워크플로우 자동화를 심도있게 학습합니다.",
+              title: "[샘플] AI UI 제작 과정 - 2급 대비",
+              description: "프롬프트 엔지니어링과 AI를 활용한 UI/UX 디자인 및 프론트엔드 구현 능력을 키웁니다.",
               thumbnailUrl: null,
-              certificateTypeId: Object.keys(typesMap)[1] || Object.keys(typesMap)[0] || "",
+              certificateTypeId: typeKeys[1] || typeKeys[0] || "",
               totalDuration: 3600,
               lessonCount: 24,
+              isPublished: true,
+              createdAt: now,
+              updatedAt: now,
+              isSample: true,
+            },
+            {
+              id: "sample-3",
+              title: "[샘플] AI 풀스택 개발 과정 - 1급 대비",
+              description: "AI를 활용한 풀스택 웹 애플리케이션 개발. UI/UX부터 백엔드 API 연동까지 전 과정을 학습합니다.",
+              thumbnailUrl: null,
+              certificateTypeId: typeKeys[2] || typeKeys[0] || "",
+              totalDuration: 5400,
+              lessonCount: 36,
+              isPublished: true,
+              createdAt: now,
+              updatedAt: now,
+              isSample: true,
+            },
+            {
+              id: "sample-4",
+              title: "[샘플] AI 문제해결 마스터 과정 - 특급 대비",
+              description: "실제 비즈니스 문제를 AI로 해결하는 고급 솔루션 설계. 해커톤 형식의 실전 프로젝트를 수행합니다.",
+              thumbnailUrl: null,
+              certificateTypeId: typeKeys[3] || typeKeys[0] || "",
+              totalDuration: 7200,
+              lessonCount: 48,
               isPublished: true,
               createdAt: now,
               updatedAt: now,

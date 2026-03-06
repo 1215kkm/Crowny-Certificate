@@ -12,6 +12,7 @@ import {
   type CourseDoc,
   type LessonDoc,
   type CertificateTypeDoc,
+  Timestamp,
 } from "@/lib/firestore";
 import { getGradeInfo, formatDuration } from "@/lib/grade-utils";
 
@@ -27,6 +28,28 @@ export default function CourseDetailPage() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // 샘플 강의 처리
+        if (courseId.startsWith("sample-")) {
+          const sampleCourses: Record<string, { title: string; description: string; lessonCount: number; totalDuration: number; }> = {
+            "sample-1": { title: "[샘플] AI 기초 활용 과정 - 3급 대비", description: "AI 도구의 기본 사용법을 배우고 실무에 적용하는 방법을 학습합니다. ChatGPT, Claude 등 주요 AI 서비스 활용법을 다룹니다.", lessonCount: 12, totalDuration: 1800 },
+            "sample-2": { title: "[샘플] AI UI 제작 과정 - 2급 대비", description: "프롬프트 엔지니어링과 AI를 활용한 UI/UX 디자인 및 프론트엔드 구현 능력을 키웁니다.", lessonCount: 24, totalDuration: 3600 },
+            "sample-3": { title: "[샘플] AI 풀스택 개발 과정 - 1급 대비", description: "AI를 활용한 풀스택 웹 애플리케이션 개발. UI/UX부터 백엔드 API 연동까지 전 과정을 학습합니다.", lessonCount: 36, totalDuration: 5400 },
+            "sample-4": { title: "[샘플] AI 문제해결 마스터 과정 - 특급 대비", description: "실제 비즈니스 문제를 AI로 해결하는 고급 솔루션 설계. 해커톤 형식의 실전 프로젝트를 수행합니다.", lessonCount: 48, totalDuration: 7200 },
+          };
+          const sample = sampleCourses[courseId];
+          if (sample) {
+            const now = Timestamp.now();
+            setCourse({ id: courseId, ...sample, thumbnailUrl: null, certificateTypeId: "", isPublished: true, createdAt: now, updatedAt: now });
+            setLessons([
+              { id: "s-lesson-1", title: "강의 소개 및 환경 설정", videoUrl: "", duration: 15, order: 1, isFree: true, createdAt: now, updatedAt: now },
+              { id: "s-lesson-2", title: "기본 개념 학습", videoUrl: "", duration: 30, order: 2, isFree: false, createdAt: now, updatedAt: now },
+              { id: "s-lesson-3", title: "실습 프로젝트", videoUrl: "", duration: 45, order: 3, isFree: false, createdAt: now, updatedAt: now },
+            ]);
+          }
+          setLoading(false);
+          return;
+        }
+
         const courseData = await getDocument<CourseDoc>("courses", courseId);
         if (!courseData) {
           setLoading(false);

@@ -37,12 +37,15 @@ export function SampleDataToggle({ enabled, onChange }: Props) {
   const [saving, setSaving] = useState(false);
 
   const handleChange = async (checked: boolean) => {
+    // 먼저 UI 업데이트 (낙관적)
+    onChange(checked);
     setSaving(true);
     try {
       await setDocument("settings", "site", { showSampleData: checked });
-      onChange(checked);
     } catch (error) {
       console.error("설정 저장 실패:", error);
+      // Firestore 저장 실패 시 로컬 상태라도 유지
+      // (보안 규칙으로 인해 실패할 수 있음)
     } finally {
       setSaving(false);
     }
