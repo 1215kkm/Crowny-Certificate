@@ -219,22 +219,96 @@ export default function Grade3LearnPage() {
     if (audioRef.current) audioRef.current.volume = v;
   };
 
+  // 퀴즈 효과음 — 별도 음원 파일 없이 Web Audio API로 합성 (정답/오답/다음/완료)
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const getAudioCtx = useCallback((): AudioContext | null => {
+    if (typeof window === "undefined") return null;
+    if (!audioCtxRef.current) {
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtxRef.current = new Ctx();
+    }
+    return audioCtxRef.current;
+  }, []);
+
+  const playTone = useCallback(
+    (
+      ctx: AudioContext,
+      freq: number,
+      startOffset: number,
+      duration: number,
+      type: OscillatorType = "sine",
+      gain = 0.18
+    ) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      const t0 = ctx.currentTime + startOffset;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.03);
+    },
+    []
+  );
+
+  const playEffect = useCallback(
+    (kind: "correct" | "wrong" | "next" | "finish") => {
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      if (ctx.state === "suspended") ctx.resume();
+      if (kind === "correct") {
+        // 밝은 상승 아르페지오 (C5 → E5 → G5)
+        playTone(ctx, 523.25, 0, 0.13, "sine", 0.18);
+        playTone(ctx, 659.25, 0.1, 0.13, "sine", 0.18);
+        playTone(ctx, 783.99, 0.2, 0.24, "sine", 0.2);
+      } else if (kind === "wrong") {
+        // 낮게 하강하는 둔탁한 음
+        playTone(ctx, 311.13, 0, 0.18, "sawtooth", 0.12);
+        playTone(ctx, 196.0, 0.16, 0.3, "sawtooth", 0.12);
+      } else if (kind === "next") {
+        // 짧고 부드러운 블립
+        playTone(ctx, 587.33, 0, 0.09, "triangle", 0.14);
+      } else if (kind === "finish") {
+        // 완료 팡파레 (C5 E5 G5 C6)
+        playTone(ctx, 523.25, 0, 0.16, "sine", 0.18);
+        playTone(ctx, 659.25, 0.14, 0.16, "sine", 0.18);
+        playTone(ctx, 783.99, 0.28, 0.16, "sine", 0.18);
+        playTone(ctx, 1046.5, 0.42, 0.4, "sine", 0.2);
+      }
+    },
+    [getAudioCtx, playTone]
+  );
+
   const handleAnswer = (idx: number) => {
     if (showResult) return;
     setSelectedAnswer(idx);
     setShowResult(true);
     if (idx === shuffledQuestions[currentQ].correctAnswer) {
       setScore((s) => s + 1);
+      playEffect("correct");
+    } else {
+      playEffect("wrong");
     }
   };
 
   const nextQuestion = () => {
     if (currentQ >= shuffledQuestions.length - 1) {
       setQuizFinished(true);
+      playEffect("finish");
     } else {
       setCurrentQ((q) => q + 1);
       setSelectedAnswer(null);
       setShowResult(false);
+      playEffect("next");
     }
   };
 
