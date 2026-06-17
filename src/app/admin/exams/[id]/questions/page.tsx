@@ -72,7 +72,7 @@ export default function AdminQuestionsPage() {
           examDoc.certificateTypeId
         );
         setExamGrade(
-          ct?.grade === "GRADE_2" ? 2 : ct?.grade === "GRADE_3" ? 3 : null
+          ct?.grade === "GRADE_1" ? 1 : ct?.grade === "GRADE_2" ? 2 : ct?.grade === "GRADE_3" ? 3 : null
         );
       }
 
@@ -253,7 +253,7 @@ export default function AdminQuestionsPage() {
           )}
         </div>
         <div className="flex gap-2">
-          {questions.length === 0 && (examGrade === 2 || examGrade === 3) && (
+          {questions.length === 0 && (examGrade === 1 || examGrade === 2 || examGrade === 3) && (
             <button
               onClick={handleSeed}
               disabled={seeding}
@@ -452,7 +452,7 @@ export default function AdminQuestionsPage() {
       ) : questions.length === 0 ? (
         <div className="border border-border rounded-xl p-8 text-center text-muted-foreground">
           <p className="mb-4">등록된 문항이 없습니다.</p>
-          {examGrade === 2 || examGrade === 3 ? (
+          {examGrade === 1 || examGrade === 2 || examGrade === 3 ? (
             <>
               <p className="mb-4 text-sm">
                 <strong>&quot;{examGrade}급 기본 문제 40개 불러오기&quot;</strong>로 내장된 문제은행을 한 번에 등록할 수 있습니다.

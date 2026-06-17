@@ -217,6 +217,14 @@ export default function ExamsPage() {
                         실기 응시 (랜딩페이지)
                       </Link>
                     )}
+                    {certType?.grade === "GRADE_1" && !(exam as { isSample?: boolean }).isSample && (
+                      <Link
+                        href={`/exams/${exam.id}/app-submit`}
+                        className="border border-primary text-primary px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary/5 transition text-center"
+                      >
+                        실기 제출 (앱 배포)
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

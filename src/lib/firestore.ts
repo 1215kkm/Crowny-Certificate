@@ -231,6 +231,27 @@ export interface PracticalSubmissionDoc {
   updatedAt: Timestamp;
 }
 
+export interface AppSubmissionDoc {
+  userId: string;
+  userName: string;
+  examId: string;
+  certificateTypeId: string;
+  themeId: string;
+  appUrl: string;
+  repoUrl: string | null;
+  description: string;
+  shareLink: string | null;
+  status: PracticalStatus; // SUBMITTED | GRADED
+  scores: Record<string, number> | null; // 채점표 항목별 점수
+  score: number | null; // 총점(100)
+  passed: boolean | null;
+  feedback: string | null;
+  submittedAt: Timestamp;
+  gradedAt: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export interface InquiryDoc {
   userId: string;
   userName: string;
@@ -266,6 +287,7 @@ export const collections = {
   get certificateIssuances() { return collection(db(), "certificateIssuances"); },
   get inquiries() { return collection(db(), "inquiries"); },
   get practicalSubmissions() { return collection(db(), "practicalSubmissions"); },
+  get appSubmissions() { return collection(db(), "appSubmissions"); },
 };
 
 // 서브컬렉션 참조

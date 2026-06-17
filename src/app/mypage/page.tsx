@@ -14,8 +14,10 @@ import {
   type CertificateIssuanceDoc,
   type CertificateTypeDoc,
   type PracticalSubmissionDoc,
+  type AppSubmissionDoc,
 } from "@/lib/firestore";
 import { getThemeById } from "@/data/grade-2-practical";
+import { getAppThemeById } from "@/data/grade-1-practical";
 import { getGradeInfo, formatTimestamp, ISSUANCE_STATUS_MAP, DELIVERY_METHOD_MAP } from "@/lib/grade-utils";
 
 export default function MyPage() {
@@ -25,6 +27,7 @@ export default function MyPage() {
   const [examResults, setExamResults] = useState<{ id: string; examTitle: string; grade: string; score: number | null; passed: boolean | null; date: string; feedback: string | null }[]>([]);
   const [certificates, setCertificates] = useState<{ id: string; grade: string; issueNumber: string; issuedAt: string; status: string; statusClassName: string; method: string; trackingNumber: string | null; pdfUrl: string | null }[]>([]);
   const [practicals, setPracticals] = useState<{ id: string; themeName: string; status: string; statusClassName: string; detail: string }[]>([]);
+  const [appSubs, setAppSubs] = useState<{ id: string; themeName: string; appUrl: string; status: string; statusClassName: string; detail: string }[]>([]);
 
   useEffect(() => {
     if (authLoading || !user) {
@@ -41,6 +44,7 @@ export default function MyPage() {
           getDocuments<CertificateTypeDoc>("certificateTypes"),
           getDocuments<PracticalSubmissionDoc>("practicalSubmissions", where("userId", "==", user!.uid)),
         ]);
+        const appDocs = await getDocuments<AppSubmissionDoc>("appSubmissions", where("userId", "==", user!.uid));
 
         const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
         certTypeDocs.forEach((t) => { typesMap[t.id] = t; });
@@ -139,6 +143,23 @@ export default function MyPage() {
               status: "발표 예정",
               statusClassName: "bg-orange-100 text-orange-700",
               detail: `발표: ${formatTimestamp(p.announceAt)} 오후 1시`,
+            };
+          })
+        );
+        // 1급 앱 실기 제출 현황
+        setAppSubs(
+          appDocs.map((a) => {
+            const theme = getAppThemeById(a.themeId);
+            const graded = a.status === "GRADED";
+            return {
+              id: a.id,
+              themeName: theme?.name ?? a.themeId,
+              appUrl: a.appUrl,
+              status: graded ? (a.passed ? "합격" : "불합격") : "채점 대기",
+              statusClassName: graded
+                ? a.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                : "bg-orange-100 text-orange-700",
+              detail: graded ? `${a.score ?? 0}점${a.feedback ? ` · ${a.feedback}` : ""}` : "관리자 채점 후 발표됩니다.",
             };
           })
         );
@@ -283,6 +304,25 @@ export default function MyPage() {
                   <span className="font-medium">주제: {p.themeName}</span>
                   <div className="text-sm text-muted-foreground mt-1">{p.detail}</div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 1급 앱 실기 결과 */}
+      {appSubs.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xl font-bold mb-4">앱 실기 결과 (1급)</h2>
+          <div className="space-y-4">
+            {appSubs.map((a) => (
+              <div key={a.id} className="border border-border rounded-xl p-5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs px-2 py-0.5 rounded ${a.statusClassName}`}>{a.status}</span>
+                  <span className="font-medium">주제: {a.themeName}</span>
+                  <a href={a.appUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">{a.appUrl}</a>
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">{a.detail}</div>
               </div>
             ))}
           </div>
