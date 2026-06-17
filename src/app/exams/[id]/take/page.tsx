@@ -199,8 +199,12 @@ export default function ExamTakePage() {
           };
         });
 
-        // 출제 문항 수 (questionCount)만큼 랜덤 선택, 부족하면 전체 출제
-        const count = Math.min(examData.questionCount, allQuestions.length);
+        // 출제 문항 수(questionCount)만큼 랜덤 선택. 부족하면 전체 출제.
+        // questionCount가 0/미설정이면 등록된 전체 문항을 출제한다.
+        const count =
+          examData.questionCount > 0
+            ? Math.min(examData.questionCount, allQuestions.length)
+            : allQuestions.length;
         const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
         const qs = shuffled.slice(0, count);
 

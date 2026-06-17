@@ -217,13 +217,16 @@ export default function AdminExamsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">문제 수</label>
+              <label className="block text-sm font-medium mb-1">출제 문제 수</label>
               <input
                 type="number"
                 value={formData.questionCount}
                 onChange={(e) => setFormData({ ...formData, questionCount: Number(e.target.value) })}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                응시 시 등록된 문항 중 이 개수만큼 랜덤 출제됩니다. (0이면 전체 출제)
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 mt-4">

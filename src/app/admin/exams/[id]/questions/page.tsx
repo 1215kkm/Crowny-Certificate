@@ -113,17 +113,14 @@ export default function AdminQuestionsPage() {
         await adminCreate(["exams", examId, "questions"], { examId, ...payload });
       }
 
-      // 문제 수 업데이트
+      // 저장 후 목록 갱신
+      // (questionCount는 "출제 문항 수"이므로 등록된 총 문항 수로 덮어쓰지 않는다.
+      //  출제 개수는 시험 관리에서 관리자가 설정한다.)
       setShowForm(false);
       setEditingId(null);
       setFormData({ ...DEFAULT_FORM, order: questions.length + 2 });
       setLoading(true);
       await fetchData();
-
-      // 시험의 questionCount 업데이트
-      const q = query(questionsCollection(examId));
-      const snap = await getDocs(q);
-      await adminUpdate(["exams", examId], { questionCount: snap.size });
     } catch (error) {
       console.error("문항 저장 실패:", error);
       alert(error instanceof Error ? error.message : "저장에 실패했습니다.");
@@ -154,10 +151,7 @@ export default function AdminQuestionsPage() {
         alert(data.message || "문제가 등록되었습니다.");
         setLoading(true);
         await fetchData();
-        // questionCount 동기화
-        const q = query(questionsCollection(examId));
-        const snap = await getDocs(q);
-        await adminUpdate(["exams", examId], { questionCount: snap.size });
+        // questionCount(출제 문항 수)는 시험 관리에서 관리자가 설정하므로 시드 후 덮어쓰지 않는다.
       } else {
         alert(data.error || "등록에 실패했습니다.");
       }
@@ -195,9 +189,7 @@ export default function AdminQuestionsPage() {
     try {
       await adminDelete(["exams", examId, "questions", docId]);
       setQuestions((prev) => prev.filter((q) => q.docId !== docId));
-
-      // questionCount 업데이트
-      await adminUpdate(["exams", examId], { questionCount: questions.length - 1 });
+      // questionCount(출제 문항 수)는 시험 관리에서 관리자가 설정하므로 여기서 변경하지 않는다.
     } catch (error) {
       console.error("문항 삭제 실패:", error);
       alert(error instanceof Error ? error.message : "삭제에 실패했습니다.");
