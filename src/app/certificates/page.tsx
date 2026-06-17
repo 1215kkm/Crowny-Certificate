@@ -111,7 +111,7 @@ export default function CertificatesPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <div className="max-w-[1400px] mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-2">인증서 발급</h1>
       <p className="text-muted-foreground mb-8">
         시험 합격 후 디지털 또는 실물 인증서를 발급받으세요

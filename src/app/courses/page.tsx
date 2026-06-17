@@ -98,7 +98,7 @@ export default function CoursesPage() {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12">
+      <div className="max-w-[1400px] mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold mb-2">강의 목록</h1>
         <p className="text-muted-foreground mb-8">등급별 맞춤 강의로 AI 활용 역량을 키우세요</p>
         <div className="grid md:grid-cols-2 gap-6">
@@ -118,7 +118,7 @@ export default function CoursesPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <div className="max-w-[1400px] mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-2">강의 목록</h1>
       <p className="text-muted-foreground mb-8">
         등급별 맞춤 강의로 AI 활용 역량을 키우세요

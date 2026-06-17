@@ -164,7 +164,7 @@ export default function GradingPage() {
 
   if (!isAdmin && !authLoading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-[1400px] mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold">접근 권한이 없습니다</h1>
       </div>
     );
@@ -172,7 +172,7 @@ export default function GradingPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="max-w-[1400px] mx-auto px-4 py-12">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-gray-200 rounded w-1/3" />
           <div className="h-64 bg-gray-200 rounded-xl" />
@@ -189,7 +189,7 @@ export default function GradingPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-[1400px] mx-auto px-4 py-12">
       <div className="mb-8">
         <Link
           href="/admin/exams"

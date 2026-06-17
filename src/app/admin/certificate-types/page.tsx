@@ -145,14 +145,14 @@ export default function AdminCertificateTypesPage() {
 
   if (!isAdmin && !authLoading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-[1400px] mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold">접근 권한이 없습니다</h1>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <div className="max-w-[1400px] mx-auto px-4 py-12">
       <div className="flex items-center justify-between mb-8">
         <div>
           <Link

@@ -195,7 +195,7 @@ export default function HomePage() {
       <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-800 to-blue-900 text-white py-24 px-4">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(139,92,246,0.3),_transparent_50%),radial-gradient(ellipse_at_bottom_left,_rgba(59,130,246,0.3),_transparent_50%)]" />
         <ParticleCanvas />
-        <div className="relative max-w-6xl mx-auto text-center z-10">
+        <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4">
               <Crown className="w-12 h-12 text-yellow-300" />
@@ -233,7 +233,7 @@ export default function HomePage() {
 
       {/* Grade System Section */}
       <section className="py-20 px-4 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
               <GraduationCap className="w-4 h-4" />
@@ -302,7 +302,7 @@ export default function HomePage() {
 
       {/* Features Section */}
       <section className="py-20 px-4 bg-white">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
               <Award className="w-4 h-4" />
@@ -341,7 +341,7 @@ export default function HomePage() {
 
       {/* Process Section */}
       <section className="py-20 px-4 bg-gray-50">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-[1400px] mx-auto">
           <div className="text-center mb-14">
             <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
               <ClipboardCheck className="w-4 h-4" />
@@ -417,7 +417,7 @@ export default function HomePage() {
       {/* CTA Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-800 to-blue-900 text-white py-20 px-4">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(139,92,246,0.2),_transparent_60%)]" />
-        <div className="relative max-w-4xl mx-auto text-center z-10">
+        <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3">
               <Crown className="w-8 h-8 text-yellow-300" />

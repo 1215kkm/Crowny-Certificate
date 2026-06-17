@@ -69,6 +69,7 @@
 
 body {
   font-family: var(--font-sans);
+  font-size: 16px;
 }
 
 @keyframes float {

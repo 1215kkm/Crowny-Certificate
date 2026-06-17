@@ -79,7 +79,7 @@ export default function CourseDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 animate-pulse">
+      <div className="max-w-[1400px] mx-auto px-4 py-12 animate-pulse">
         <div className="h-6 bg-gray-200 rounded w-16 mb-3" />
         <div className="h-8 bg-gray-200 rounded w-2/3 mb-2" />
         <div className="h-4 bg-gray-200 rounded w-full mb-8" />
@@ -90,7 +90,7 @@ export default function CourseDetailPage() {
 
   if (!course) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-[1400px] mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold mb-4">강의를 찾을 수 없습니다</h1>
         <Link href="/courses" className="text-primary hover:underline">
           강의 목록으로 돌아가기
@@ -104,7 +104,7 @@ export default function CourseDetailPage() {
   const totalMinutes = Math.round(course.totalDuration / 60);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-[1400px] mx-auto px-4 py-12">
       {/* 강의 헤더 */}
       <div className="mb-8">
         {gradeInfo && (
