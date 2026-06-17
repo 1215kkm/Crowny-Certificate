@@ -26,6 +26,7 @@ const MENU_ITEMS = [
   { title: "결제 관리", desc: "결제 내역, 환불 처리, 정산", href: "/admin/payments", icon: "💳" },
   { title: "인증서 관리", desc: "발급 현황, 배송 관리", href: "/admin/certificates", icon: "🏆" },
   { title: "자격증 종류 관리", desc: "등급별 자격증 설정", href: "/admin/certificate-types", icon: "⚙️" },
+  { title: "문의 관리", desc: "학습자 문의 확인 및 답변", href: "/admin/inquiries", icon: "💬" },
 ];
 
 interface StatItem {

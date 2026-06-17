@@ -75,6 +75,11 @@ export function Footer() {
         <div>
           <h3 className="font-bold text-white mb-3">고객 지원</h3>
           <ul className="space-y-2 text-sm">
+            <li>
+              <Link href="/inquiries" className="hover:text-white transition">
+                문의하기
+              </Link>
+            </li>
             <li>이메일: support@crowny.co.kr</li>
             <li>전화: 02-0000-0000</li>
             <li>운영시간: 평일 09:00~18:00</li>
