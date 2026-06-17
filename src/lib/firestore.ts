@@ -186,6 +186,51 @@ export interface CertificateIssuanceDoc {
   updatedAt: Timestamp;
 }
 
+export type PracticalStatus = "SUBMITTED" | "GRADED";
+
+export interface PracticalSlotHero {
+  imageUrl: string | null;
+  headline: string;
+  subcopy: string;
+  cta: string;
+}
+export interface PracticalSlotIcon {
+  imageUrl: string | null;
+  label: string;
+}
+export interface PracticalSlotProduct {
+  imageUrl: string | null;
+  name: string;
+  desc: string;
+}
+export interface PracticalSlotBand {
+  imageUrl: string | null;
+  message: string;
+}
+
+export interface PracticalSubmissionDoc {
+  userId: string;
+  userName: string;
+  examId: string;
+  certificateTypeId: string;
+  themeId: string;
+  wireframeId: string;
+  hero: PracticalSlotHero;
+  icons: PracticalSlotIcon[];
+  products: PracticalSlotProduct[];
+  band: PracticalSlotBand;
+  shareLink: string | null;
+  status: PracticalStatus;
+  score: number | null;
+  passed: boolean | null;
+  feedback: string | null;
+  submittedAt: Timestamp;
+  announceAt: Timestamp; // 발표일 (제출일 + 15일, 오후 1시)
+  gradedAt: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export interface InquiryDoc {
   userId: string;
   userName: string;
@@ -220,6 +265,7 @@ export const collections = {
   get payments() { return collection(db(), "payments"); },
   get certificateIssuances() { return collection(db(), "certificateIssuances"); },
   get inquiries() { return collection(db(), "inquiries"); },
+  get practicalSubmissions() { return collection(db(), "practicalSubmissions"); },
 };
 
 // 서브컬렉션 참조

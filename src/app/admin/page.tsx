@@ -23,6 +23,7 @@ const MENU_ITEMS = [
   { title: "회원 관리", desc: "회원 목록, 검색, 역할 변경", href: "/admin/users", icon: "👤" },
   { title: "강의 관리", desc: "강의 등록/수정, 레슨 관리", href: "/admin/courses", icon: "📚" },
   { title: "시험 관리", desc: "시험 등록, 문제 관리, 채점", href: "/admin/exams", icon: "📝" },
+  { title: "실기 채점", desc: "2급 랜딩페이지 실기 제출물 채점", href: "/admin/practical", icon: "🎨" },
   { title: "결제 관리", desc: "결제 내역, 환불 처리, 정산", href: "/admin/payments", icon: "💳" },
   { title: "인증서 관리", desc: "발급 현황, 배송 관리", href: "/admin/certificates", icon: "🏆" },
   { title: "자격증 종류 관리", desc: "등급별 자격증 설정", href: "/admin/certificate-types", icon: "⚙️" },

@@ -13,7 +13,9 @@ import {
   type ExamDoc,
   type CertificateIssuanceDoc,
   type CertificateTypeDoc,
+  type PracticalSubmissionDoc,
 } from "@/lib/firestore";
+import { getThemeById } from "@/data/grade-2-practical";
 import { getGradeInfo, formatTimestamp, ISSUANCE_STATUS_MAP, DELIVERY_METHOD_MAP } from "@/lib/grade-utils";
 
 export default function MyPage() {
@@ -22,6 +24,7 @@ export default function MyPage() {
   const [enrollments, setEnrollments] = useState<{ id: string; courseTitle: string; grade: string; gradeColor: string; progress: number; courseId: string }[]>([]);
   const [examResults, setExamResults] = useState<{ id: string; examTitle: string; grade: string; score: number | null; passed: boolean | null; date: string; feedback: string | null }[]>([]);
   const [certificates, setCertificates] = useState<{ id: string; grade: string; issueNumber: string; issuedAt: string; status: string; statusClassName: string; method: string; trackingNumber: string | null; pdfUrl: string | null }[]>([]);
+  const [practicals, setPracticals] = useState<{ id: string; themeName: string; status: string; statusClassName: string; detail: string }[]>([]);
 
   useEffect(() => {
     if (authLoading || !user) {
@@ -31,11 +34,12 @@ export default function MyPage() {
 
     async function fetchData() {
       try {
-        const [enrollmentDocs, submissionDocs, issuanceDocs, certTypeDocs] = await Promise.all([
+        const [enrollmentDocs, submissionDocs, issuanceDocs, certTypeDocs, practicalDocs] = await Promise.all([
           getDocuments<EnrollmentDoc>("enrollments", where("userId", "==", user!.uid)),
           getDocuments<ExamSubmissionDoc>("examSubmissions", where("userId", "==", user!.uid)),
           getDocuments<CertificateIssuanceDoc>("certificateIssuances", where("userId", "==", user!.uid)),
           getDocuments<CertificateTypeDoc>("certificateTypes"),
+          getDocuments<PracticalSubmissionDoc>("practicalSubmissions", where("userId", "==", user!.uid)),
         ]);
 
         const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
@@ -110,6 +114,31 @@ export default function MyPage() {
               method: DELIVERY_METHOD_MAP[iss.deliveryMethod] || iss.deliveryMethod,
               trackingNumber: iss.trackingNumber ?? null,
               pdfUrl: iss.pdfUrl,
+            };
+          })
+        );
+        // 실기 제출 현황
+        const nowMs = Date.now();
+        setPracticals(
+          practicalDocs.map((p) => {
+            const theme = getThemeById(p.themeId);
+            const announceMs = p.announceAt?.toDate?.().getTime?.() ?? 0;
+            const announced = p.status === "GRADED" && nowMs >= announceMs;
+            if (announced) {
+              return {
+                id: p.id,
+                themeName: theme?.name ?? p.themeId,
+                status: p.passed ? "합격" : "불합격",
+                statusClassName: p.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
+                detail: `${p.score ?? 0}점${p.feedback ? ` · ${p.feedback}` : ""}`,
+              };
+            }
+            return {
+              id: p.id,
+              themeName: theme?.name ?? p.themeId,
+              status: "발표 예정",
+              statusClassName: "bg-orange-100 text-orange-700",
+              detail: `발표: ${formatTimestamp(p.announceAt)} 오후 1시`,
             };
           })
         );
@@ -241,6 +270,24 @@ export default function MyPage() {
           <div className="text-center py-8 text-muted-foreground">시험 결과가 없습니다.</div>
         )}
       </section>
+
+      {/* 실기(2급 랜딩페이지) 결과 */}
+      {practicals.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xl font-bold mb-4">실기 결과 (2급 랜딩페이지)</h2>
+          <div className="space-y-4">
+            {practicals.map((p) => (
+              <div key={p.id} className="border border-border rounded-xl p-5 flex items-center justify-between">
+                <div>
+                  <span className={`text-xs px-2 py-0.5 rounded mr-2 ${p.statusClassName}`}>{p.status}</span>
+                  <span className="font-medium">주제: {p.themeName}</span>
+                  <div className="text-sm text-muted-foreground mt-1">{p.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 발급된 인증서 */}
       <section>
