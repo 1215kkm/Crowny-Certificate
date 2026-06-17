@@ -180,6 +180,16 @@ export default function CoursesPage() {
                       수강 신청
                     </Link>
                   </div>
+                  {/* 3급 강의는 학습 페이지(강의+예제시험)가 준비되어 있어 바로 진입 가능 */}
+                  {course.id === "sample-1" && (
+                    <Link
+                      href="/courses/grade-3/learn"
+                      className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-gradient-brand text-white text-sm font-semibold hover:opacity-90 transition"
+                    >
+                      학습 시작
+                      <span aria-hidden>→</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             );

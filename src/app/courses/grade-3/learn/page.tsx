@@ -156,6 +156,13 @@ export default function Grade3LearnPage() {
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.3);
+  // BGM 파일 로드 가능 여부 — 파일이 없으면(onError) 컨트롤 자체를 숨긴다.
+  const [bgmAvailable, setBgmAvailable] = useState(true);
+
+  // 강의 iframe 로드 상태
+  const [lectureLoading, setLectureLoading] = useState(true);
+  const [lectureError, setLectureError] = useState(false);
+  const [lectureReloadKey, setLectureReloadKey] = useState(0);
 
   // Quiz state
   const [quizStarted, setQuizStarted] = useState(false);
@@ -184,13 +191,20 @@ export default function Grade3LearnPage() {
   }, []);
 
   const toggleMusic = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !bgmAvailable) return;
     if (isMusicPlaying) {
       audioRef.current.pause();
+      setIsMusicPlaying(false);
     } else {
-      audioRef.current.play().catch(() => {});
+      // play() 가 성공한 뒤에만 "재생 중" 상태로 전환. 실패하면 켜진 채로 깨지지 않음.
+      audioRef.current
+        .play()
+        .then(() => setIsMusicPlaying(true))
+        .catch(() => {
+          setIsMusicPlaying(false);
+          setBgmAvailable(false);
+        });
     }
-    setIsMusicPlaying(!isMusicPlaying);
   };
 
   const toggleMute = () => {
@@ -205,22 +219,96 @@ export default function Grade3LearnPage() {
     if (audioRef.current) audioRef.current.volume = v;
   };
 
+  // 퀴즈 효과음 — 별도 음원 파일 없이 Web Audio API로 합성 (정답/오답/다음/완료)
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const getAudioCtx = useCallback((): AudioContext | null => {
+    if (typeof window === "undefined") return null;
+    if (!audioCtxRef.current) {
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext })
+          .webkitAudioContext;
+      if (!Ctx) return null;
+      audioCtxRef.current = new Ctx();
+    }
+    return audioCtxRef.current;
+  }, []);
+
+  const playTone = useCallback(
+    (
+      ctx: AudioContext,
+      freq: number,
+      startOffset: number,
+      duration: number,
+      type: OscillatorType = "sine",
+      gain = 0.18
+    ) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = type;
+      osc.frequency.value = freq;
+      const t0 = ctx.currentTime + startOffset;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.linearRampToValueAtTime(gain, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      osc.connect(g);
+      g.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.03);
+    },
+    []
+  );
+
+  const playEffect = useCallback(
+    (kind: "correct" | "wrong" | "next" | "finish") => {
+      const ctx = getAudioCtx();
+      if (!ctx) return;
+      if (ctx.state === "suspended") ctx.resume();
+      if (kind === "correct") {
+        // 밝은 상승 아르페지오 (C5 → E5 → G5)
+        playTone(ctx, 523.25, 0, 0.13, "sine", 0.18);
+        playTone(ctx, 659.25, 0.1, 0.13, "sine", 0.18);
+        playTone(ctx, 783.99, 0.2, 0.24, "sine", 0.2);
+      } else if (kind === "wrong") {
+        // 낮게 하강하는 둔탁한 음
+        playTone(ctx, 311.13, 0, 0.18, "sawtooth", 0.12);
+        playTone(ctx, 196.0, 0.16, 0.3, "sawtooth", 0.12);
+      } else if (kind === "next") {
+        // 짧고 부드러운 블립
+        playTone(ctx, 587.33, 0, 0.09, "triangle", 0.14);
+      } else if (kind === "finish") {
+        // 완료 팡파레 (C5 E5 G5 C6)
+        playTone(ctx, 523.25, 0, 0.16, "sine", 0.18);
+        playTone(ctx, 659.25, 0.14, 0.16, "sine", 0.18);
+        playTone(ctx, 783.99, 0.28, 0.16, "sine", 0.18);
+        playTone(ctx, 1046.5, 0.42, 0.4, "sine", 0.2);
+      }
+    },
+    [getAudioCtx, playTone]
+  );
+
   const handleAnswer = (idx: number) => {
     if (showResult) return;
     setSelectedAnswer(idx);
     setShowResult(true);
     if (idx === shuffledQuestions[currentQ].correctAnswer) {
       setScore((s) => s + 1);
+      playEffect("correct");
+    } else {
+      playEffect("wrong");
     }
   };
 
   const nextQuestion = () => {
     if (currentQ >= shuffledQuestions.length - 1) {
       setQuizFinished(true);
+      playEffect("finish");
     } else {
       setCurrentQ((q) => q + 1);
       setSelectedAnswer(null);
       setShowResult(false);
+      playEffect("next");
     }
   };
 
@@ -237,6 +325,21 @@ export default function Grade3LearnPage() {
     };
     document.addEventListener("keydown", preventKeys);
     return () => document.removeEventListener("keydown", preventKeys);
+  }, []);
+
+  // BGM 파일 선제 확인 — 파일이 없으면 사용자가 버튼을 누르기 전에 컨트롤을 숨긴다.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/audio/study-bgm.mp3", { method: "HEAD" })
+      .then((res) => {
+        if (!cancelled && !res.ok) setBgmAvailable(false);
+      })
+      .catch(() => {
+        if (!cancelled) setBgmAvailable(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (authLoading) {
@@ -256,8 +359,18 @@ export default function Grade3LearnPage() {
       style={{ userSelect: "none", WebkitUserSelect: "none" }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      {/* 배경음악 */}
-      <audio ref={audioRef} loop preload="none" src="/audio/study-bgm.mp3" />
+      {/* 배경음악 — 파일(/public/audio/study-bgm.mp3) 이 없으면 onError 로 컨트롤 숨김.
+          나중에 파일이 들어오면 코드 수정 없이 자동 동작. */}
+      <audio
+        ref={audioRef}
+        loop
+        preload="none"
+        src="/audio/study-bgm.mp3"
+        onError={() => {
+          setBgmAvailable(false);
+          setIsMusicPlaying(false);
+        }}
+      />
 
       {/* 상단 컨트롤 바 */}
       <div className="sticky top-0 z-40 bg-white border-b border-border shadow-sm">
@@ -292,41 +405,44 @@ export default function Grade3LearnPage() {
             </div>
           </div>
 
-          {/* 음악 컨트롤 */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleMusic}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border hover:bg-gray-50 transition"
-              title={isMusicPlaying ? "음악 일시정지" : "배경음악 재생"}
-            >
-              {isMusicPlaying ? (
-                <Pause className="w-4 h-4" />
-              ) : (
-                <Play className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline text-sm">BGM</span>
-            </button>
-            <button
-              onClick={toggleMute}
-              className="p-2 rounded-lg border border-border hover:bg-gray-50 transition"
-              title={isMuted ? "음소거 해제" : "음소거"}
-            >
-              {isMuted ? (
-                <VolumeX className="w-4 h-4" />
-              ) : (
-                <Volume2 className="w-4 h-4" />
-              )}
-            </button>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={volume}
-              onChange={handleVolumeChange}
-              className="w-20 hidden sm:block"
-            />
-          </div>
+          {/* 음악 컨트롤 — BGM 파일이 있을 때만 렌더 (파일 없으면 onError/실패로 숨김) */}
+          {bgmAvailable && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleMusic}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border hover:bg-gray-50 transition"
+                title={isMusicPlaying ? "음악 일시정지" : "배경음악 재생"}
+              >
+                {isMusicPlaying ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline text-sm">BGM</span>
+              </button>
+              <button
+                onClick={toggleMute}
+                className="p-2 rounded-lg border border-border hover:bg-gray-50 transition"
+                title={isMuted ? "음소거 해제" : "음소거"}
+              >
+                {isMuted ? (
+                  <VolumeX className="w-4 h-4" />
+                ) : (
+                  <Volume2 className="w-4 h-4" />
+                )}
+              </button>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="w-20 hidden sm:block"
+                aria-label="배경음악 볼륨"
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -334,15 +450,57 @@ export default function Grade3LearnPage() {
       {activeTab === "lecture" && (
         <div className="max-w-[1400px] mx-auto px-4 py-6">
           <div
-            className="bg-white rounded-2xl shadow-sm border border-border overflow-hidden"
+            className="relative bg-white rounded-2xl shadow-sm border border-border overflow-hidden"
             style={{ height: "calc(100vh - 140px)" }}
           >
+            {/* 로딩 스켈레톤 — onLoad 전까지 표시 */}
+            {lectureLoading && !lectureError && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-white">
+                <div className="w-full max-w-2xl px-8 animate-pulse space-y-4">
+                  <div className="h-8 bg-gray-200 rounded w-1/2" />
+                  <div className="h-4 bg-gray-200 rounded w-full" />
+                  <div className="h-4 bg-gray-200 rounded w-5/6" />
+                  <div className="h-64 bg-gray-200 rounded-xl" />
+                </div>
+                <p className="text-sm text-muted-foreground">강의를 불러오는 중…</p>
+              </div>
+            )}
+
+            {/* 에러 상태 — 로드 실패 시 새로고침 outline 버튼 */}
+            {lectureError && (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-white px-6 text-center">
+                <p className="text-lg font-bold text-foreground">
+                  강의를 불러오지 못했습니다.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  네트워크 상태를 확인한 뒤 다시 시도해 주세요.
+                </p>
+                <button
+                  onClick={() => {
+                    setLectureError(false);
+                    setLectureLoading(true);
+                    setLectureReloadKey((k) => k + 1);
+                  }}
+                  className="mt-2 inline-flex items-center gap-2 border border-primary text-primary px-5 py-2.5 rounded-lg font-medium hover:bg-primary/5 transition"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  새로고침
+                </button>
+              </div>
+            )}
+
             <iframe
+              key={lectureReloadKey}
               ref={iframeRef}
               src="/courses/grade-3-lecture.html"
               className="w-full h-full border-0"
               sandbox="allow-scripts allow-same-origin"
               title="3급 강의"
+              onLoad={() => setLectureLoading(false)}
+              onError={() => {
+                setLectureLoading(false);
+                setLectureError(true);
+              }}
             />
           </div>
         </div>
