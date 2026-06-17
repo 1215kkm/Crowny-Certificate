@@ -15,7 +15,8 @@ export async function POST(request: Request) {
 
     // 관리자 역할 확인
     const userDoc = await adminDb.collection("users").doc(userId).get();
-    if (!userDoc.exists || userDoc.data()?.role !== "ADMIN") {
+    const userRole = userDoc.data()?.role;
+    if (!userDoc.exists || (userRole !== "ADMIN" && userRole !== "SUPER_ADMIN")) {
       return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
     }
 

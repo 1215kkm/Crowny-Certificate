@@ -19,7 +19,7 @@ import { getFirebaseFirestore } from "./firebase";
 
 // ==================== 타입 정의 ====================
 
-export type UserRole = "STUDENT" | "INSTRUCTOR" | "ADMIN";
+export type UserRole = "STUDENT" | "INSTRUCTOR" | "ADMIN" | "SUPER_ADMIN";
 export type CertificateGrade = "GRADE_3" | "GRADE_2" | "GRADE_1" | "SPECIAL";
 export type ExamFormat = "MULTIPLE_CHOICE" | "PRACTICAL" | "PROJECT" | "CHALLENGE";
 export type QuestionType = "MULTIPLE_CHOICE" | "SHORT_ANSWER" | "ESSAY" | "FILE_UPLOAD";
