@@ -422,7 +422,19 @@ export default function ExamTakePage() {
           >
             마이페이지
           </a>
+          <a
+            href="/inquiries?new=1&category=EXAM"
+            className="border border-border px-8 py-3 rounded-lg font-medium hover:bg-muted transition inline-block"
+          >
+            문의하기
+          </a>
         </div>
+
+        {!passed && (
+          <p className="text-sm text-muted-foreground mt-4">
+            채점 결과에 이의가 있거나 궁금한 점이 있으면 <strong>문의하기</strong>로 남겨주세요.
+          </p>
+        )}
 
         {/* 오답 / 해설 리뷰 */}
         {review.length > 0 && (

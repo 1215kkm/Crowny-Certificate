@@ -217,11 +217,17 @@ export default function MyPage() {
                       점수: {result.score ?? "-"}점 | 응시일: {result.date}
                     </div>
                   </div>
-                  {result.passed && (
-                    <Link href="/certificates" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
-                      인증서 발급
-                    </Link>
-                  )}
+                  <div className="flex gap-2">
+                    {result.passed ? (
+                      <Link href="/certificates" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+                        인증서 발급
+                      </Link>
+                    ) : (
+                      <Link href="/inquiries?new=1&category=EXAM" className="border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
+                        문의하기
+                      </Link>
+                    )}
+                  </div>
                 </div>
                 {!result.passed && result.feedback && (
                   <div className="text-sm text-red-600 mt-3 bg-red-50 rounded-lg p-3">

@@ -9,7 +9,7 @@ import {
   Timestamp,
   type InquiryDoc,
 } from "@/lib/firestore";
-import { formatTimestamp } from "@/lib/grade-utils";
+import { formatTimestamp, INQUIRY_CATEGORY_MAP } from "@/lib/grade-utils";
 import { MessageSquare, ChevronDown, ChevronUp, Send, Clock, CheckCircle } from "lucide-react";
 import { getFirebaseAuth } from "@/lib/firebase";
 
@@ -18,6 +18,7 @@ interface InquiryRow {
   userId: string;
   userName: string;
   userEmail: string;
+  category: string;
   title: string;
   content: string;
   status: "PENDING" | "ANSWERED";
@@ -47,6 +48,7 @@ export default function AdminInquiriesPage() {
           userId: d.userId,
           userName: d.userName,
           userEmail: d.userEmail,
+          category: d.category || "ETC",
           title: d.title,
           content: d.content,
           status: d.status,
@@ -232,6 +234,9 @@ export default function AdminInquiriesPage() {
                         답변 대기
                       </span>
                     )}
+                  </span>
+                  <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground whitespace-nowrap">
+                    {INQUIRY_CATEGORY_MAP[inquiry.category] || "기타"}
                   </span>
                   <span className="font-medium truncate">{inquiry.title}</span>
                 </div>

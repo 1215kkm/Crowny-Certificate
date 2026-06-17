@@ -25,6 +25,22 @@ export function formatTimestamp(timestamp: { toDate: () => Date } | null): strin
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+export const INQUIRY_CATEGORY_MAP: Record<string, string> = {
+  EXAM: "시험/채점",
+  CERTIFICATE: "자격증 발급",
+  PAYMENT: "결제/환불",
+  COURSE: "강의",
+  ETC: "기타",
+};
+
+export const INQUIRY_CATEGORY_OPTIONS: { value: string; label: string }[] = [
+  { value: "EXAM", label: "시험/채점" },
+  { value: "CERTIFICATE", label: "자격증 발급" },
+  { value: "PAYMENT", label: "결제/환불" },
+  { value: "COURSE", label: "강의" },
+  { value: "ETC", label: "기타" },
+];
+
 export const DELIVERY_METHOD_MAP: Record<string, string> = {
   EMAIL: "이메일",
   BOTH: "이메일+우편",

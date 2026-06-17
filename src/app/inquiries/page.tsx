@@ -5,17 +5,16 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getDocuments,
-  createDocument,
   where,
   orderBy,
-  Timestamp,
   type InquiryDoc,
 } from "@/lib/firestore";
-import { formatTimestamp } from "@/lib/grade-utils";
+import { formatTimestamp, INQUIRY_CATEGORY_MAP, INQUIRY_CATEGORY_OPTIONS } from "@/lib/grade-utils";
 import { MessageSquare, Send, ChevronDown, ChevronUp, Clock, CheckCircle } from "lucide-react";
 
 interface InquiryRow {
   id: string;
+  category: string;
   title: string;
   content: string;
   status: "PENDING" | "ANSWERED";
@@ -31,8 +30,21 @@ export default function InquiriesPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ title: "", content: "" });
+  const [formData, setFormData] = useState({ category: "ETC", title: "", content: "" });
   const [submitting, setSubmitting] = useState(false);
+
+  // URL 쿼리(?new=1&category=EXAM)로 폼 자동 열기/분류 프리필
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get("category");
+    if (cat && INQUIRY_CATEGORY_MAP[cat]) {
+      setFormData((prev) => ({ ...prev, category: cat }));
+    }
+    if (params.get("new") === "1") {
+      setShowForm(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
@@ -51,6 +63,7 @@ export default function InquiriesPage() {
         setInquiries(
           docs.map((d) => ({
             id: d.id,
+            category: d.category || "ETC",
             title: d.title,
             content: d.content,
             status: d.status,
@@ -77,33 +90,40 @@ export default function InquiriesPage() {
 
     setSubmitting(true);
     try {
-      const now = Timestamp.now();
-      const docId = await createDocument("inquiries", {
-        userId: user.uid,
-        userName: user.displayName || "이름 미설정",
-        userEmail: user.email || "",
-        title: formData.title.trim(),
-        content: formData.content.trim(),
-        status: "PENDING",
-        adminReply: null,
-        adminRepliedAt: null,
-        createdAt: now,
-        updatedAt: now,
+      const { getFirebaseAuth } = await import("@/lib/firebase");
+      const token = await getFirebaseAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/inquiries/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          category: formData.category,
+          title: formData.title.trim(),
+          content: formData.content.trim(),
+        }),
       });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "문의 등록에 실패했습니다.");
+        return;
+      }
 
       setInquiries((prev) => [
         {
-          id: docId,
+          id: data.id,
+          category: formData.category,
           title: formData.title.trim(),
           content: formData.content.trim(),
           status: "PENDING",
           adminReply: null,
           adminRepliedAt: "-",
-          createdAt: formatTimestamp(now),
+          createdAt: "방금 전",
         },
         ...prev,
       ]);
-      setFormData({ title: "", content: "" });
+      setFormData({ category: "ETC", title: "", content: "" });
       setShowForm(false);
     } catch (error) {
       console.error("문의 등록 실패:", error);
@@ -151,6 +171,20 @@ export default function InquiriesPage() {
           <h3 className="font-bold mb-4">새 문의 작성</h3>
           <div className="space-y-4">
             <div>
+              <label className="block text-sm font-medium mb-1">문의 종류</label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              >
+                {INQUIRY_CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
               <label className="block text-sm font-medium mb-1">제목</label>
               <input
                 value={formData.title}
@@ -179,7 +213,7 @@ export default function InquiriesPage() {
               {submitting ? "등록 중..." : "문의 등록"}
             </button>
             <button
-              onClick={() => { setShowForm(false); setFormData({ title: "", content: "" }); }}
+              onClick={() => { setShowForm(false); setFormData({ category: "ETC", title: "", content: "" }); }}
               className="border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition"
             >
               취소
@@ -229,6 +263,9 @@ export default function InquiriesPage() {
                         답변 대기
                       </span>
                     )}
+                  </span>
+                  <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground whitespace-nowrap">
+                    {INQUIRY_CATEGORY_MAP[inquiry.category] || "기타"}
                   </span>
                   <span className="font-medium truncate">{inquiry.title}</span>
                 </div>

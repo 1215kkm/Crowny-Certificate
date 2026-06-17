@@ -30,6 +30,7 @@ export type DeliveryMethod = "EMAIL" | "BOTH";
 export type IssuanceStatus = "PENDING" | "CONFIRMED" | "SHIPPING" | "DELIVERED";
 export type SubmissionStatus = "IN_PROGRESS" | "SUBMITTED" | "GRADING" | "GRADED";
 export type InquiryStatus = "PENDING" | "ANSWERED";
+export type InquiryCategory = "EXAM" | "CERTIFICATE" | "PAYMENT" | "COURSE" | "ETC";
 
 export interface UserDoc {
   email: string;
@@ -189,6 +190,7 @@ export interface InquiryDoc {
   userId: string;
   userName: string;
   userEmail: string;
+  category: InquiryCategory;
   title: string;
   content: string;
   status: InquiryStatus;
