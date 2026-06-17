@@ -13,14 +13,22 @@ import {
   getDocument,
 } from "@/lib/firestore";
 import { getGradeInfo } from "@/lib/grade-utils";
+import { Mail, Truck, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+
+const CERT_PRICES = {
+  EMAIL: 35000,
+  MAIL: 55000,
+  REISSUE: 19000,
+};
 
 interface PassedExam {
   examId: string;
   examTitle: string;
   certificateTypeId: string;
   grade: string;
+  gradeLabel: string;
   gradeColor: string;
-  alreadyIssued: boolean;
+  existingIssuance: (CertificateIssuanceDoc & { id: string }) | null;
 }
 
 export default function CertificatesPage() {
@@ -28,7 +36,7 @@ export default function CertificatesPage() {
   const [passedExams, setPassedExams] = useState<PassedExam[]>([]);
   const [loading, setLoading] = useState(false);
   const [issuing, setIssuing] = useState<string | null>(null);
-  const [deliveryMethod, setDeliveryMethod] = useState<"EMAIL" | "MAIL" | "BOTH">("EMAIL");
+  const [selectedMethod, setSelectedMethod] = useState<Record<string, "EMAIL" | "MAIL">>({});
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -37,15 +45,27 @@ export default function CertificatesPage() {
       setLoading(true);
       try {
         const [submissions, issuances, certTypes] = await Promise.all([
-          getDocuments<ExamSubmissionDoc>("examSubmissions", where("userId", "==", user!.uid), where("passed", "==", true)),
-          getDocuments<CertificateIssuanceDoc>("certificateIssuances", where("userId", "==", user!.uid)),
+          getDocuments<ExamSubmissionDoc>(
+            "examSubmissions",
+            where("userId", "==", user!.uid),
+            where("passed", "==", true)
+          ),
+          getDocuments<CertificateIssuanceDoc>(
+            "certificateIssuances",
+            where("userId", "==", user!.uid)
+          ),
           getDocuments<CertificateTypeDoc>("certificateTypes"),
         ]);
 
         const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
-        certTypes.forEach((t) => { typesMap[t.id] = t; });
+        certTypes.forEach((t) => {
+          typesMap[t.id] = t;
+        });
 
-        const issuedTypeIds = new Set(issuances.map((i) => i.certificateTypeId));
+        const issuanceMap: Record<string, CertificateIssuanceDoc & { id: string }> = {};
+        issuances.forEach((i) => {
+          issuanceMap[i.certificateTypeId] = i;
+        });
 
         const examIds = [...new Set(submissions.map((s) => s.examId))];
         const examsData: PassedExam[] = [];
@@ -61,9 +81,10 @@ export default function CertificatesPage() {
             examId,
             examTitle: exam.title,
             certificateTypeId: exam.certificateTypeId,
-            grade: gradeInfo.label,
+            grade: certType.grade,
+            gradeLabel: gradeInfo.label,
             gradeColor: gradeInfo.color,
-            alreadyIssued: issuedTypeIds.has(exam.certificateTypeId),
+            existingIssuance: issuanceMap[exam.certificateTypeId] || null,
           });
         }
 
@@ -77,28 +98,49 @@ export default function CertificatesPage() {
     fetchPassedExams();
   }, [user, authLoading]);
 
-  const handleIssue = async (certificateTypeId: string) => {
+  const getMethodForExam = (certTypeId: string) =>
+    selectedMethod[certTypeId] || "EMAIL";
+
+  const getPrice = (certTypeId: string, isReissue: boolean) => {
+    if (isReissue) return CERT_PRICES.REISSUE;
+    const method = getMethodForExam(certTypeId);
+    return method === "EMAIL" ? CERT_PRICES.EMAIL : CERT_PRICES.MAIL;
+  };
+
+  const handleIssue = async (certificateTypeId: string, isReissue: boolean) => {
     if (!user) return;
+    const method = getMethodForExam(certificateTypeId);
+    const price = getPrice(certificateTypeId, isReissue);
+
     setIssuing(certificateTypeId);
     try {
       const { getFirebaseAuth } = await import("@/lib/firebase");
       const token = await getFirebaseAuth().currentUser?.getIdToken();
+
       const res = await fetch("/api/certificates/issue", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ certificateTypeId, deliveryMethod }),
+        body: JSON.stringify({
+          certificateTypeId,
+          deliveryMethod: method,
+          price,
+          isReissue,
+        }),
       });
 
       if (res.ok) {
+        if (price > 0) {
+          const data = await res.json();
+          if (data.paymentUrl) {
+            window.location.href = data.paymentUrl;
+            return;
+          }
+        }
         alert("인증서 발급이 신청되었습니다!");
-        setPassedExams((prev) =>
-          prev.map((e) =>
-            e.certificateTypeId === certificateTypeId ? { ...e, alreadyIssued: true } : e
-          )
-        );
+        window.location.reload();
       } else {
         const data = await res.json();
         alert(data.error || "발급 신청에 실패했습니다.");
@@ -112,132 +154,275 @@ export default function CertificatesPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">인증서 발급</h1>
+      <h1 className="text-3xl font-bold mb-2">자격증 발급</h1>
       <p className="text-muted-foreground mb-8">
-        시험 합격 후 디지털 또는 실물 인증서를 발급받으세요
+        시험 합격 후 공식 자격증을 발급받으세요
       </p>
 
       {/* 발급 방법 안내 */}
       <div className="grid md:grid-cols-2 gap-6 mb-12">
-        <div className="border border-border rounded-xl p-6">
-          <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
+        <div className="border border-border rounded-2xl p-6 hover:shadow-md transition">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Mail className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold">이메일 발급</h3>
+              <div className="text-2xl font-bold text-primary">
+                {CERT_PRICES.EMAIL.toLocaleString()}원
+              </div>
+            </div>
           </div>
-          <h3 className="text-lg font-bold mb-2">디지털 인증서 (이메일)</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            PDF 형식의 디지털 인증서를 이메일로 발급받습니다. 직인과 QR 코드가 포함되어 진위 확인이 가능합니다.
-          </p>
-          <ul className="text-sm space-y-1 text-muted-foreground mb-4">
-            <li>- 발급 즉시 이메일 수신</li>
-            <li>- PDF 다운로드 가능</li>
-            <li>- QR 코드 진위 확인</li>
-            <li>- 고유 인증번호 부여</li>
+          <ul className="space-y-2 text-muted-foreground">
+            <li>• PDF 디지털 자격증 이메일 발송</li>
+            <li>• 직인 + QR코드 진위 확인 포함</li>
+            <li>• 발급 즉시 이메일 수신</li>
+            <li className="text-orange-600 font-medium">
+              • 사이트에서 1개월간 보관 후 자동 삭제
+            </li>
+            <li className="text-muted-foreground">
+              • 재발급 시 {CERT_PRICES.REISSUE.toLocaleString()}원
+            </li>
           </ul>
-          <div className="text-xl font-bold text-primary">10,000원</div>
         </div>
 
-        <div className="border border-border rounded-xl p-6">
-          <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-            <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-            </svg>
+        <div className="border border-border rounded-2xl p-6 hover:shadow-md transition">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <Truck className="w-6 h-6 text-purple-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold">우편 발급</h3>
+              <div className="text-2xl font-bold text-primary">
+                {CERT_PRICES.MAIL.toLocaleString()}원
+              </div>
+            </div>
           </div>
-          <h3 className="text-lg font-bold mb-2">실물 인증서 (우편 배송)</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            고급 용지에 인쇄된 실물 인증서를 우편으로 배송합니다. 직인이 찍힌 공식 인증서입니다.
-          </p>
-          <ul className="text-sm space-y-1 text-muted-foreground mb-4">
-            <li>- 고급 용지 인쇄</li>
-            <li>- 직인 날인</li>
-            <li>- 등기우편 배송 (3~5영업일)</li>
-            <li>- 배송 추적 가능</li>
+          <ul className="space-y-2 text-muted-foreground">
+            <li>• 고급 용지 실물 자격증 우편 배송</li>
+            <li>• 직인 날인 공식 인증서</li>
+            <li>• 등기우편 배송 (3~5영업일)</li>
+            <li>• 배송 추적 가능</li>
+            <li className="text-muted-foreground">
+              • 재발급 시 {CERT_PRICES.REISSUE.toLocaleString()}원 + 배송비
+            </li>
           </ul>
-          <div className="text-xl font-bold text-primary">50,000원</div>
         </div>
       </div>
 
       {/* 인증서 발급 신청 */}
       {!authLoading && user ? (
-        <div className="bg-muted rounded-xl p-8 mb-12">
-          <h2 className="text-xl font-bold mb-4">인증서 발급 신청</h2>
+        <div className="mb-12">
+          <h2 className="text-xl font-bold mb-6">발급 신청</h2>
 
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">로딩 중...</div>
+            <div className="text-center py-12 text-muted-foreground">
+              로딩 중...
+            </div>
           ) : passedExams.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              합격한 시험이 없습니다. 시험에 합격한 후 인증서를 발급받을 수 있습니다.
+            <div className="bg-gray-50 rounded-2xl p-12 text-center">
+              <div className="text-muted-foreground mb-4">
+                합격한 시험이 없습니다.
+              </div>
+              <p className="text-muted-foreground mb-6">
+                시험에 합격한 후 자격증을 발급받을 수 있습니다.
+              </p>
+              <Link
+                href="/exams"
+                className="bg-primary text-white px-6 py-3 rounded-xl font-medium hover:bg-primary-dark transition inline-block"
+              >
+                시험 신청하기
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">발급 방법 선택</label>
-                <select
-                  value={deliveryMethod}
-                  onChange={(e) => setDeliveryMethod(e.target.value as "EMAIL" | "MAIL" | "BOTH")}
-                  className="px-4 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  <option value="EMAIL">디지털 (이메일) - 10,000원</option>
-                  <option value="MAIL">실물 (우편) - 50,000원</option>
-                  <option value="BOTH">디지털 + 실물 - 55,000원</option>
-                </select>
-              </div>
+              {passedExams.map((exam) => {
+                const isReissue = !!exam.existingIssuance;
+                const method = getMethodForExam(exam.certificateTypeId);
+                const price = getPrice(exam.certificateTypeId, isReissue);
+                const issuance = exam.existingIssuance;
 
-              {passedExams.map((exam) => (
-                <div key={exam.certificateTypeId} className="flex items-center justify-between bg-card border border-border rounded-lg p-4">
-                  <div>
-                    <span className={`${exam.gradeColor} text-white text-xs px-2 py-0.5 rounded mr-2`}>
-                      {exam.grade}
-                    </span>
-                    <span className="font-medium">{exam.examTitle}</span>
+                return (
+                  <div
+                    key={exam.certificateTypeId}
+                    className="bg-white border border-border rounded-2xl p-6"
+                  >
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span
+                            className={`${exam.gradeColor} text-white px-2 py-0.5 rounded font-medium`}
+                          >
+                            {exam.gradeLabel}
+                          </span>
+                          <span className="font-bold">{exam.examTitle}</span>
+                        </div>
+
+                        {/* 기존 발급 정보 */}
+                        {issuance && (
+                          <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+                            {issuance.status === "ISSUED" ||
+                            issuance.status === "DELIVERED" ? (
+                              <span className="flex items-center gap-1 text-green-600">
+                                <CheckCircle className="w-4 h-4" />
+                                발급 완료
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-orange-600">
+                                <Clock className="w-4 h-4" />
+                                {issuance.status === "PENDING"
+                                  ? "발급 대기"
+                                  : issuance.status === "GENERATING"
+                                    ? "생성 중"
+                                    : "배송 중"}
+                              </span>
+                            )}
+                            <span>
+                              발급번호: {issuance.issueNumber}
+                            </span>
+                            {issuance.deliveryMethod === "EMAIL" && (
+                              <span className="flex items-center gap-1 text-orange-500">
+                                <AlertTriangle className="w-4 h-4" />
+                                1개월 후 삭제
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {/* 발급 방법 선택 */}
+                        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+                          <button
+                            onClick={() =>
+                              setSelectedMethod((prev) => ({
+                                ...prev,
+                                [exam.certificateTypeId]: "EMAIL",
+                              }))
+                            }
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium transition ${
+                              method === "EMAIL"
+                                ? "bg-white shadow-sm text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <Mail className="w-4 h-4" />
+                            이메일
+                          </button>
+                          <button
+                            onClick={() =>
+                              setSelectedMethod((prev) => ({
+                                ...prev,
+                                [exam.certificateTypeId]: "MAIL",
+                              }))
+                            }
+                            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg font-medium transition ${
+                              method === "MAIL"
+                                ? "bg-white shadow-sm text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <Truck className="w-4 h-4" />
+                            우편
+                          </button>
+                        </div>
+
+                        <div className="text-right">
+                          <div className="text-lg font-bold text-primary">
+                            {price.toLocaleString()}원
+                          </div>
+                          {isReissue && (
+                            <div className="text-orange-600 font-medium">
+                              재발급
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={() =>
+                            handleIssue(exam.certificateTypeId, isReissue)
+                          }
+                          disabled={issuing === exam.certificateTypeId}
+                          className="bg-primary text-white px-5 py-2.5 rounded-xl font-medium hover:bg-primary-dark transition disabled:opacity-50 whitespace-nowrap"
+                        >
+                          {issuing === exam.certificateTypeId
+                            ? "처리 중..."
+                            : isReissue
+                              ? "재발급 신청"
+                              : "결제 및 발급"}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  {exam.alreadyIssued ? (
-                    <span className="text-sm text-green-600 font-medium">발급 완료</span>
-                  ) : (
-                    <button
-                      onClick={() => handleIssue(exam.certificateTypeId)}
-                      disabled={issuing === exam.certificateTypeId}
-                      className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition disabled:opacity-50"
-                    >
-                      {issuing === exam.certificateTypeId ? "신청 중..." : "발급 신청"}
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       ) : (
-        <div className="bg-muted rounded-xl p-8 text-center mb-12">
-          <h2 className="text-xl font-bold mb-2">인증서 발급 신청</h2>
+        <div className="bg-gray-50 rounded-2xl p-12 text-center mb-12">
+          <h2 className="text-xl font-bold mb-2">자격증 발급 신청</h2>
           <p className="text-muted-foreground mb-6">
-            로그인 후 합격한 시험의 인증서를 발급받을 수 있습니다.
+            로그인 후 합격한 시험의 자격증을 발급받을 수 있습니다.
           </p>
           <Link
             href="/auth/login"
-            className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition inline-block"
+            className="bg-primary text-white px-8 py-3 rounded-xl font-medium hover:bg-primary-dark transition inline-block"
           >
             로그인하여 신청하기
           </Link>
         </div>
       )}
 
+      {/* 요금 안내 */}
+      <div className="bg-gray-50 rounded-2xl p-6 mb-12">
+        <h3 className="font-bold mb-4">💰 요금 안내</h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-xl p-4 border border-border">
+            <div className="font-medium mb-1">이메일 발급</div>
+            <div className="text-2xl font-bold text-primary">
+              {CERT_PRICES.EMAIL.toLocaleString()}원
+            </div>
+            <div className="text-muted-foreground mt-1">
+              사이트 1개월 보관
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 border border-border">
+            <div className="font-medium mb-1">우편 발급</div>
+            <div className="text-2xl font-bold text-primary">
+              {CERT_PRICES.MAIL.toLocaleString()}원
+            </div>
+            <div className="text-muted-foreground mt-1">
+              등기우편 3~5영업일
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 border border-border">
+            <div className="font-medium mb-1">재발급</div>
+            <div className="text-2xl font-bold text-primary">
+              {CERT_PRICES.REISSUE.toLocaleString()}원
+            </div>
+            <div className="text-muted-foreground mt-1">
+              이메일/우편 동일
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 인증서 진위 확인 */}
       <div className="border-t border-border pt-8">
-        <h2 className="text-xl font-bold mb-4">인증서 진위 확인</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          인증서에 기재된 인증번호를 입력하여 진위 여부를 확인할 수 있습니다.
+        <h2 className="text-xl font-bold mb-4">자격증 진위 확인</h2>
+        <p className="text-muted-foreground mb-4">
+          자격증에 기재된 인증번호를 입력하여 진위 여부를 확인할 수 있습니다.
         </p>
         <div className="flex gap-3 max-w-md">
           <input
             type="text"
             placeholder="인증번호 입력 (예: CRN-2026-A1B2C3)"
-            className="flex-1 px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-1 px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <Link
             href="/certificates/verify"
-            className="bg-gray-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 transition whitespace-nowrap"
+            className="bg-gray-800 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-900 transition whitespace-nowrap"
           >
             확인
           </Link>

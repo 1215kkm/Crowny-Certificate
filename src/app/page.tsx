@@ -23,8 +23,9 @@ const GRADES = [
     grade: "3급",
     title: "AI 기초 활용",
     description: "AI 도구 5종 이상 활용, 프롬프트 엔지니어링 기본",
-    format: "객관식 40문항 + 실습 2개",
+    format: "객관식 25문항 (40문항 중 랜덤)",
     time: "60분",
+    price: "19,000원",
     color: "from-blue-500 to-blue-600",
     bgLight: "bg-blue-50",
     textColor: "text-blue-600",
@@ -36,6 +37,7 @@ const GRADES = [
     description: "AI를 활용한 UI 디자인 및 프론트엔드 구현",
     format: "실기 시험 (화면 녹화)",
     time: "120분",
+    price: "29,000원",
     color: "from-purple-500 to-purple-600",
     bgLight: "bg-purple-50",
     textColor: "text-purple-600",
@@ -47,6 +49,7 @@ const GRADES = [
     description: "UI/UX + 프론트엔드 + 백엔드 API 연동 완성",
     format: "프로젝트 제출 + 코드 리뷰",
     time: "7일",
+    price: "39,000원",
     color: "from-orange-500 to-orange-600",
     bgLight: "bg-orange-50",
     textColor: "text-orange-600",
@@ -58,6 +61,7 @@ const GRADES = [
     description: "실제 비즈니스 문제를 AI로 해결하는 솔루션 제작",
     format: "실무 과제 해결 (해커톤)",
     time: "48시간",
+    price: "49,000원",
     color: "from-red-500 to-red-600",
     bgLight: "bg-red-50",
     textColor: "text-red-600",
@@ -282,6 +286,12 @@ export default function HomePage() {
                         <span className="text-muted-foreground">시험 시간</span>
                         <span className="font-medium text-foreground">
                           {item.time}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">응시료</span>
+                        <span className="font-bold text-foreground">
+                          {item.price}
                         </span>
                       </div>
                     </div>
