@@ -26,9 +26,9 @@ const GRADES = [
     format: "객관식 25문항 (40문항 중 랜덤)",
     time: "60분",
     price: "19,000원",
-    color: "from-blue-500 to-blue-600",
-    bgLight: "bg-blue-50",
-    textColor: "text-blue-600",
+    color: "from-primary to-secondary",
+    bgLight: "bg-primary-50",
+    textColor: "text-primary",
     icon: Sparkles,
   },
   {
@@ -196,8 +196,8 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-800 to-blue-900 text-white py-24 px-4">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(139,92,246,0.3),_transparent_50%),radial-gradient(ellipse_at_bottom_left,_rgba(59,130,246,0.3),_transparent_50%)]" />
+      <section className="relative overflow-hidden bg-hero-brand text-white py-24 px-4">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(138,56,245,0.35),_transparent_50%),radial-gradient(ellipse_at_bottom_left,_rgba(213,58,107,0.30),_transparent_50%)]" />
         <ParticleCanvas />
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
@@ -219,7 +219,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/courses"
-              className="group inline-flex items-center justify-center gap-2 bg-white text-indigo-900 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/90 transition-all shadow-lg shadow-black/10"
+              className="group inline-flex items-center justify-center gap-2 bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/90 transition-all shadow-lg shadow-black/10"
             >
               <BookOpen className="w-5 h-5" />
               강의 둘러보기
@@ -425,8 +425,8 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-800 to-blue-900 text-white py-20 px-4">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(139,92,246,0.2),_transparent_60%)]" />
+      <section className="relative overflow-hidden bg-hero-brand text-white py-20 px-4">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(213,58,107,0.22),_transparent_60%)]" />
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3">
@@ -441,7 +441,7 @@ export default function HomePage() {
           </p>
           <Link
             href="/auth/register"
-            className="inline-flex items-center gap-2 bg-white text-indigo-900 px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/90 transition-all shadow-lg shadow-black/10"
+            className="inline-flex items-center gap-2 bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/90 transition-all shadow-lg shadow-black/10"
           >
             <GraduationCap className="w-5 h-5" />
             무료 회원가입

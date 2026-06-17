@@ -184,6 +184,16 @@ export default function CourseDetailPage() {
             </div>
           </div>
           <div className="flex gap-3">
+            {/* 3급 강의는 학습 페이지가 준비되어 있어 바로 학습 진입 가능 */}
+            {course.id === "sample-1" && (
+              <Link
+                href="/courses/grade-3/learn"
+                className="inline-flex items-center gap-2 bg-gradient-brand text-white px-8 py-3 rounded-lg font-medium hover:opacity-90 transition"
+              >
+                학습 시작
+                <span aria-hidden>→</span>
+              </Link>
+            )}
             <Link
               href={`/payment?type=course&id=${course.id}`}
               className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition"
