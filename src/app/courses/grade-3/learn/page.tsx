@@ -160,7 +160,7 @@ export default function Grade3LearnPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const [activeTab, setActiveTab] = useState<"lecture" | "quiz">("lecture");
+  const [activeTab, setActiveTab] = useState<"lecture" | "theory" | "quiz">("lecture");
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.3);
@@ -458,6 +458,17 @@ export default function Grade3LearnPage() {
                 강의
               </button>
               <button
+                onClick={() => setActiveTab("theory")}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition ${
+                  activeTab === "theory"
+                    ? "bg-white shadow-sm text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                이론 보충
+              </button>
+              <button
                 onClick={() => setActiveTab("quiz")}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-md font-medium transition ${
                   activeTab === "quiz"
@@ -571,6 +582,95 @@ export default function Grade3LearnPage() {
                 setLectureError(true);
               }}
             />
+          </div>
+        </div>
+      )}
+
+      {/* 이론 보충 탭 — 강의 영상에서 다루지 않은 시험 출제 핵심 이론 */}
+      {activeTab === "theory" && (
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-2">이론 보충</h2>
+            <p className="text-muted-foreground">
+              강의 영상에서 깊이 다루지 않지만 시험에 출제되는 핵심 이론입니다. 시험 전 꼭 확인하세요.
+            </p>
+          </div>
+
+          {[
+            {
+              group: "AI 기초 이론",
+              items: [
+                {
+                  term: "인공지능(AI) · 머신러닝(ML) · 딥러닝(DL)의 관계",
+                  desc: "AI가 가장 넓은 개념이고, 그 안에 머신러닝, 머신러닝 안에 딥러닝이 포함됩니다. (포함 관계: AI ⊃ ML ⊃ DL)",
+                },
+                {
+                  term: "머신러닝(Machine Learning)",
+                  desc: "사람이 규칙을 일일이 프로그래밍하지 않고, 데이터로부터 패턴을 학습하여 스스로 성능을 향상시키는 AI의 한 분야입니다.",
+                },
+                {
+                  term: "딥러닝(Deep Learning)",
+                  desc: "여러 층의 인공신경망(Artificial Neural Network)을 사용해 데이터의 복잡한 패턴을 학습하는 머신러닝의 하위 분야입니다.",
+                },
+                {
+                  term: "지도 학습(Supervised Learning)",
+                  desc: "입력 데이터와 정답(레이블)이 쌍으로 주어진 데이터셋으로 모델을 훈련시키는 방법입니다. (정답 없는 군집화는 비지도 학습)",
+                },
+                {
+                  term: "대규모 언어 모델(LLM)",
+                  desc: "방대한 텍스트 데이터를 학습하여 자연어를 이해하고 문맥에 맞는 텍스트를 생성하는 대규모 AI 모델입니다. (예: GPT, Claude, Gemini)",
+                },
+                {
+                  term: "자연어 처리(NLP)",
+                  desc: "사람의 언어를 컴퓨터가 이해·처리하는 기술로 챗봇, 번역, 요약, 감정 분석 등에 활용됩니다.",
+                },
+              ],
+            },
+            {
+              group: "프롬프트 고급 기법",
+              items: [
+                {
+                  term: "제로샷(Zero-shot) 프롬프팅",
+                  desc: "예시를 제공하지 않고 바로 질문이나 지시를 내리는 방식으로, AI의 기존 학습 지식에 의존합니다.",
+                },
+                {
+                  term: "퓨샷(Few-shot) 프롬프팅",
+                  desc: "몇 가지 예시를 함께 제공하여 원하는 답변의 형식·스타일·패턴을 AI가 더 잘 이해하도록 유도하는 방식입니다.",
+                },
+                {
+                  term: "사고의 연쇄(Chain-of-Thought, CoT)",
+                  desc: "'단계별로 생각해보세요'처럼 AI가 추론 과정을 명시적으로 거치도록 유도해 복잡한 문제의 정확도를 높이는 기법입니다.",
+                },
+              ],
+            },
+            {
+              group: "AI 윤리 보충",
+              items: [
+                {
+                  term: "AI 편향(Bias)",
+                  desc: "학습 데이터에 존재하는 편향이 AI 결과에 그대로 반영될 수 있으며, 성별·인종·나이 등에 대한 불공정한 결과로 이어질 수 있습니다. 최신 모델에서도 완전히 제거되지 않았습니다.",
+                },
+              ],
+            },
+          ].map((section) => (
+            <div key={section.group} className="mb-8">
+              <h3 className="text-lg font-bold mb-3 text-primary">{section.group}</h3>
+              <div className="space-y-3">
+                {section.items.map((item) => (
+                  <div
+                    key={item.term}
+                    className="bg-white border border-border rounded-xl p-5"
+                  >
+                    <div className="font-bold mb-1">{item.term}</div>
+                    <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+            💡 이 내용은 강의 영상의 도구·프롬프트(RTCE)·AI 윤리 내용과 함께 학습하면 3급 시험 전 범위를 커버합니다.
           </div>
         </div>
       )}
