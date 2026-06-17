@@ -188,7 +188,7 @@ export default function ExamTakePage() {
         const qSnap = await getDocs(
           query(questionsCollection(examId), orderBy("order"))
         );
-        const qs: Question[] = qSnap.docs.map((d) => {
+        const allQuestions: Question[] = qSnap.docs.map((d) => {
           const data = d.data() as ExamQuestionDoc;
           return {
             id: d.id,
@@ -198,6 +198,12 @@ export default function ExamTakePage() {
             points: data.points,
           };
         });
+
+        // 출제 문항 수 (questionCount)만큼 랜덤 선택, 부족하면 전체 출제
+        const count = Math.min(examData.questionCount, allQuestions.length);
+        const shuffled = [...allQuestions].sort(() => Math.random() - 0.5);
+        const qs = shuffled.slice(0, count);
+
         setQuestions(qs);
         setTotalPoints(qs.reduce((sum, q) => sum + q.points, 0));
       } catch (error) {
