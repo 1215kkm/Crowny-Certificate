@@ -13,7 +13,7 @@ export async function POST(request: Request) {
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
-    const { examId, answers } = await request.json();
+    const { examId, answers, questionIds } = await request.json();
 
     if (!examId || !answers || typeof answers !== "object") {
       return NextResponse.json({ error: "필수 정보가 누락되었습니다." }, { status: 400 });
@@ -39,41 +39,82 @@ export async function POST(request: Request) {
 
     let earnedPoints = 0;
 
-    const questionMap: Record<string, { correctAnswer: string | null; points: number }> = {};
+    type QInfo = {
+      correctAnswer: string | null;
+      points: number;
+      content: string;
+      options: string[];
+      type: string;
+      explanation: string | null;
+    };
+    const questionMap: Record<string, QInfo> = {};
     questionsSnapshot.docs.forEach((doc) => {
       const q = doc.data();
       questionMap[doc.id] = {
         correctAnswer: q.correctAnswer ?? null,
         points: q.points || 0,
+        content: q.content ?? "",
+        options: Array.isArray(q.options) ? q.options : [],
+        type: q.type ?? "MULTIPLE_CHOICE",
+        explanation: q.explanation ?? null,
       };
     });
 
-    // 채점 (제출된 문항만 대상)
+    // 채점 대상 = 실제 출제된 문항(questionIds). 미전달 시 제출된 문항으로 폴백.
+    const gradedIds: string[] =
+      Array.isArray(questionIds) && questionIds.length > 0
+        ? questionIds.filter((id: string) => questionMap[id])
+        : Object.keys(answers).filter((id) => questionMap[id]);
+
+    // 채점 + 문항별 리뷰(정답/해설) 생성. 미답변 문항은 오답 처리.
     const answerResults: Record<string, { answer: string; isCorrect: boolean | null; points: number }> = {};
-    let submittedTotalPoints = 0;
+    const review: Array<{
+      questionId: string;
+      content: string;
+      options: string[];
+      type: string;
+      points: number;
+      userAnswer: number | null;
+      correctAnswer: number | null;
+      isCorrect: boolean;
+      explanation: string | null;
+    }> = [];
+    let totalPoints = 0;
 
-    for (const [questionId, answer] of Object.entries(answers)) {
+    for (const questionId of gradedIds) {
       const question = questionMap[questionId];
-      if (!question) continue;
+      totalPoints += question.points;
 
-      submittedTotalPoints += question.points;
-
-      const isCorrect = question.correctAnswer !== null
-        ? String(answer) === String(question.correctAnswer)
-        : null;
+      const rawAnswer = (answers as Record<string, unknown>)[questionId];
+      const answered = rawAnswer !== undefined && rawAnswer !== null && rawAnswer !== "";
+      const isCorrect =
+        answered && question.correctAnswer !== null
+          ? String(rawAnswer) === String(question.correctAnswer)
+          : false;
 
       if (isCorrect) {
         earnedPoints += question.points;
       }
 
       answerResults[questionId] = {
-        answer: String(answer),
+        answer: answered ? String(rawAnswer) : "",
         isCorrect,
         points: isCorrect ? question.points : 0,
       };
-    }
 
-    const totalPoints = submittedTotalPoints;
+      review.push({
+        questionId,
+        content: question.content,
+        options: question.options,
+        type: question.type,
+        points: question.points,
+        userAnswer: answered ? Number(rawAnswer) : null,
+        correctAnswer:
+          question.correctAnswer !== null ? Number(question.correctAnswer) : null,
+        isCorrect,
+        explanation: question.explanation,
+      });
+    }
 
     // 합격/불합격 판정 (제출된 문항 총점 기준 환산)
     const scorePercentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
@@ -122,6 +163,7 @@ export async function POST(request: Request) {
       scorePercentage,
       passed,
       passingScore,
+      review,
     });
   } catch (error) {
     console.error("Exam submission error:", error);

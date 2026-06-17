@@ -29,6 +29,18 @@ interface Question {
   points: number;
 }
 
+interface ReviewItem {
+  questionId: string;
+  content: string;
+  options: string[];
+  type: string;
+  points: number;
+  userAnswer: number | null;
+  correctAnswer: number | null;
+  isCorrect: boolean;
+  explanation: string | null;
+}
+
 function useExamProtection(isActive: boolean) {
   const [violations, setViolations] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
@@ -162,6 +174,8 @@ export default function ExamTakePage() {
   const [score, setScore] = useState<number | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);
   const [passed, setPassed] = useState(false);
+  const [review, setReview] = useState<ReviewItem[]>([]);
+  const [showOnlyWrong, setShowOnlyWrong] = useState(true);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [examStarted, setExamStarted] = useState(false);
@@ -233,7 +247,12 @@ export default function ExamTakePage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ examId, answers, violations }),
+        body: JSON.stringify({
+          examId,
+          answers,
+          violations,
+          questionIds: questions.map((q) => q.id),
+        }),
       });
 
       const data = await res.json();
@@ -241,6 +260,7 @@ export default function ExamTakePage() {
         setScore(data.score);
         setTotalPoints(data.totalPoints);
         setPassed(data.passed);
+        setReview(Array.isArray(data.review) ? data.review : []);
         setIsSubmitted(true);
       } else {
         alert(data.error || "제출에 실패했습니다.");
@@ -250,7 +270,7 @@ export default function ExamTakePage() {
     } finally {
       setSubmitting(false);
     }
-  }, [examId, answers, user, isSubmitted, submitting, violations]);
+  }, [examId, answers, user, isSubmitted, submitting, violations, questions]);
 
   useEffect(() => {
     if (isSubmitted || loading || !exam || !examStarted) return;
@@ -403,6 +423,108 @@ export default function ExamTakePage() {
             마이페이지
           </a>
         </div>
+
+        {/* 오답 / 해설 리뷰 */}
+        {review.length > 0 && (
+          <div className="mt-12 text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h2 className="text-xl font-bold">
+                문제 리뷰{" "}
+                <span className="text-base font-normal text-muted-foreground">
+                  (정답 {review.filter((r) => r.isCorrect).length} / 오답{" "}
+                  {review.filter((r) => !r.isCorrect).length})
+                </span>
+              </h2>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showOnlyWrong}
+                  onChange={(e) => setShowOnlyWrong(e.target.checked)}
+                />
+                틀린 문제만 보기
+              </label>
+            </div>
+
+            {(showOnlyWrong ? review.filter((r) => !r.isCorrect) : review).length === 0 ? (
+              <div className="border border-border rounded-xl p-6 text-center text-muted-foreground">
+                틀린 문제가 없습니다. 축하합니다! 🎉
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {(showOnlyWrong ? review.filter((r) => !r.isCorrect) : review).map(
+                  (item) => (
+                    <div
+                      key={item.questionId}
+                      className={`border rounded-xl p-5 ${
+                        item.isCorrect
+                          ? "border-green-200 bg-green-50/40"
+                          : "border-red-200 bg-red-50/40"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded font-medium ${
+                            item.isCorrect
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {item.isCorrect ? "정답" : item.userAnswer === null ? "미답변" : "오답"}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {item.points}점
+                        </span>
+                      </div>
+                      <p className="font-bold mb-3">{item.content}</p>
+                      <div className="space-y-2">
+                        {item.options.map((opt, optIdx) => {
+                          const isCorrectOpt = item.correctAnswer === optIdx;
+                          const isUserOpt = item.userAnswer === optIdx;
+                          return (
+                            <div
+                              key={optIdx}
+                              className={`flex items-center gap-2 text-sm rounded-lg px-3 py-2 border ${
+                                isCorrectOpt
+                                  ? "border-green-400 bg-green-50 text-green-800"
+                                  : isUserOpt
+                                    ? "border-red-400 bg-red-50 text-red-800"
+                                    : "border-transparent text-muted-foreground"
+                              }`}
+                            >
+                              <span className="font-bold w-5">{optIdx + 1}</span>
+                              <span className="flex-1">{opt}</span>
+                              {isCorrectOpt && (
+                                <span className="text-xs font-medium text-green-700">
+                                  정답
+                                </span>
+                              )}
+                              {isUserOpt && !isCorrectOpt && (
+                                <span className="text-xs font-medium text-red-700">
+                                  내 선택
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {item.userAnswer === null && (
+                        <p className="text-xs text-red-600 mt-2">
+                          답을 선택하지 않은 문항입니다.
+                        </p>
+                      )}
+                      {item.explanation && (
+                        <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                          <span className="font-bold text-blue-800">💡 해설 </span>
+                          <span className="text-blue-700">{item.explanation}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
