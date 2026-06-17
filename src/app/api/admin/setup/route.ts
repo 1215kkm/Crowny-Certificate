@@ -25,13 +25,13 @@ export async function POST(request: Request) {
       }
     } else {
       // 키가 없으면 기존 ADMIN이 없는 경우에만 허용
-      const existingAdmins = await adminDb
-        .collection("users")
-        .where("role", "==", "ADMIN")
-        .limit(1)
-        .get();
+      const [existingAdmins, existingSuperAdmins] = await Promise.all([
+        adminDb.collection("users").where("role", "==", "ADMIN").limit(1).get(),
+        adminDb.collection("users").where("role", "==", "SUPER_ADMIN").limit(1).get(),
+      ]);
+      const existingAdminsCombined = { empty: existingAdmins.empty && existingSuperAdmins.empty };
 
-      if (!existingAdmins.empty) {
+      if (!existingAdminsCombined.empty) {
         return NextResponse.json(
           { error: "이미 관리자가 존재합니다. ADMIN_SETUP_KEY 환경변수를 설정해주세요." },
           { status: 403 }
@@ -42,23 +42,26 @@ export async function POST(request: Request) {
     // Firebase Auth에서 이메일로 사용자 찾기
     const userRecord = await adminAuth.getUserByEmail(email);
 
+    // SUPER_ADMIN: rute20002@gmail.com은 슈퍼관리자 (관리자 + 시험 응시 등 모든 권한)
+    const SUPER_ADMIN_EMAIL = "rute20002@gmail.com";
+    const assignedRole = email.toLowerCase() === SUPER_ADMIN_EMAIL ? "SUPER_ADMIN" : "ADMIN";
+
     // Firestore users 문서 확인 및 업데이트
     const userRef = adminDb.collection("users").doc(userRecord.uid);
     const userDoc = await userRef.get();
 
     if (userDoc.exists) {
       await userRef.update({
-        role: "ADMIN",
+        role: assignedRole,
         updatedAt: new Date(),
       });
     } else {
-      // users 문서가 없는 경우 (Google 로그인으로 가입한 경우 등)
       await userRef.set({
         email: userRecord.email,
         name: userRecord.displayName || email.split("@")[0],
         phone: null,
         address: null,
-        role: "ADMIN",
+        role: assignedRole,
         image: userRecord.photoURL || null,
         emailVerified: userRecord.emailVerified ? new Date() : null,
         createdAt: new Date(),
@@ -67,7 +70,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
-      message: `${email} 계정이 관리자로 설정되었습니다.`,
+      message: `${email} 계정이 ${assignedRole === "SUPER_ADMIN" ? "슈퍼관리자" : "관리자"}로 설정되었습니다.`,
       uid: userRecord.uid,
     });
   } catch (error: unknown) {

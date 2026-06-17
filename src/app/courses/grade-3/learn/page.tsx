@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { useContentProtection } from "@/hooks/use-content-protection";
 import {
   Volume2,
   VolumeX,
@@ -15,6 +16,8 @@ import {
   ArrowRight,
   RotateCcw,
   Trophy,
+  Shield,
+  AlertTriangle,
 } from "lucide-react";
 
 const PRACTICE_QUESTIONS = [
@@ -149,6 +152,11 @@ const PRACTICE_QUESTIONS = [
 export default function Grade3LearnPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+
+  // 콘텐츠 보호 — 복사/캡쳐/녹화/드래그/키보드/우클릭 차단 (탭 전환은 학습이라 허용)
+  const { showWarning, isRecording } = useContentProtection(true, {
+    blockVisibilityChange: false,
+  });
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -312,20 +320,7 @@ export default function Grade3LearnPage() {
     }
   };
 
-  // Copy protection for iframe
-  useEffect(() => {
-    const preventKeys = (e: KeyboardEvent) => {
-      if (
-        (e.ctrlKey && e.key === "c") ||
-        (e.ctrlKey && e.key === "a") ||
-        (e.ctrlKey && e.key === "f")
-      ) {
-        e.preventDefault();
-      }
-    };
-    document.addEventListener("keydown", preventKeys);
-    return () => document.removeEventListener("keydown", preventKeys);
-  }, []);
+  // 키보드 차단은 useContentProtection 훅에서 처리 (Ctrl+C/A/F/S/P, PrintScreen, F12, DevTools 등)
 
   // BGM 파일 선제 확인 — 파일이 없으면 사용자가 버튼을 누르기 전에 컨트롤을 숨긴다.
   useEffect(() => {
@@ -355,10 +350,29 @@ export default function Grade3LearnPage() {
 
   return (
     <div
-      className="min-h-screen bg-gray-50"
-      style={{ userSelect: "none", WebkitUserSelect: "none" }}
-      onContextMenu={(e) => e.preventDefault()}
+      className="min-h-screen bg-gray-50 content-protected"
     >
+      {/* 녹화 감지 배너 */}
+      {isRecording && (
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-red-600 text-white text-center py-2 text-sm font-bold animate-pulse flex items-center justify-center gap-2">
+          <Shield className="w-4 h-4" />
+          화면 녹화가 감지되었습니다. 콘텐츠가 보호됩니다.
+        </div>
+      )}
+
+      {/* 복사/캡쳐 시도 경고 오버레이 */}
+      {showWarning && (
+        <div className="fixed inset-0 z-[55] bg-black/60 flex items-center justify-center pointer-events-none">
+          <div className="bg-white rounded-2xl p-6 shadow-xl flex items-center gap-3">
+            <AlertTriangle className="w-8 h-8 text-red-500 flex-shrink-0" />
+            <div>
+              <p className="font-bold text-lg">콘텐츠 보호</p>
+              <p className="text-muted-foreground">복사, 캡쳐, 녹화가 제한됩니다.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 배경음악 — 파일(/public/audio/study-bgm.mp3) 이 없으면 onError 로 컨트롤 숨김.
           나중에 파일이 들어오면 코드 수정 없이 자동 동작. */}
       <audio

@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
   return (
     <AuthContext.Provider value={{ user, firebaseUser, loading, isAdmin }}>

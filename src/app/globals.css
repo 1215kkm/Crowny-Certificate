@@ -115,8 +115,9 @@ body {
   color: transparent;
 }
 
-/* 시험 화면 보호 - 캡처/녹화 방지 */
-.exam-protected {
+/* 콘텐츠 보호 - 시험·학습 공통 캡처/녹화 방지 */
+.exam-protected,
+.content-protected {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -124,13 +125,15 @@ body {
 
 /* 미디어 캡처 API 차단 - 녹화 프로그램에 검은 화면 표시 */
 @media (display-mode: standalone), (display-mode: fullscreen) {
-  .exam-protected {
+  .exam-protected,
+  .content-protected {
     filter: none;
   }
 }
 
 /* DRM 스타일 보호 - 일부 녹화 프로그램에서 검은 화면 처리 */
-.exam-protected .exam-content-layer {
+.exam-protected .exam-content-layer,
+.content-protected .content-layer {
   -webkit-backdrop-filter: blur(0px);
   backdrop-filter: blur(0px);
   transform: translateZ(0);
@@ -139,11 +142,12 @@ body {
 
 /* 인쇄 차단 */
 @media print {
-  .exam-protected {
+  .exam-protected,
+  .content-protected {
     display: none !important;
   }
   body::after {
-    content: "시험 내용은 인쇄할 수 없습니다.";
+    content: "이 콘텐츠는 인쇄할 수 없습니다.";
     display: block;
     text-align: center;
     padding: 100px;
