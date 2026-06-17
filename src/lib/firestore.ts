@@ -252,6 +252,40 @@ export interface AppSubmissionDoc {
   updatedAt: Timestamp;
 }
 
+export interface SpecialSubmissionDoc {
+  userId: string;
+  userName: string;
+  examId: string;
+  certificateTypeId: string;
+  topicMode: "FREE" | "POOL";
+  topicTitle: string; // 자유 주제명 또는 선택한 문제 제목
+  problemId: string | null; // 문제 풀에서 선택 시
+  // 제품 전주기 단계
+  marketResearch: string;
+  planning: string;
+  design: string;
+  build: string;
+  debugFix: string;
+  completion: string;
+  appUrl: string; // 배포 URL (필수)
+  promotion: string;
+  promotionResponse: string;
+  demoLink: string | null;
+  repoUrl: string | null;
+  shareLink: string | null; // AI 활용 내역
+  timedOut: boolean;
+  status: PracticalStatus; // SUBMITTED | GRADED
+  scores: Record<string, number> | null;
+  score: number | null;
+  passed: boolean | null;
+  feedback: string | null;
+  submittedAt: Timestamp;
+  announceAt: Timestamp; // 발표일 (제출 + 15일, 오후 1시)
+  gradedAt: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export interface InquiryDoc {
   userId: string;
   userName: string;
@@ -288,6 +322,7 @@ export const collections = {
   get inquiries() { return collection(db(), "inquiries"); },
   get practicalSubmissions() { return collection(db(), "practicalSubmissions"); },
   get appSubmissions() { return collection(db(), "appSubmissions"); },
+  get specialSubmissions() { return collection(db(), "specialSubmissions"); },
 };
 
 // 서브컬렉션 참조

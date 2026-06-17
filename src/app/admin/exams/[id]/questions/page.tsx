@@ -58,7 +58,9 @@ export default function AdminQuestionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
   const [seeding, setSeeding] = useState(false);
-  const [examGrade, setExamGrade] = useState<number | null>(null);
+  const [examGrade, setExamGrade] = useState<number | "special" | null>(null);
+  const gradeLabel = examGrade === "special" ? "특급" : `${examGrade}급`;
+  const canSeed = examGrade === 1 || examGrade === 2 || examGrade === 3 || examGrade === "special";
 
   const fetchData = async () => {
     try {
@@ -72,7 +74,7 @@ export default function AdminQuestionsPage() {
           examDoc.certificateTypeId
         );
         setExamGrade(
-          ct?.grade === "GRADE_1" ? 1 : ct?.grade === "GRADE_2" ? 2 : ct?.grade === "GRADE_3" ? 3 : null
+          ct?.grade === "GRADE_1" ? 1 : ct?.grade === "GRADE_2" ? 2 : ct?.grade === "GRADE_3" ? 3 : ct?.grade === "SPECIAL" ? "special" : null
         );
       }
 
@@ -143,7 +145,7 @@ export default function AdminQuestionsPage() {
   const handleSeed = async () => {
     if (
       !confirm(
-        `${examGrade}급 기본 문제 40문항(객관식·100점)을 이 시험에 일괄 등록합니다.\n이미 문항이 있으면 등록되지 않습니다. 계속하시겠습니까?`
+        `${gradeLabel} 기본 문제 40문항(객관식·100점)을 이 시험에 일괄 등록합니다.\n이미 문항이 있으면 등록되지 않습니다. 계속하시겠습니까?`
       )
     )
       return;
@@ -253,13 +255,13 @@ export default function AdminQuestionsPage() {
           )}
         </div>
         <div className="flex gap-2">
-          {questions.length === 0 && (examGrade === 1 || examGrade === 2 || examGrade === 3) && (
+          {questions.length === 0 && canSeed && (
             <button
               onClick={handleSeed}
               disabled={seeding}
               className="border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/5 transition disabled:opacity-50"
             >
-              {seeding ? "등록 중..." : `${examGrade}급 기본 문제 40개 불러오기`}
+              {seeding ? "등록 중..." : `${gradeLabel} 기본 문제 40개 불러오기`}
             </button>
           )}
           <button
@@ -452,10 +454,10 @@ export default function AdminQuestionsPage() {
       ) : questions.length === 0 ? (
         <div className="border border-border rounded-xl p-8 text-center text-muted-foreground">
           <p className="mb-4">등록된 문항이 없습니다.</p>
-          {examGrade === 1 || examGrade === 2 || examGrade === 3 ? (
+          {canSeed ? (
             <>
               <p className="mb-4 text-sm">
-                <strong>&quot;{examGrade}급 기본 문제 40개 불러오기&quot;</strong>로 내장된 문제은행을 한 번에 등록할 수 있습니다.
+                <strong>&quot;{gradeLabel} 기본 문제 40개 불러오기&quot;</strong>로 내장된 문제은행을 한 번에 등록할 수 있습니다.
                 <br />
                 직접 만들려면 <strong>&quot;+ 새 문항 추가&quot;</strong>를 클릭하세요.
               </p>
@@ -464,7 +466,7 @@ export default function AdminQuestionsPage() {
                 disabled={seeding}
                 className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-dark transition disabled:opacity-50"
               >
-                {seeding ? "등록 중..." : `${examGrade}급 기본 문제 40개 불러오기`}
+                {seeding ? "등록 중..." : `${gradeLabel} 기본 문제 40개 불러오기`}
               </button>
             </>
           ) : (

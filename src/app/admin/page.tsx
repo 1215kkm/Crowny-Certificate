@@ -25,6 +25,7 @@ const MENU_ITEMS = [
   { title: "시험 관리", desc: "시험 등록, 문제 관리, 채점", href: "/admin/exams", icon: "📝" },
   { title: "실기 채점", desc: "2급 랜딩페이지 실기 제출물 채점", href: "/admin/practical", icon: "🎨" },
   { title: "앱 실기 채점", desc: "1급 앱 제작·배포 실기 채점", href: "/admin/app-review", icon: "🚀" },
+  { title: "특급 챌린지 채점", desc: "특급 AI 제품 전주기 실기 채점", href: "/admin/challenge-review", icon: "🏅" },
   { title: "결제 관리", desc: "결제 내역, 환불 처리, 정산", href: "/admin/payments", icon: "💳" },
   { title: "인증서 관리", desc: "발급 현황, 배송 관리", href: "/admin/certificates", icon: "🏆" },
   { title: "자격증 종류 관리", desc: "등급별 자격증 설정", href: "/admin/certificate-types", icon: "⚙️" },

@@ -29,15 +29,17 @@ async function handle(request: Request) {
     const decoded = await adminAuth.verifyIdToken(token);
     const userId = decoded.uid;
 
-    const [practicalSnap, appSnap] = await Promise.all([
+    const [practicalSnap, appSnap, specialSnap] = await Promise.all([
       adminDb.collection("practicalSubmissions").where("userId", "==", userId).get(),
       adminDb.collection("appSubmissions").where("userId", "==", userId).get(),
+      adminDb.collection("specialSubmissions").where("userId", "==", userId).get(),
     ]);
 
     const practical = practicalSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) }));
     const app = appSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) }));
+    const special = specialSnap.docs.map((d) => ({ id: d.id, ...serialize(d.data()) }));
 
-    return NextResponse.json({ practical, app });
+    return NextResponse.json({ practical, app, special });
   } catch (error) {
     console.error("My submissions error:", error);
     return NextResponse.json({ error: "조회 중 오류가 발생했습니다." }, { status: 500 });

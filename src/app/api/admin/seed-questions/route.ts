@@ -3,6 +3,7 @@ import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { GRADE_3_QUESTIONS } from "@/data/grade-3-questions";
 import { GRADE_2_QUESTIONS } from "@/data/grade-2-questions";
 import { GRADE_1_QUESTIONS } from "@/data/grade-1-questions";
+import { GRADE_SPECIAL_QUESTIONS } from "@/data/grade-special-questions";
 
 /**
  * 시험 문제 시드 API
@@ -46,11 +47,13 @@ export async function POST(request: Request) {
     }
 
     const QUESTIONS =
-      Number(grade) === 1
-        ? GRADE_1_QUESTIONS
-        : Number(grade) === 2
-          ? GRADE_2_QUESTIONS
-          : GRADE_3_QUESTIONS;
+      grade === "special"
+        ? GRADE_SPECIAL_QUESTIONS
+        : Number(grade) === 1
+          ? GRADE_1_QUESTIONS
+          : Number(grade) === 2
+            ? GRADE_2_QUESTIONS
+            : GRADE_3_QUESTIONS;
 
     // 시험 존재 여부 확인
     const examDoc = await adminDb.collection("exams").doc(examId).get();

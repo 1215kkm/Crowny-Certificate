@@ -26,6 +26,7 @@ export default function MyPage() {
   const [certificates, setCertificates] = useState<{ id: string; grade: string; issueNumber: string; issuedAt: string; status: string; statusClassName: string; method: string; trackingNumber: string | null; pdfUrl: string | null }[]>([]);
   const [practicals, setPracticals] = useState<{ id: string; themeName: string; status: string; statusClassName: string; detail: string }[]>([]);
   const [appSubs, setAppSubs] = useState<{ id: string; themeName: string; appUrl: string; status: string; statusClassName: string; detail: string }[]>([]);
+  const [specialSubs, setSpecialSubs] = useState<{ id: string; topicTitle: string; appUrl: string; status: string; statusClassName: string; detail: string }[]>([]);
 
   useEffect(() => {
     if (authLoading || !user) {
@@ -45,6 +46,7 @@ export default function MyPage() {
         // 실기 제출(2급 랜딩페이지/1급 앱)은 신규 컬렉션이라 서버 경유로 조회 (Firestore 규칙 우회)
         let practicalDocs: Array<{ id: string; themeId: string; announceAt: string; status: string; passed: boolean | null; score: number | null; feedback: string | null }> = [];
         let appDocs: Array<{ id: string; themeId: string; appUrl: string; status: string; passed: boolean | null; score: number | null; feedback: string | null }> = [];
+        let specialDocs: Array<{ id: string; topicTitle: string; appUrl: string; announceAt: string; status: string; passed: boolean | null; score: number | null; feedback: string | null }> = [];
         try {
           const { getFirebaseAuth } = await import("@/lib/firebase");
           const token = await getFirebaseAuth().currentUser?.getIdToken();
@@ -55,6 +57,7 @@ export default function MyPage() {
             const d = await res.json();
             practicalDocs = (d.practical || []) as typeof practicalDocs;
             appDocs = (d.app || []) as typeof appDocs;
+            specialDocs = (d.special || []) as typeof specialDocs;
           }
         } catch (e) {
           console.error("실기 제출 조회 실패:", e);
@@ -174,6 +177,27 @@ export default function MyPage() {
                 ? a.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                 : "bg-orange-100 text-orange-700",
               detail: graded ? `${a.score ?? 0}점${a.feedback ? ` · ${a.feedback}` : ""}` : "관리자 채점 후 발표됩니다.",
+            };
+          })
+        );
+
+        // 특급 챌린지 제출 현황 (발표일 전에는 점수 비공개)
+        setSpecialSubs(
+          specialDocs.map((s) => {
+            const announceMs = s.announceAt ? new Date(s.announceAt).getTime() : 0;
+            const announced = s.status === "GRADED" && nowMs >= announceMs;
+            if (announced) {
+              return {
+                id: s.id, topicTitle: s.topicTitle, appUrl: s.appUrl,
+                status: s.passed ? "합격" : "불합격",
+                statusClassName: s.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
+                detail: `${s.score ?? 0}점${s.feedback ? ` · ${s.feedback}` : ""}`,
+              };
+            }
+            return {
+              id: s.id, topicTitle: s.topicTitle, appUrl: s.appUrl,
+              status: "발표 예정", statusClassName: "bg-orange-100 text-orange-700",
+              detail: `발표: ${formatTimestamp(s.announceAt)} 오후 1시`,
             };
           })
         );
@@ -337,6 +361,25 @@ export default function MyPage() {
                   <a href={a.appUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">{a.appUrl}</a>
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">{a.detail}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 특급 챌린지 결과 */}
+      {specialSubs.length > 0 && (
+        <section className="mb-8">
+          <h2 className="text-xl font-bold mb-4">특급 챌린지 결과</h2>
+          <div className="space-y-4">
+            {specialSubs.map((s) => (
+              <div key={s.id} className="border border-border rounded-xl p-5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs px-2 py-0.5 rounded ${s.statusClassName}`}>{s.status}</span>
+                  <span className="font-medium">{s.topicTitle}</span>
+                  <a href={s.appUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">{s.appUrl}</a>
+                </div>
+                <div className="text-sm text-muted-foreground mt-1">{s.detail}</div>
               </div>
             ))}
           </div>
