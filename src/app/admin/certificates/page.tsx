@@ -6,12 +6,11 @@ import { useAuth } from "@/contexts/auth-context";
 import {
   getDocuments,
   getDocument,
-  updateDocument,
-  Timestamp,
   type CertificateIssuanceDoc,
   type CertificateTypeDoc,
   type UserDoc,
 } from "@/lib/firestore";
+import { adminUpdate } from "@/lib/admin-api";
 import { getGradeInfo, formatTimestamp, DELIVERY_METHOD_MAP, ISSUANCE_STATUS_MAP } from "@/lib/grade-utils";
 
 interface IssuanceRow {
@@ -20,10 +19,16 @@ interface IssuanceRow {
   userName: string;
   grade: string;
   method: string;
+  deliveryMethod: string;
   status: string;
   statusKey: string;
   statusClassName: string;
   date: string;
+  recipientName: string | null;
+  recipientPhone: string | null;
+  mailingZipCode: string | null;
+  mailingAddress: string | null;
+  trackingNumber: string | null;
 }
 
 export default function AdminCertificatesPage() {
@@ -52,12 +57,13 @@ export default function AdminCertificatesPage() {
         })
       );
 
-      // 통계 계산
+      // 통계 계산: 준비중 / 배송중 / 완료(확인완료·배송완료). 구버전 상태값도 호환.
       let pending = 0, mailing = 0, completed = 0;
       issuanceDocs.forEach((i) => {
-        if (i.status === "PENDING" || i.status === "GENERATING") pending++;
-        else if (i.status === "MAILING") mailing++;
-        else if (i.status === "ISSUED" || i.status === "DELIVERED") completed++;
+        const s = i.status as string;
+        if (s === "PENDING" || s === "GENERATING") pending++;
+        else if (s === "SHIPPING" || s === "MAILING") mailing++;
+        else if (s === "CONFIRMED" || s === "DELIVERED" || s === "ISSUED") completed++;
       });
 
       setStats({ total: issuanceDocs.length, pending, mailing, completed });
@@ -74,10 +80,16 @@ export default function AdminCertificatesPage() {
             userName: usersMap[i.userId] || "-",
             grade: gradeInfo.label,
             method: DELIVERY_METHOD_MAP[i.deliveryMethod] || i.deliveryMethod,
+            deliveryMethod: i.deliveryMethod,
             status: statusInfo.label,
             statusKey: i.status,
             statusClassName: statusInfo.className,
             date: formatTimestamp(i.createdAt),
+            recipientName: i.recipientName ?? null,
+            recipientPhone: i.recipientPhone ?? null,
+            mailingZipCode: i.mailingZipCode ?? null,
+            mailingAddress: i.mailingAddress ?? null,
+            trackingNumber: i.trackingNumber ?? null,
           };
         })
       );
@@ -98,16 +110,16 @@ export default function AdminCertificatesPage() {
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
-      await updateDocument("certificateIssuances", id, {
+      await adminUpdate(["certificateIssuances", id], {
         status: newStatus,
-        updatedAt: Timestamp.now(),
-        ...(newStatus === "ISSUED" ? { issuedAt: Timestamp.now() } : {}),
+        // 확인완료 시 발급일 기록 (서버 시각)
+        ...(newStatus === "CONFIRMED" ? { issuedAt: "__SERVER_TIMESTAMP__" } : {}),
       });
       setLoading(true);
       await fetchData();
     } catch (error) {
       console.error("상태 변경 실패:", error);
-      alert("상태 변경에 실패했습니다.");
+      alert(error instanceof Error ? error.message : "상태 변경에 실패했습니다.");
     }
   };
 
@@ -159,6 +171,7 @@ export default function AdminCertificatesPage() {
                 <th className="text-left p-4 font-medium">수여자</th>
                 <th className="text-left p-4 font-medium">등급</th>
                 <th className="text-left p-4 font-medium">발급 방법</th>
+                <th className="text-left p-4 font-medium">배송지</th>
                 <th className="text-left p-4 font-medium">상태</th>
                 <th className="text-left p-4 font-medium">신청일</th>
                 <th className="text-left p-4 font-medium">관리</th>
@@ -166,14 +179,37 @@ export default function AdminCertificatesPage() {
             </thead>
             <tbody>
               {issuances.length === 0 ? (
-                <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">발급된 인증서가 없습니다.</td></tr>
+                <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">발급된 인증서가 없습니다.</td></tr>
               ) : (
-                issuances.map((issuance) => (
-                  <tr key={issuance.id} className="border-t border-border hover:bg-muted/50">
+                issuances.map((issuance) => {
+                  const isMail = issuance.deliveryMethod === "BOTH" || issuance.deliveryMethod === "MAIL";
+                  // 상태 정규화 (구버전 호환)
+                  const key =
+                    issuance.statusKey === "GENERATING" ? "PENDING"
+                    : issuance.statusKey === "ISSUED" ? "CONFIRMED"
+                    : issuance.statusKey === "MAILING" ? "SHIPPING"
+                    : issuance.statusKey;
+                  return (
+                  <tr key={issuance.id} className="border-t border-border hover:bg-muted/50 align-top">
                     <td className="p-4 font-mono text-sm">{issuance.issueNumber}</td>
                     <td className="p-4">{issuance.userName}</td>
                     <td className="p-4">{issuance.grade}</td>
                     <td className="p-4">{issuance.method}</td>
+                    <td className="p-4 text-sm">
+                      {isMail && issuance.mailingAddress ? (
+                        <div className="text-muted-foreground">
+                          <div className="font-medium text-foreground">
+                            {issuance.recipientName} {issuance.recipientPhone ? `· ${issuance.recipientPhone}` : ""}
+                          </div>
+                          <div>
+                            {issuance.mailingZipCode ? `(${issuance.mailingZipCode}) ` : ""}
+                            {issuance.mailingAddress}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
                     <td className="p-4">
                       <span className={`text-xs px-2 py-1 rounded ${issuance.statusClassName}`}>
                         {issuance.status}
@@ -181,23 +217,26 @@ export default function AdminCertificatesPage() {
                     </td>
                     <td className="p-4">{issuance.date}</td>
                     <td className="p-4">
-                      {issuance.statusKey === "PENDING" && (
+                      {key === "PENDING" && (
                         <button
-                          onClick={() => handleUpdateStatus(issuance.id, "ISSUED")}
+                          onClick={() => handleUpdateStatus(issuance.id, "CONFIRMED")}
                           className="text-green-600 hover:underline text-sm"
                         >
-                          발급 처리
+                          확인완료 처리
                         </button>
                       )}
-                      {issuance.statusKey === "ISSUED" && (
+                      {key === "CONFIRMED" && isMail && (
                         <button
-                          onClick={() => handleUpdateStatus(issuance.id, "MAILING")}
+                          onClick={() => handleUpdateStatus(issuance.id, "SHIPPING")}
                           className="text-blue-600 hover:underline text-sm"
                         >
-                          배송 처리
+                          배송 시작
                         </button>
                       )}
-                      {issuance.statusKey === "MAILING" && (
+                      {key === "CONFIRMED" && !isMail && (
+                        <span className="text-xs text-muted-foreground">완료</span>
+                      )}
+                      {key === "SHIPPING" && (
                         <button
                           onClick={() => handleUpdateStatus(issuance.id, "DELIVERED")}
                           className="text-green-600 hover:underline text-sm"
@@ -205,9 +244,13 @@ export default function AdminCertificatesPage() {
                           배송 완료
                         </button>
                       )}
+                      {key === "DELIVERED" && (
+                        <span className="text-xs text-muted-foreground">완료</span>
+                      )}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               )}
             </tbody>
           </table>

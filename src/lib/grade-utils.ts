@@ -27,14 +27,18 @@ export function formatTimestamp(timestamp: { toDate: () => Date } | null): strin
 
 export const DELIVERY_METHOD_MAP: Record<string, string> = {
   EMAIL: "이메일",
-  MAIL: "우편",
   BOTH: "이메일+우편",
+  // 구버전 호환
+  MAIL: "우편",
 };
 
 export const ISSUANCE_STATUS_MAP: Record<string, { label: string; className: string }> = {
-  PENDING: { label: "발급 대기", className: "bg-orange-100 text-orange-700" },
-  GENERATING: { label: "생성 중", className: "bg-yellow-100 text-yellow-700" },
-  ISSUED: { label: "발급 완료", className: "bg-green-100 text-green-700" },
-  MAILING: { label: "배송 중", className: "bg-blue-100 text-blue-700" },
-  DELIVERED: { label: "배송 완료", className: "bg-green-100 text-green-700" },
+  PENDING: { label: "준비중", className: "bg-orange-100 text-orange-700" },
+  CONFIRMED: { label: "확인완료", className: "bg-green-100 text-green-700" },
+  SHIPPING: { label: "배송중", className: "bg-blue-100 text-blue-700" },
+  DELIVERED: { label: "배송완료", className: "bg-green-100 text-green-700" },
+  // 구버전 호환
+  GENERATING: { label: "준비중", className: "bg-orange-100 text-orange-700" },
+  ISSUED: { label: "확인완료", className: "bg-green-100 text-green-700" },
+  MAILING: { label: "배송중", className: "bg-blue-100 text-blue-700" },
 };

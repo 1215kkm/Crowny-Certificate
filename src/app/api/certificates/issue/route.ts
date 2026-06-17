@@ -23,6 +23,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // 이메일+우편 수령 시 배송지 정보 필수
+    if (deliveryMethod === "BOTH") {
+      if (!recipientName || !recipientPhone || !mailingAddress) {
+        return NextResponse.json(
+          { error: "우편 수령을 위해 받는 분 이름, 연락처, 주소가 필요합니다." },
+          { status: 400 }
+        );
+      }
+    }
+
     // 합격 여부 확인
     const submissionsSnapshot = await adminDb
       .collection("examSubmissions")

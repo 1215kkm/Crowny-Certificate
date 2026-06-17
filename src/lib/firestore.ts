@@ -25,8 +25,9 @@ export type ExamFormat = "MULTIPLE_CHOICE" | "PRACTICAL" | "PROJECT" | "CHALLENG
 export type QuestionType = "MULTIPLE_CHOICE" | "SHORT_ANSWER" | "ESSAY" | "FILE_UPLOAD";
 export type PaymentType = "COURSE" | "EXAM" | "CERTIFICATE";
 export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | "CANCELLED";
-export type DeliveryMethod = "EMAIL" | "MAIL" | "BOTH";
-export type IssuanceStatus = "PENDING" | "GENERATING" | "ISSUED" | "MAILING" | "DELIVERED";
+export type DeliveryMethod = "EMAIL" | "BOTH";
+// 준비중 → 확인완료 → (우편) 배송중 → 배송완료
+export type IssuanceStatus = "PENDING" | "CONFIRMED" | "SHIPPING" | "DELIVERED";
 export type SubmissionStatus = "IN_PROGRESS" | "SUBMITTED" | "GRADING" | "GRADED";
 export type InquiryStatus = "PENDING" | "ANSWERED";
 

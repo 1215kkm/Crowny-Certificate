@@ -14,14 +14,14 @@ import {
   type CertificateIssuanceDoc,
   type CertificateTypeDoc,
 } from "@/lib/firestore";
-import { getGradeInfo, formatTimestamp, ISSUANCE_STATUS_MAP } from "@/lib/grade-utils";
+import { getGradeInfo, formatTimestamp, ISSUANCE_STATUS_MAP, DELIVERY_METHOD_MAP } from "@/lib/grade-utils";
 
 export default function MyPage() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [enrollments, setEnrollments] = useState<{ id: string; courseTitle: string; grade: string; gradeColor: string; progress: number; courseId: string }[]>([]);
   const [examResults, setExamResults] = useState<{ id: string; examTitle: string; grade: string; score: number | null; passed: boolean | null; date: string; feedback: string | null }[]>([]);
-  const [certificates, setCertificates] = useState<{ id: string; grade: string; issueNumber: string; issuedAt: string; status: string; pdfUrl: string | null }[]>([]);
+  const [certificates, setCertificates] = useState<{ id: string; grade: string; issueNumber: string; issuedAt: string; status: string; statusClassName: string; method: string; trackingNumber: string | null; pdfUrl: string | null }[]>([]);
 
   useEffect(() => {
     if (authLoading || !user) {
@@ -99,13 +99,16 @@ export default function MyPage() {
           issuanceDocs.map((iss) => {
             const certType = typesMap[iss.certificateTypeId];
             const gradeInfo = certType ? getGradeInfo(certType.grade) : { label: "-", color: "bg-gray-500" };
-            const statusInfo = ISSUANCE_STATUS_MAP[iss.status] || { label: iss.status, className: "" };
+            const statusInfo = ISSUANCE_STATUS_MAP[iss.status] || { label: iss.status, className: "bg-gray-100 text-gray-600" };
             return {
               id: iss.id,
               grade: gradeInfo.label,
               issueNumber: iss.issueNumber,
               issuedAt: formatTimestamp(iss.issuedAt),
               status: statusInfo.label,
+              statusClassName: statusInfo.className,
+              method: DELIVERY_METHOD_MAP[iss.deliveryMethod] || iss.deliveryMethod,
+              trackingNumber: iss.trackingNumber ?? null,
               pdfUrl: iss.pdfUrl,
             };
           })
@@ -241,10 +244,14 @@ export default function MyPage() {
             {certificates.map((cert) => (
               <div key={cert.id} className="border border-border rounded-xl p-5 flex items-center justify-between">
                 <div>
-                  <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded mr-2">{cert.grade}</span>
-                  <span className="font-medium">Crowny AI 활용 자격증 {cert.grade}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded">{cert.grade}</span>
+                    <span className="font-medium">Crowny AI 활용 자격증 {cert.grade}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${cert.statusClassName}`}>{cert.status}</span>
+                  </div>
                   <div className="text-sm text-muted-foreground mt-1">
-                    인증번호: {cert.issueNumber} | 발급일: {cert.issuedAt} | {cert.status}
+                    인증번호: {cert.issueNumber} | 수령방법: {cert.method} | 발급일: {cert.issuedAt}
+                    {cert.trackingNumber ? ` | 송장번호: ${cert.trackingNumber}` : ""}
                   </div>
                 </div>
                 {cert.pdfUrl ? (

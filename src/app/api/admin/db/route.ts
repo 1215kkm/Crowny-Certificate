@@ -73,6 +73,12 @@ export async function POST(request: Request) {
     const cleanData: Record<string, unknown> = { ...(data ?? {}) };
     delete cleanData.createdAt;
     delete cleanData.updatedAt;
+    // "__SERVER_TIMESTAMP__" 값은 서버 시각 Timestamp로 치환 (예: issuedAt)
+    for (const key of Object.keys(cleanData)) {
+      if (cleanData[key] === "__SERVER_TIMESTAMP__") {
+        cleanData[key] = Timestamp.now();
+      }
+    }
 
     if (op === "create") {
       if (path.length % 2 !== 1) {
