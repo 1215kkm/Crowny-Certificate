@@ -28,6 +28,7 @@ export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | "C
 export type DeliveryMethod = "EMAIL" | "MAIL" | "BOTH";
 export type IssuanceStatus = "PENDING" | "GENERATING" | "ISSUED" | "MAILING" | "DELIVERED";
 export type SubmissionStatus = "IN_PROGRESS" | "SUBMITTED" | "GRADING" | "GRADED";
+export type InquiryStatus = "PENDING" | "ANSWERED";
 
 export interface UserDoc {
   email: string;
@@ -183,6 +184,19 @@ export interface CertificateIssuanceDoc {
   updatedAt: Timestamp;
 }
 
+export interface InquiryDoc {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  title: string;
+  content: string;
+  status: InquiryStatus;
+  adminReply: string | null;
+  adminRepliedAt: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 // ==================== 컬렉션 참조 ====================
 
 function db() {
@@ -202,6 +216,7 @@ export const collections = {
   get examSubmissions() { return collection(db(), "examSubmissions"); },
   get payments() { return collection(db(), "payments"); },
   get certificateIssuances() { return collection(db(), "certificateIssuances"); },
+  get inquiries() { return collection(db(), "inquiries"); },
 };
 
 // 서브컬렉션 참조

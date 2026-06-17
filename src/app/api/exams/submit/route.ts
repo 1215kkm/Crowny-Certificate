@@ -37,29 +37,30 @@ export async function POST(request: Request) {
       .collection("questions")
       .get();
 
-    let totalPoints = 0;
     let earnedPoints = 0;
 
     const questionMap: Record<string, { correctAnswer: string | null; points: number }> = {};
     questionsSnapshot.docs.forEach((doc) => {
       const q = doc.data();
-      totalPoints += q.points || 0;
       questionMap[doc.id] = {
         correctAnswer: q.correctAnswer ?? null,
         points: q.points || 0,
       };
     });
 
-    // 채점
+    // 채점 (제출된 문항만 대상)
     const answerResults: Record<string, { answer: string; isCorrect: boolean | null; points: number }> = {};
+    let submittedTotalPoints = 0;
 
     for (const [questionId, answer] of Object.entries(answers)) {
       const question = questionMap[questionId];
       if (!question) continue;
 
+      submittedTotalPoints += question.points;
+
       const isCorrect = question.correctAnswer !== null
         ? String(answer) === String(question.correctAnswer)
-        : null; // correctAnswer가 없으면 수동 채점 필요
+        : null;
 
       if (isCorrect) {
         earnedPoints += question.points;
@@ -72,7 +73,9 @@ export async function POST(request: Request) {
       };
     }
 
-    // 합격/불합격 판정 (100점 만점 기준 환산)
+    const totalPoints = submittedTotalPoints;
+
+    // 합격/불합격 판정 (제출된 문항 총점 기준 환산)
     const scorePercentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
     const passed = scorePercentage >= passingScore;
 
