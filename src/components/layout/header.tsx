@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { signOut } from "@/lib/firebase-auth";
@@ -25,9 +26,14 @@ export function Header() {
     <header className="bg-white border-b border-border sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">C</span>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Crowny AI 자격증"
+            width={36}
+            height={36}
+            className="w-9 h-9"
+            priority
+          />
           <span className="font-bold text-lg">Crowny AI 자격증</span>
         </Link>
 
@@ -52,7 +58,7 @@ export function Header() {
               <span className="text-sm text-muted-foreground">
                 {user.displayName || user.email}
               </span>
-              {user.role === "ADMIN" && (
+              {(user.role === "ADMIN" || user.role === "SUPER_ADMIN") && (
                 <Link
                   href="/admin"
                   className="text-sm font-medium text-primary hover:underline"

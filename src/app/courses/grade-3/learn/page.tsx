@@ -322,6 +322,58 @@ export default function Grade3LearnPage() {
 
   // 키보드 차단은 useContentProtection 훅에서 처리 (Ctrl+C/A/F/S/P, PrintScreen, F12, DevTools 등)
 
+  // iframe 내부(강의 HTML)는 별도 문서라 부모 보호가 안 닿는다.
+  // same-origin + allow-same-origin 이므로 로드 후 내부 문서에 보호를 직접 주입한다.
+  const protectIframe = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    try {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+
+      // 선택/복사/인쇄 차단 CSS 주입
+      const style = doc.createElement("style");
+      style.textContent = `
+        * {
+          -webkit-user-select: none !important;
+          -moz-user-select: none !important;
+          -ms-user-select: none !important;
+          user-select: none !important;
+          -webkit-touch-callout: none !important;
+        }
+        ::selection { background: transparent !important; }
+        ::-moz-selection { background: transparent !important; }
+        img { -webkit-user-drag: none; user-drag: none; pointer-events: none; }
+        @media print { html, body { display: none !important; } }
+      `;
+      (doc.head || doc.documentElement).appendChild(style);
+
+      // 이벤트 차단
+      const block = (e: Event) => e.preventDefault();
+      const blockKeys = (e: KeyboardEvent) => {
+        const k = e.key.toLowerCase();
+        if (
+          e.key === "PrintScreen" ||
+          (e.ctrlKey && ["c", "a", "s", "p", "u", "f"].includes(k)) ||
+          (e.metaKey && ["c", "a", "s", "p"].includes(k)) ||
+          e.key === "F12" ||
+          (e.ctrlKey && e.shiftKey && ["i", "j", "c"].includes(k)) ||
+          (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(e.key))
+        ) {
+          e.preventDefault();
+        }
+      };
+      doc.addEventListener("copy", block);
+      doc.addEventListener("cut", block);
+      doc.addEventListener("contextmenu", block);
+      doc.addEventListener("selectstart", block);
+      doc.addEventListener("dragstart", block);
+      doc.addEventListener("keydown", blockKeys);
+    } catch {
+      // contentDocument 접근 불가(예외) — 무시
+    }
+  }, []);
+
   // BGM 파일 선제 확인 — 파일이 없으면 사용자가 버튼을 누르기 전에 컨트롤을 숨긴다.
   useEffect(() => {
     let cancelled = false;
@@ -510,7 +562,10 @@ export default function Grade3LearnPage() {
               className="w-full h-full border-0"
               sandbox="allow-scripts allow-same-origin"
               title="3급 강의"
-              onLoad={() => setLectureLoading(false)}
+              onLoad={() => {
+                setLectureLoading(false);
+                protectIframe();
+              }}
               onError={() => {
                 setLectureLoading(false);
                 setLectureError(true);
