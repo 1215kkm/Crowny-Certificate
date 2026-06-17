@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>강팀 회의 — Crowny AI 자격증 전체 점검 및 출시 목표 설정</title>
+<style>
+  /* 회의록 문서 자체의 표시 스타일 — 산출물용 Crowny Class 디자인 시스템과는 별개. */
+  :root {
+    --bg: #fafafa; --panel: #fff; --line: #e5e7eb;
+    --fg: #111827; --muted: #6b7280;
+    --c-decision: #1f2937;  /* 강팀장·CEO */
+    --c-hub:      #2563eb;  /* 강팀장 */
+    --c-exec:     #0f766e;  /* 강디·강개발·강체크 */
+    --c-guard:    #7c3aed;  /* 아뱅·강체크 */
+    --c-wild:     #b45309;  /* 아뱅 */
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; background: var(--bg); color: var(--fg); }
+  header { padding: 24px 32px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { margin: 0; font-size: 20px; }
+  header .meta { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+  .turn { margin: 20px 0; }
+  .who { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 6px; }
+  .who .emoji { font-size: 18px; }
+  .bubble { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+  .bubble :first-child { margin-top: 0; }
+  .bubble :last-child { margin-bottom: 0; }
+  .bubble pre { background: #f3f4f6; padding: 10px 12px; border-radius: 6px; overflow-x: auto; font-size: 13px; }
+  .bubble code { background: #f3f4f6; padding: 2px 5px; border-radius: 4px; font-size: 0.9em; }
+  .bubble img, .bubble svg { max-width: 100%; height: auto; display: block; margin: 8px 0; }
+  .bubble table { border-collapse: collapse; margin: 8px 0; }
+  .bubble th, .bubble td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; font-size: 14px; }
+  .bubble th { background: #f9fafb; }
+  /* 5인 체제 (2026-05): pm·designer·dev·qa·marketer */
+  .turn.pm .who { color: var(--c-hub); }
+  .turn.designer .who, .turn.dev .who, .turn.qa .who { color: var(--c-exec); }
+  .turn.marketer .who { color: var(--c-wild); }
+  /* 하위호환 (옛 회의록 렌더용) */
+  .turn.ceo .who, .turn.advisor .who { color: var(--c-decision); }
+  .turn.ux .who, .turn.ui .who { color: var(--c-exec); }
+  .turn.security .who { color: var(--c-guard); }
+  .turn.abang .who { color: var(--c-wild); }
+  section.closing, section.summary { margin-top: 48px; border-top: 2px solid var(--line); padding-top: 32px; }
+  section.closing h2, section.summary h2 { margin: 0 0 16px; font-size: 18px; }
+  section.closing iframe { width: 100%; height: 600px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+  section.summary .block { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 12px 0; }
+  section.summary .block h3 { margin: 0 0 8px; font-size: 15px; color: var(--c-hub); }
+  section.summary ul { margin: 0; padding-left: 20px; }
+  .final-comments { margin-top: 24px; }
+  .final-comments .comment { padding: 10px 14px; border-left: 3px solid var(--line); margin: 8px 0; }
+  .final-comments .comment.ceo, .final-comments .comment.advisor { border-color: var(--c-decision); }
+  .final-comments .comment.pm { border-color: var(--c-hub); }
+  .final-comments .comment.ux, .final-comments .comment.ui, .final-comments .comment.dev, .final-comments .comment.qa { border-color: var(--c-exec); }
+  .final-comments .comment.marketer, .final-comments .comment.security { border-color: var(--c-guard); }
+  .final-comments .comment.abang { border-color: var(--c-wild); }
+  .final-comments .comment .who { font-weight: 600; margin-right: 8px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 32px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>강팀 회의 — Crowny AI 자격증 전체 점검 및 출시 목표 설정</h1>
+  <div class="meta">날짜: 2026-06-17  ·  안건: Crowny AI 자격증 전체 점검 및 출시 목표 설정  ·  진행: 🎯 강팀장</div>
+</header>
+
+<main>
+
+<!-- 턴 블록 복사용 (각 멤버가 자기 턴을 여기에 append):
+<div class="turn pm">       <-- 클래스: ceo / advisor / pm / ux / ui / dev / qa / marketer / security / abang
+  <div class="who"><span class="emoji">🎯</span> 강팀장</div>
+  <div class="bubble">
+    여기에 마크다운 → HTML 또는 직접 HTML.
+    SVG·표·코드블록·이미지 자유롭게.
+  </div>
+</div>
+-->
+
+<!-- TURNS_START -->
+<div class="turn pm">
+  <div class="who"><span class="emoji">🎯</span> 강팀장</div>
+  <div class="bubble">
+    <p><strong>오늘의 안건 — Crowny AI 자격증 출시 점검</strong></p>
+    <p>현황: 3급 학습/시험/자격증발급/문의게시판까지 코드 완성, 빌드 통과. 그러나 <strong>실제 출시 가능 상태가 아님</strong> — 데이터·결제·인증 연동이 비어있음.</p>
+    <ol>
+      <li>🧪 <strong>[UX/출시차단]</strong> 학습→시험→발급 핵심 퍼널이 실데이터 없이 작동 불가. 3급 시험 문제 DB 시딩 + 자격증 종류 등록 안 됨</li>
+      <li>🛡️ <strong>[보안·리스크]</strong> 토스페이먼츠 키 미설정 + Firebase 승인도메인 미등록 → 결제·로그인 전면 불가. API 키 노출 점검</li>
+      <li>🎨 <strong>[UI]</strong> Crowny Class 토큰(보라→분홍 그라데이션) 사이트 전반 일관성, BGM mp3 누락</li>
+      <li>💡 <strong>[수익]</strong> 응시료(19K~49K) + 발급비(35K~55K) 외 지속사용·반복수익 경로 한 가지</li>
+    </ol>
+    <p><strong>참석</strong>: 강팀장·강디·강개발·강체크·아뱅</p>
+    <p><strong>목표</strong>: 출시까지 남은 차단요소(blocker) 확정 + 우선순위 1개 결정. 한 회의 = 한 결정.</p>
+  </div>
+</div>
+<div class="turn dev">
+  <div class="who"><span class="emoji">⚙️</span> 강개발</div>
+  <div class="bubble">
+  <p><b>핵심 진단(코드 근거)</b></p>
+  <ul>
+    <li><b>의존 순서 강제됨</b>: <code>seed-questions</code>는 examId가 <code>exams</code>에 먼저 존재해야 함(없으면 404). <code>exams.certificateTypeId</code>는 필수 FK, 채점은 <code>certificateTypes.passingScore</code>를 읽음. → <b>certificateTypes → exams → questions</b> 순서가 코드로 고정.</li>
+    <li><b>진짜 차단점 = questions 시딩</b>. 미시딩이면 questionMap 빈 객체 → 전원 0점·불합격 → 발급 불가.</li>
+    <li><b>채점 규약 0-base</b>: 클라/시드 <code>correctAnswer</code> 모두 0-base. 추가 문제 입력 시 1-base로 넣으면 전원 오답이니 주의.</li>
+    <li><b>발급 게이트 이중검증</b>: 클라(passed==true) + 서버(passed submission의 examId↔certificateTypeId 매칭). 데모하려면 합격 제출 1건 선행 필수.</li>
+    <li><b>ADMIN 미승격이면 시딩 자체 403</b>(1순위 막힘), exams 누락 상태 seed 호출 404(2순위).</li>
+  </ul>
+  <p><b>데모 가능 최소 시딩 셋(순서대로)</b></p>
+  <pre style="background:#1B1D21;color:#eee;padding:12px;border-radius:10px;font-size:14px;overflow:auto">0. /api/admin/setup  → 관리자 계정 ADMIN 승격
+1. /admin/certificate-types → 3급 1종 등록(GRADE_3, passingScore 70, 19000)
+2. exams 도큐먼트 1개 생성(certificateTypeId=3급, questionCount 25, isActive)
+3. POST /api/admin/seed-questions { examId } → 40문항 batch
+4. /exams/[id]/take 정답 제출 → passed 합격 1건
+5. /certificates 발급 신청 → 퍼널 종료 확인</pre>
+  <p>4종 등록은 출시 항목이나 <b>데모 비차단</b>. 데모 차단점은 단 하나 = questions 시딩(전제: ADMIN승격→certType→exams).</p>
+  <p><b>핸드오프</b>: 강팀장 — 차단점 1개로 수렴. 시딩 의존순서만 지키면 퍼널 즉시 작동.</p>
+  </div>
+</div>
+<div class="turn qa">
+  <div class="who"><span class="emoji">🔍</span> 강체크</div>
+  <div class="bubble">
+  <p><b>키 노출은 합격선</b> — <code>.env</code>는 .gitignore에 잡혀 깃 히스토리 미추적, 추적되는 건 빈 <code>.env.example</code>뿐. 토스 시크릿키는 서버에서만(<code>TOSS_SECRET_KEY</code>). Firebase·토스 <em>클라이언트</em> 키는 NEXT_PUBLIC이라 번들에 박히나 원래 공개키라 정상. (단 과거 실키 커밋 이력 없음만 CEO가 확정.)</p>
+  <p><b>진짜 빨간불 = 미설정 실패가 조용히 깨짐 + "1개월 자동삭제"가 글자뿐.</b></p>
+  <table border="1" cellpadding="6" style="border-collapse:collapse;font-size:15px">
+    <tr style="background:rgba(213,58,107,0.12)"><th>심각도</th><th>영역/위치</th><th>실패 시나리오</th><th>우회안</th></tr>
+    <tr><td>🔴</td><td>결제 <code>payment/page.tsx:55</code></td><td>토스 클라키 미설정 시 위젯 미렌더+에러 무출력 → "빈 결제창/멈춘 버튼". 매출 0</td><td>Vercel env 토스키 주입 후 실결제 1회, 미설정 시 안내화면</td></tr>
+    <tr><td>🔴</td><td>로그인 <code>firebase.ts:31</code></td><td>Vercel 도메인 미등록 → 구글로그인 <code>auth/unauthorized-domain</code> 즉시 실패. 가입 불가</td><td>Firebase 승인도메인에 Vercel+커스텀 도메인 추가</td></tr>
+    <tr><td>🔴</td><td>자동파기 (크론 0개)</td><td>"1개월 후 삭제" 약속하나 크론·스윕 전무 → 미파기, 개보법 파기의무 위반 가능(법무검토)</td><td>Vercel Cron + purge API, 또는 출시 전 카피를 수동운영 표현으로 일치</td></tr>
+    <tr><td>🟡</td><td>결제검증 <code>payments/verify:26</code></td><td>amount를 클라값으로 confirm, type/targetId↔가격 서버바인딩 없음 → 저가결제로 고가권한 가능성</td><td>서버측 정가 조회 후 amount 일치 검증</td></tr>
+    <tr><td>🟡</td><td>리플레이 verify</td><td>tossOrderId 중복체크 없음 → 새로고침 시 결제·enrollment 중복</td><td>tossOrderId 멱등 처리</td></tr>
+    <tr><td>🟢</td><td>우편주소 수집</td><td>배송주소 동의·보관기간 고지 확인 필요</td><td>동의 체크 1줄 + 배송후 파기 명문화</td></tr>
+  </table>
+  <p><b>배포 권고: 보류</b> — 🔴 3건(토스키·승인도메인·자동파기) 해소 + 결제·로그인 골든패스 실환경 1회 통과 전 출시 불가.</p>
+  </div>
+</div>
+<div class="turn designer">
+  <div class="who"><span class="emoji">🎨</span> 강디</div>
+  <div class="bubble">
+  <p>활성 스타일 #1 Crowny Class(보라 #8A38F5→분홍 #D53A6B). <b>가장 큰 마찰: 토큰이 활성 스타일과 어긋남</b> — globals.css <code>--color-primary</code>가 파랑(#2563eb), 홈 히어로는 indigo→blue. 코드 전체가 보라→분홍이 아니라 파랑 브랜드로 굴러감. <b>토큰 한 블록만 바꾸면 전 페이지 일괄 정렬.</b></p>
+  <p>둘째, <b>BGM 깨짐</b>: <code>/audio/study-bgm.mp3</code> 없는데 버튼 누르면 play()가 조용히 reject되고 토글만 "재생 중"으로 → 깨진 채 켜짐. 파일 채우거나 없으면 컨트롤 숨기는 fallback 필요.</p>
+  <table border="1" cellpadding="6" style="border-collapse:collapse;font-size:15px">
+    <tr style="background:rgba(138,56,245,0.10)"><th>단계</th><th>이탈 원인</th><th>누락 상태</th></tr>
+    <tr><td>홈</td><td>히어로 색 브랜드 불일치 → 신뢰 흔들림</td><td>토큰 정렬</td></tr>
+    <tr><td>학습</td><td>BGM 깨짐 / iframe 로딩 공백</td><td>BGM fallback, iframe loading/error</td></tr>
+    <tr><td>시험</td><td>제출 후 무반응 불안</td><td>submit loading, network error</td></tr>
+    <tr><td>발급</td><td>토글 후 처리중 모름</td><td>발급 loading, 성공토스트, 실패재시도</td></tr>
+  </table>
+  <p><b>토큰 점검 1순위</b>: globals.css @theme의 <code>--color-primary</code>→#8A38F5, <code>--color-secondary</code>→#D53A6B, 버튼 radius 10px. <b>2순위</b>: 홈 히어로 그라데이션 indigo/blue → 브랜드 보라→분홍. 폰트 ≥16px은 충족 ✓.</p>
+  <p><b>핸드오프</b>: globals.css 토큰 교체 + BGM <code>onError</code>로 컨트롤 숨김 + play 성공 후에만 토글 + iframe loading/error + 시험/발급 loading 상태.</p>
+  </div>
+</div>
+<div class="turn marketer">
+  <div class="who"><span class="emoji">📣</span> 아뱅</div>
+  <div class="bubble">자격증은 "한 번 따면 끝"이라 반복수익이 원천적으로 안 붙어요. 1회성 거래에 <b>유효기간 2년 + 갱신료</b> 하나만 얹읍시다. AI 도구는 반년마다 바뀌니 "2년 지난 자격증"은 신뢰가 떨어진다 — 다크패턴이 아니라 진짜 명분이고, 어학·IT 자격증이 이미 쓰는 방식. 합격 시 "유효기간 2년" 명시 → 만료 D-30 메일: <i>"2급 자격이 30일 후 만료. 9,500원 갱신, 또는 29,000원으로 1급 도전."</i> 손실 회피로 갱신 끌고 등급 사다리로 업셀.
+    <table border="1" cellpadding="6" style="border-collapse:collapse;font-size:15px">
+      <tr style="background:rgba(213,58,107,0.10)"><th>장치</th><th>심리 레버</th><th>난이도</th><th>수익</th></tr>
+      <tr><td>유효기간 2년 + 갱신료(응시료 50%)</td><td>손실 회피</td><td>낮음(필드+메일)</td><td>갱신료 반복 → LTV↑</td></tr>
+      <tr><td>만료 임박 → 상위등급 권유</td><td>경쟁·구별짓기</td><td>낮음(사다리 재활용)</td><td>상위 응시료 업셀</td></tr>
+      <tr><td>재발급(기존)</td><td>손실 회피</td><td>0(구현됨)</td><td>19K 반복</td></tr>
+    </table>
+    선제 방어: 6개월처럼 짧으면 "돈 뜯기" 백래시 → 2년이 신뢰 임계선, <b>최초 응시 안내문에 유효기간 명시</b> 필수. 측정은 만료 코호트 갱신율(목표 15%+)·업셀 전환율.
+    <p style="margin-top:8px"><b>수익 경로</b>: 유효기간 2년 → 만료 D-30 손실회피 메일 → 갱신료(반복) 또는 상위등급 응시료(업셀).</p>
+  </div>
+</div>
+<!-- TURNS_END -->
+
+</main>
+
+<section class="summary">
+  <h2>🎯 강팀장 마감 요약 — 텔레그램으로도 발송됨</h2>
+  <p style="color: var(--muted); font-size: 13px; margin-top: 0;">
+    강팀장은 회의 마감 시 아래 SUMMARY 블록을 *반드시* 채운다.
+    이 안의 내용이 텔레그램 메시지 본문으로 그대로 전송된다.
+  </p>
+  <!-- SUMMARY_START -->
+  <div class="block">
+    <h3>결정</h3>
+    <ul>
+      <li><b>출시 차단요소 확정 — 코드가 아니라 "데이터·연동·운영" 3개가 빈 것이 문제.</b> 빌드는 통과하나 실데이터·결제키·도메인 없이는 빈 화면.</li>
+      <li><b>이번 회의 1순위 결정 = 결제·로그인 연동 복구(🔴).</b> 데이터 시딩보다 먼저 — 둘 다 막히면 가입조차 안 되어 데모 자체 불가.</li>
+      <li>수익 신규방향 채택: <b>자격증 유효기간 2년 + 갱신료(응시료 50%)</b> — 반복수익+업셀. 단 출시 후 적용(출시 비차단).</li>
+      <li>디자인: <b>globals.css 브랜드 토큰이 파랑 → 활성 스타일(보라#8A38F5→분홍#D53A6B)과 불일치.</b> 토큰 한 블록 교체로 전 페이지 정렬 + BGM graceful fallback.</li>
+    </ul>
+  </div>
+  <div class="block">
+    <h3>미결정 / 다음 회의 안건</h3>
+    <ul>
+      <li>강체크 <b>배포 권고: 보류</b> — 🔴 3건(토스키·승인도메인·자동파기) 미해소. CEO 환경설정 의존이라 코드로 못 닫음.</li>
+      <li>"1개월 자동삭제" 크론 미구현 → 개보법 파기의무. 자동화 vs 카피 수정(수동운영) 중 택1 필요.</li>
+      <li>결제 verify의 금액·리플레이 검증(🟡) — 출시 후 보강 가능하나 결정 보류.</li>
+    </ul>
+  </div>
+  <div class="block">
+    <h3>다음 액션</h3>
+    <ul>
+      <li><b>[CEO]</b> ① Vercel에 토스 client/secret 키 주입 ② Firebase 승인도메인에 Vercel+커스텀 도메인 추가 — <i>배포 전 게이트</i></li>
+      <li><b>[CEO/강개발]</b> ADMIN 승격 → 3급 certType 1종 → exams 1개 → seed-questions 40문항 → 합격 1건으로 퍼널 데모 (순서 고정)</li>
+      <li><b>[강개발]</b> globals.css 브랜드 토큰 교체(보라→분홍) + BGM onError fallback + iframe/제출/발급 loading·error 상태 — 다음 /진행 시 작업</li>
+      <li><b>[강개발]</b> BGM mp3 확보(무료음원) 또는 컨트롤 graceful 숨김</li>
+      <li><b>[강체크]</b> 키·도메인 설정 후 결제·로그인 골든패스 실환경 1회 검증 → 통과 시 배포 게이트 해제</li>
+      <li><b>[아뱅/강개발]</b> 유효기간 필드 + 만료 D-30 메일 — 출시 후 스프린트</li>
+    </ul>
+  </div>
+  <!-- SUMMARY_END -->
+</section>
+
+<section class="closing">
+  <h2>회의 마무리 — 목업 보고 한 마디씩</h2>
+  <iframe src="mockup.html" title="화면 목업"></iframe>
+  <div class="final-comments">
+    <!-- 디자인/화면 안건이 있었던 회의는 *모든 참석자가* 여기 한 줄씩 남기고 종료 -->
+    <!-- 예:
+    <div class="comment ui"><span class="who">🎨 강디</span>: 결제 단계 CTA 위계 한 단 더 약하게.</div>
+    -->
+    <!-- COMMENTS_START -->
+    <div class="comment pm"><span class="who">🎯 강팀장</span>: 코드는 다 됐다. 출시는 CEO의 키 2개(토스·Firebase)에서 막혀 있다 — 그것부터.</div>
+    <div class="comment dev"><span class="who">⚙️ 강개발</span>: 데모 차단점은 questions 시딩 하나. 순서(ADMIN→certType→exams→seed→합격)만 지키면 즉시 굴러간다.</div>
+    <div class="comment qa"><span class="who">🔍 강체크</span>: 키 노출은 깨끗하다. 다만 "1개월 삭제"가 글자뿐이라 약속을 코드로 지키든 카피를 바꾸든 하나는 해야 한다.</div>
+    <div class="comment ui"><span class="who">🎨 강디</span>: 사이트가 지금 파랑 브랜드로 굴러간다 — 토큰 한 블록만 보라→분홍으로 바꾸면 전부 정렬된다.</div>
+    <div class="comment marketer"><span class="who">📣 아뱅</span>: 한 번 팔고 끝내지 말자. 유효기간 2년이면 갱신·업셀로 같은 고객이 다시 결제한다.</div>
+    <!-- COMMENTS_END -->
+  </div>
+</section>
+
+<footer>강팀 · Crowny Class 디자인 시스템</footer>
+</body>
+</html>
