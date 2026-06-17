@@ -19,9 +19,22 @@ export function formatDuration(minutes: number): string {
   return `${hours}시간 ${mins}분`;
 }
 
-export function formatTimestamp(timestamp: { toDate: () => Date } | null): string {
+// Firestore Timestamp({toDate}), ISO 문자열, 숫자(millis), {seconds} 모두 처리
+export function formatTimestamp(
+  timestamp: { toDate: () => Date } | { seconds: number } | string | number | null | undefined
+): string {
   if (!timestamp) return "-";
-  const date = timestamp.toDate();
+  let date: Date;
+  if (typeof timestamp === "string" || typeof timestamp === "number") {
+    date = new Date(timestamp);
+  } else if (typeof (timestamp as { toDate?: unknown }).toDate === "function") {
+    date = (timestamp as { toDate: () => Date }).toDate();
+  } else if (typeof (timestamp as { seconds?: number }).seconds === "number") {
+    date = new Date((timestamp as { seconds: number }).seconds * 1000);
+  } else {
+    return "-";
+  }
+  if (isNaN(date.getTime())) return "-";
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 

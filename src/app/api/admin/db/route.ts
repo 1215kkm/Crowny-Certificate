@@ -30,6 +30,21 @@ function buildRef(path: string[]): FirestoreCol | FirestoreDoc {
   return ref;
 }
 
+// Firestore Timestamp 값을 ISO 문자열로 직렬화 (클라이언트 JSON 전송용)
+function serializeTimestamps(data: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (v && typeof (v as { toDate?: unknown }).toDate === "function") {
+      out[k] = (v as { toDate: () => Date }).toDate().toISOString();
+    } else if (v && typeof v === "object" && typeof (v as { _seconds?: number })._seconds === "number") {
+      out[k] = new Date((v as { _seconds: number })._seconds * 1000).toISOString();
+    } else {
+      out[k] = v;
+    }
+  }
+  return out;
+}
+
 function isValidPath(path: unknown): path is string[] {
   return (
     Array.isArray(path) &&
@@ -119,6 +134,23 @@ export async function POST(request: Request) {
       const docRef = buildRef(path) as FirestoreDoc;
       await docRef.delete();
       return NextResponse.json({ ok: true });
+    }
+
+    if (op === "list") {
+      if (path.length % 2 !== 1) {
+        return NextResponse.json(
+          { error: "list는 컬렉션 경로(홀수 길이)여야 합니다." },
+          { status: 400 }
+        );
+      }
+      const colRef = buildRef(path) as FirestoreCol;
+      const { orderByField, orderDir } = body as { orderByField?: string; orderDir?: string };
+      const queryRef = orderByField
+        ? colRef.orderBy(orderByField, orderDir === "asc" ? "asc" : "desc")
+        : colRef;
+      const snap = await queryRef.get();
+      const docs = snap.docs.map((d) => ({ id: d.id, ...serializeTimestamps(d.data()) }));
+      return NextResponse.json({ docs });
     }
 
     return NextResponse.json({ error: "알 수 없는 op입니다." }, { status: 400 });

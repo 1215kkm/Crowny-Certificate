@@ -48,3 +48,13 @@ export async function adminUpdate(
 export async function adminDelete(path: string[]): Promise<void> {
   await call({ op: "delete", path });
 }
+
+/** 컬렉션 목록 조회(서버 Admin SDK). Timestamp는 ISO 문자열로 반환됨. */
+export async function adminList<T = Record<string, unknown>>(
+  path: string[],
+  orderByField?: string,
+  orderDir: "asc" | "desc" = "desc"
+): Promise<(T & { id: string })[]> {
+  const result = await call({ op: "list", path, orderByField, orderDir });
+  return (result.docs as (T & { id: string })[]) || [];
+}

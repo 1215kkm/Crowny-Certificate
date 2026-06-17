@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
-import { getDocuments, orderBy, type AppSubmissionDoc } from "@/lib/firestore";
-import { adminUpdate } from "@/lib/admin-api";
+import { type AppSubmissionDoc } from "@/lib/firestore";
+import { adminUpdate, adminList } from "@/lib/admin-api";
 import { formatTimestamp } from "@/lib/grade-utils";
 import { APP_RUBRIC, APP_PASSING_SCORE, getAppThemeById } from "@/data/grade-1-practical";
 
@@ -21,8 +21,8 @@ export default function AdminAppReviewPage() {
 
   const fetchData = async () => {
     try {
-      const docs = await getDocuments<AppSubmissionDoc>("appSubmissions", orderBy("createdAt", "desc"));
-      setRows(docs);
+      const docs = await adminList<AppSubmissionDoc>(["appSubmissions"], "createdAt", "desc");
+      setRows(docs as unknown as Row[]);
     } catch (e) {
       console.error("앱 제출 로드 실패:", e);
     } finally {

@@ -13,8 +13,6 @@ import {
   type ExamDoc,
   type CertificateIssuanceDoc,
   type CertificateTypeDoc,
-  type PracticalSubmissionDoc,
-  type AppSubmissionDoc,
 } from "@/lib/firestore";
 import { getThemeById } from "@/data/grade-2-practical";
 import { getAppThemeById } from "@/data/grade-1-practical";
@@ -37,14 +35,30 @@ export default function MyPage() {
 
     async function fetchData() {
       try {
-        const [enrollmentDocs, submissionDocs, issuanceDocs, certTypeDocs, practicalDocs] = await Promise.all([
+        const [enrollmentDocs, submissionDocs, issuanceDocs, certTypeDocs] = await Promise.all([
           getDocuments<EnrollmentDoc>("enrollments", where("userId", "==", user!.uid)),
           getDocuments<ExamSubmissionDoc>("examSubmissions", where("userId", "==", user!.uid)),
           getDocuments<CertificateIssuanceDoc>("certificateIssuances", where("userId", "==", user!.uid)),
           getDocuments<CertificateTypeDoc>("certificateTypes"),
-          getDocuments<PracticalSubmissionDoc>("practicalSubmissions", where("userId", "==", user!.uid)),
         ]);
-        const appDocs = await getDocuments<AppSubmissionDoc>("appSubmissions", where("userId", "==", user!.uid));
+
+        // 실기 제출(2급 랜딩페이지/1급 앱)은 신규 컬렉션이라 서버 경유로 조회 (Firestore 규칙 우회)
+        let practicalDocs: Array<{ id: string; themeId: string; announceAt: string; status: string; passed: boolean | null; score: number | null; feedback: string | null }> = [];
+        let appDocs: Array<{ id: string; themeId: string; appUrl: string; status: string; passed: boolean | null; score: number | null; feedback: string | null }> = [];
+        try {
+          const { getFirebaseAuth } = await import("@/lib/firebase");
+          const token = await getFirebaseAuth().currentUser?.getIdToken();
+          const res = await fetch("/api/my/submissions", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const d = await res.json();
+            practicalDocs = (d.practical || []) as typeof practicalDocs;
+            appDocs = (d.app || []) as typeof appDocs;
+          }
+        } catch (e) {
+          console.error("실기 제출 조회 실패:", e);
+        }
 
         const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
         certTypeDocs.forEach((t) => { typesMap[t.id] = t; });
@@ -126,7 +140,7 @@ export default function MyPage() {
         setPracticals(
           practicalDocs.map((p) => {
             const theme = getThemeById(p.themeId);
-            const announceMs = p.announceAt?.toDate?.().getTime?.() ?? 0;
+            const announceMs = p.announceAt ? new Date(p.announceAt).getTime() : 0;
             const announced = p.status === "GRADED" && nowMs >= announceMs;
             if (announced) {
               return {

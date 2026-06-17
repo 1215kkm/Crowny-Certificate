@@ -3,12 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
-import {
-  getDocuments,
-  orderBy,
-  type PracticalSubmissionDoc,
-} from "@/lib/firestore";
-import { adminUpdate } from "@/lib/admin-api";
+import { type PracticalSubmissionDoc } from "@/lib/firestore";
+import { adminUpdate, adminList } from "@/lib/admin-api";
 import { formatTimestamp } from "@/lib/grade-utils";
 import {
   getThemeById,
@@ -29,11 +25,12 @@ export default function AdminPracticalPage() {
 
   const fetchData = async () => {
     try {
-      const docs = await getDocuments<PracticalSubmissionDoc>(
-        "practicalSubmissions",
-        orderBy("createdAt", "desc")
+      const docs = await adminList<PracticalSubmissionDoc>(
+        ["practicalSubmissions"],
+        "createdAt",
+        "desc"
       );
-      setRows(docs);
+      setRows(docs as unknown as Row[]);
     } catch (e) {
       console.error("실기 제출 로드 실패:", e);
     } finally {
