@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useRef } from "react";
 import {
-  Crown,
   BookOpen,
   ClipboardCheck,
   ArrowRight,
@@ -201,8 +201,8 @@ export default function HomePage() {
         <ParticleCanvas />
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4">
-              <Crown className="w-12 h-12 text-yellow-300" />
+            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3">
+              <Image src="/logo.png" alt="Crowny" width={56} height={56} className="w-14 h-14" priority />
             </div>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
@@ -430,7 +430,7 @@ export default function HomePage() {
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3">
-              <Crown className="w-8 h-8 text-yellow-300" />
+              <Image src="/logo.png" alt="Crowny" width={40} height={40} className="w-10 h-10" />
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
