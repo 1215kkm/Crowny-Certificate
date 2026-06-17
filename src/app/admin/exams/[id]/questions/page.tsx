@@ -92,11 +92,17 @@ export default function AdminQuestionsPage() {
     }
 
     try {
+      // 객관식 정답은 화면에서 1-based(예: 1=첫 번째 보기)로 입력받지만,
+      // 채점/시드 데이터는 0-based 인덱스를 사용하므로 -1 하여 저장한다.
+      const correctAnswer =
+        formData.type === "MULTIPLE_CHOICE" && formData.correctAnswer
+          ? String(Number(formData.correctAnswer) - 1)
+          : formData.correctAnswer || null;
       const payload = {
         type: formData.type,
         content: formData.content,
         options: formData.type === "MULTIPLE_CHOICE" ? formData.options.filter(Boolean) : [],
-        correctAnswer: formData.correctAnswer || null,
+        correctAnswer,
         points: formData.points,
         order: formData.order,
         explanation: formData.explanation || null,
@@ -172,7 +178,11 @@ export default function AdminQuestionsPage() {
         question.options.length > 0
           ? [...question.options, ...Array(Math.max(0, 4 - question.options.length)).fill("")]
           : ["", "", "", ""],
-      correctAnswer: question.correctAnswer || "",
+      // 저장된 0-based 정답을 화면 입력용 1-based로 변환
+      correctAnswer:
+        question.type === "MULTIPLE_CHOICE" && question.correctAnswer
+          ? String(Number(question.correctAnswer) + 1)
+          : question.correctAnswer || "",
       points: question.points,
       order: question.order,
       explanation: question.explanation || "",
@@ -376,7 +386,7 @@ export default function AdminQuestionsPage() {
               <label className="block text-sm font-medium mb-1">
                 정답{" "}
                 {formData.type === "MULTIPLE_CHOICE"
-                  ? "(보기 번호, 예: 1)"
+                  ? "(정답 보기 번호, 예: 1 = 첫 번째 보기)"
                   : "(텍스트)"}
               </label>
               <input
@@ -494,13 +504,13 @@ export default function AdminQuestionsPage() {
                       <div
                         key={optIdx}
                         className={`text-sm ${
-                          q.correctAnswer === String(optIdx + 1)
+                          q.correctAnswer === String(optIdx)
                             ? "text-green-600 font-medium"
                             : "text-muted-foreground"
                         }`}
                       >
                         {optIdx + 1}. {opt}
-                        {q.correctAnswer === String(optIdx + 1) && " (정답)"}
+                        {q.correctAnswer === String(optIdx) && " (정답)"}
                       </div>
                     ))}
                   </div>
