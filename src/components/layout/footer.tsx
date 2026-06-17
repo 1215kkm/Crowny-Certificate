@@ -85,8 +85,7 @@ export function Footer() {
                 문의하기
               </Link>
             </li>
-            <li>이메일: support@crowny.co.kr</li>
-            <li>전화: 02-0000-0000</li>
+            <li>이메일: rute20002@gmail.com</li>
             <li>운영시간: 평일 09:00~18:00</li>
           </ul>
         </div>
