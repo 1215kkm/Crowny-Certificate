@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
 import { GRADE_3_QUESTIONS } from "@/data/grade-3-questions";
+import { GRADE_2_QUESTIONS } from "@/data/grade-2-questions";
 
 /**
  * 시험 문제 시드 API
  * POST /api/admin/seed-questions
- * Body: { examId: string }
+ * Body: { examId: string, grade?: 2 | 3 }  (grade 미지정 시 3)
  *
  * 관리자 인증 필요. 지정된 시험의 questions 서브컬렉션에 문제를 일괄 등록합니다.
  */
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { examId } = await request.json();
+    const { examId, grade } = await request.json();
 
     if (!examId) {
       return NextResponse.json(
@@ -42,6 +43,8 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    const QUESTIONS = Number(grade) === 2 ? GRADE_2_QUESTIONS : GRADE_3_QUESTIONS;
 
     // 시험 존재 여부 확인
     const examDoc = await adminDb.collection("exams").doc(examId).get();
@@ -79,7 +82,7 @@ export async function POST(request: Request) {
 
     const now = new Date();
 
-    for (const question of GRADE_3_QUESTIONS) {
+    for (const question of QUESTIONS) {
       const docRef = questionsRef.doc();
       batch.set(docRef, {
         examId,
@@ -97,9 +100,9 @@ export async function POST(request: Request) {
     await batch.commit();
 
     return NextResponse.json({
-      message: `${GRADE_3_QUESTIONS.length}개의 문제가 성공적으로 등록되었습니다.`,
-      questionCount: GRADE_3_QUESTIONS.length,
-      totalPoints: GRADE_3_QUESTIONS.reduce((sum, q) => sum + q.points, 0),
+      message: `${QUESTIONS.length}개의 문제가 성공적으로 등록되었습니다.`,
+      questionCount: QUESTIONS.length,
+      totalPoints: QUESTIONS.reduce((sum, q) => sum + q.points, 0),
     });
   } catch (error) {
     console.error("Seed questions error:", error);

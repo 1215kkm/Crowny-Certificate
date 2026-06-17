@@ -10,6 +10,7 @@ import {
   type ExamDoc,
   type ExamQuestionDoc,
   type QuestionType,
+  type CertificateTypeDoc,
 } from "@/lib/firestore";
 import { getDocs, query, orderBy } from "firebase/firestore";
 import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
@@ -57,11 +58,23 @@ export default function AdminQuestionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
   const [seeding, setSeeding] = useState(false);
+  const [examGrade, setExamGrade] = useState<number | null>(null);
 
   const fetchData = async () => {
     try {
       const examDoc = await getDocument<ExamDoc>("exams", examId);
       setExam(examDoc);
+
+      // 시험의 자격증 등급 확인 (기본 문제 불러오기 데이터셋 결정용)
+      if (examDoc?.certificateTypeId) {
+        const ct = await getDocument<CertificateTypeDoc>(
+          "certificateTypes",
+          examDoc.certificateTypeId
+        );
+        setExamGrade(
+          ct?.grade === "GRADE_2" ? 2 : ct?.grade === "GRADE_3" ? 3 : null
+        );
+      }
 
       const q = query(questionsCollection(examId), orderBy("order"));
       const snap = await getDocs(q);
@@ -130,7 +143,7 @@ export default function AdminQuestionsPage() {
   const handleSeed = async () => {
     if (
       !confirm(
-        "3급 기본 문제 40문항(객관식·100점)을 이 시험에 일괄 등록합니다.\n이미 문항이 있으면 등록되지 않습니다. 계속하시겠습니까?"
+        `${examGrade}급 기본 문제 40문항(객관식·100점)을 이 시험에 일괄 등록합니다.\n이미 문항이 있으면 등록되지 않습니다. 계속하시겠습니까?`
       )
     )
       return;
@@ -144,7 +157,7 @@ export default function AdminQuestionsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ examId }),
+        body: JSON.stringify({ examId, grade: examGrade }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -240,13 +253,13 @@ export default function AdminQuestionsPage() {
           )}
         </div>
         <div className="flex gap-2">
-          {questions.length === 0 && (
+          {questions.length === 0 && (examGrade === 2 || examGrade === 3) && (
             <button
               onClick={handleSeed}
               disabled={seeding}
               className="border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/5 transition disabled:opacity-50"
             >
-              {seeding ? "등록 중..." : "3급 기본 문제 40개 불러오기"}
+              {seeding ? "등록 중..." : `${examGrade}급 기본 문제 40개 불러오기`}
             </button>
           )}
           <button
@@ -439,18 +452,24 @@ export default function AdminQuestionsPage() {
       ) : questions.length === 0 ? (
         <div className="border border-border rounded-xl p-8 text-center text-muted-foreground">
           <p className="mb-4">등록된 문항이 없습니다.</p>
-          <p className="mb-4 text-sm">
-            3급 시험이라면 <strong>&quot;3급 기본 문제 40개 불러오기&quot;</strong>로 내장된 문제은행을 한 번에 등록할 수 있습니다.
-            <br />
-            직접 만들려면 <strong>&quot;+ 새 문항 추가&quot;</strong>를 클릭하세요.
-          </p>
-          <button
-            onClick={handleSeed}
-            disabled={seeding}
-            className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-dark transition disabled:opacity-50"
-          >
-            {seeding ? "등록 중..." : "3급 기본 문제 40개 불러오기"}
-          </button>
+          {examGrade === 2 || examGrade === 3 ? (
+            <>
+              <p className="mb-4 text-sm">
+                <strong>&quot;{examGrade}급 기본 문제 40개 불러오기&quot;</strong>로 내장된 문제은행을 한 번에 등록할 수 있습니다.
+                <br />
+                직접 만들려면 <strong>&quot;+ 새 문항 추가&quot;</strong>를 클릭하세요.
+              </p>
+              <button
+                onClick={handleSeed}
+                disabled={seeding}
+                className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-dark transition disabled:opacity-50"
+              >
+                {seeding ? "등록 중..." : `${examGrade}급 기본 문제 40개 불러오기`}
+              </button>
+            </>
+          ) : (
+            <p className="text-sm">위의 <strong>&quot;+ 새 문항 추가&quot;</strong> 버튼으로 문항을 등록하세요.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
