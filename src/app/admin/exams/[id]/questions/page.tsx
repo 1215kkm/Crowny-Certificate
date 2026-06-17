@@ -66,6 +66,7 @@ export default function AdminQuestionsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>(DEFAULT_FORM);
+  const [seeding, setSeeding] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -147,6 +148,48 @@ export default function AdminQuestionsPage() {
     }
   };
 
+  const handleSeed = async () => {
+    if (
+      !confirm(
+        "3급 기본 문제 40문항(객관식·100점)을 이 시험에 일괄 등록합니다.\n이미 문항이 있으면 등록되지 않습니다. 계속하시겠습니까?"
+      )
+    )
+      return;
+    setSeeding(true);
+    try {
+      const { getFirebaseAuth } = await import("@/lib/firebase");
+      const token = await getFirebaseAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/admin/seed-questions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ examId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "문제가 등록되었습니다.");
+        setLoading(true);
+        await fetchData();
+        // questionCount 동기화
+        const q = query(questionsCollection(examId));
+        const snap = await getDocs(q);
+        await updateDocument("exams", examId, {
+          questionCount: snap.size,
+          updatedAt: Timestamp.now(),
+        });
+      } else {
+        alert(data.error || "등록에 실패했습니다.");
+      }
+    } catch (error) {
+      console.error("문제 일괄 등록 실패:", error);
+      alert("등록 중 오류가 발생했습니다.");
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   const handleEdit = (question: QuestionRow) => {
     setEditingId(question.docId);
     setFormData({
@@ -224,16 +267,27 @@ export default function AdminQuestionsPage() {
             </p>
           )}
         </div>
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingId(null);
-            setFormData({ ...DEFAULT_FORM, order: questions.length + 1 });
-          }}
-          className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
-        >
-          + 새 문항 추가
-        </button>
+        <div className="flex gap-2">
+          {questions.length === 0 && (
+            <button
+              onClick={handleSeed}
+              disabled={seeding}
+              className="border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/5 transition disabled:opacity-50"
+            >
+              {seeding ? "등록 중..." : "3급 기본 문제 40개 불러오기"}
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setShowForm(true);
+              setEditingId(null);
+              setFormData({ ...DEFAULT_FORM, order: questions.length + 1 });
+            }}
+            className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
+          >
+            + 새 문항 추가
+          </button>
+        </div>
       </div>
 
       {/* 등록/수정 폼 */}
@@ -412,7 +466,19 @@ export default function AdminQuestionsPage() {
         </div>
       ) : questions.length === 0 ? (
         <div className="border border-border rounded-xl p-8 text-center text-muted-foreground">
-          등록된 문항이 없습니다. 위의 &quot;+ 새 문항 추가&quot; 버튼을 클릭하세요.
+          <p className="mb-4">등록된 문항이 없습니다.</p>
+          <p className="mb-4 text-sm">
+            3급 시험이라면 <strong>&quot;3급 기본 문제 40개 불러오기&quot;</strong>로 내장된 문제은행을 한 번에 등록할 수 있습니다.
+            <br />
+            직접 만들려면 <strong>&quot;+ 새 문항 추가&quot;</strong>를 클릭하세요.
+          </p>
+          <button
+            onClick={handleSeed}
+            disabled={seeding}
+            className="bg-primary text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-dark transition disabled:opacity-50"
+          >
+            {seeding ? "등록 중..." : "3급 기본 문제 40개 불러오기"}
+          </button>
         </div>
       ) : (
         <div className="space-y-4">
