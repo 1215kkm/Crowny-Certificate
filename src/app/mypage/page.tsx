@@ -121,7 +121,7 @@ export default function MyPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="max-w-[1400px] mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold mb-8">마이페이지</h1>
         <div className="animate-pulse space-y-6">
           <div className="bg-gray-200 rounded-xl h-24" />
@@ -134,7 +134,7 @@ export default function MyPage() {
 
   if (!user) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-[1400px] mx-auto px-4 py-12 text-center">
         <h1 className="text-3xl font-bold mb-4">마이페이지</h1>
         <p className="text-muted-foreground mb-6">로그인이 필요합니다.</p>
         <Link
@@ -148,7 +148,7 @@ export default function MyPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-[1400px] mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-8">마이페이지</h1>
 
       {/* 사용자 정보 */}

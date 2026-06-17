@@ -3,7 +3,7 @@ import Link from "next/link";
 export function Footer() {
   return (
     <footer className="bg-gray-900 text-gray-300 py-12 px-4">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-8">
+      <div className="max-w-[1400px] mx-auto grid md:grid-cols-4 gap-8">
         <div>
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
@@ -82,7 +82,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto mt-10 pt-6 border-t border-gray-700 text-sm text-center">
+      <div className="max-w-[1400px] mx-auto mt-10 pt-6 border-t border-gray-700 text-sm text-center">
         <p>&copy; {new Date().getFullYear()} Crowny Certificate. All rights reserved.</p>
         <p className="mt-1">
           등록 민간자격 | 주무부처: 과학기술정보통신부 | 등록번호: 준비중

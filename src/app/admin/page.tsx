@@ -109,7 +109,7 @@ export default function AdminPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12">
+      <div className="max-w-[1400px] mx-auto px-4 py-12">
         <h1 className="text-3xl font-bold mb-8">관리자 대시보드</h1>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -125,7 +125,7 @@ export default function AdminPage() {
 
   if (!isAdmin) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-12 text-center">
+      <div className="max-w-[1400px] mx-auto px-4 py-12 text-center">
         <h1 className="text-2xl font-bold mb-4">접근 권한이 없습니다</h1>
         <p className="text-muted-foreground">관리자만 접근할 수 있습니다.</p>
       </div>
@@ -133,7 +133,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12">
+    <div className="max-w-[1400px] mx-auto px-4 py-12">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">관리자 대시보드</h1>
