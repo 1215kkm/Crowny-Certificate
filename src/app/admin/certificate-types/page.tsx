@@ -47,9 +47,9 @@ const DEFAULT_FORM: FormData = {
   grade: "GRADE_3",
   description: "",
   examFormat: "MULTIPLE_CHOICE",
-  price: 0,
+  price: 19000,
   coursePrice: 0,
-  certPrice: 0,
+  certPrice: 35000,
   passingScore: 70,
   duration: 60,
   isActive: true,
@@ -264,7 +264,7 @@ export default function AdminCertificateTypesPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
-                시험 가격 (원)
+                응시료 (원)
               </label>
               <input
                 type="number"
@@ -277,7 +277,7 @@ export default function AdminCertificateTypesPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
-                강의 가격 (원)
+                강의 가격 (원) - 무료 시 0
               </label>
               <input
                 type="number"
@@ -369,9 +369,9 @@ export default function AdminCertificateTypesPage() {
                 <th className="text-left p-4 font-medium">이름</th>
                 <th className="text-left p-4 font-medium">등급</th>
                 <th className="text-left p-4 font-medium">시험형식</th>
-                <th className="text-left p-4 font-medium">시험가격</th>
+                <th className="text-left p-4 font-medium">응시료</th>
                 <th className="text-left p-4 font-medium">강의가격</th>
-                <th className="text-left p-4 font-medium">인증서가격</th>
+                <th className="text-left p-4 font-medium">자격증발급비</th>
                 <th className="text-left p-4 font-medium">합격점수</th>
                 <th className="text-left p-4 font-medium">상태</th>
                 <th className="text-left p-4 font-medium">관리</th>
