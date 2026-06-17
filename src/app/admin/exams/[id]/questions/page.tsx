@@ -6,23 +6,13 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getDocument,
-  Timestamp,
   questionsCollection,
   type ExamDoc,
   type ExamQuestionDoc,
   type QuestionType,
 } from "@/lib/firestore";
-import {
-  getDocs,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  query,
-  orderBy,
-} from "firebase/firestore";
-import { getFirebaseFirestore } from "@/lib/firebase";
-import { updateDocument } from "@/lib/firestore";
+import { getDocs, query, orderBy } from "firebase/firestore";
+import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
 
 const QUESTION_TYPES: { value: QuestionType; label: string }[] = [
   { value: "MULTIPLE_CHOICE", label: "객관식" },
@@ -102,30 +92,19 @@ export default function AdminQuestionsPage() {
     }
 
     try {
-      const db = getFirebaseFirestore();
+      const payload = {
+        type: formData.type,
+        content: formData.content,
+        options: formData.type === "MULTIPLE_CHOICE" ? formData.options.filter(Boolean) : [],
+        correctAnswer: formData.correctAnswer || null,
+        points: formData.points,
+        order: formData.order,
+        explanation: formData.explanation || null,
+      };
       if (editingId) {
-        const docRef = doc(db, "exams", examId, "questions", editingId);
-        await updateDoc(docRef, {
-          type: formData.type,
-          content: formData.content,
-          options: formData.type === "MULTIPLE_CHOICE" ? formData.options.filter(Boolean) : [],
-          correctAnswer: formData.correctAnswer || null,
-          points: formData.points,
-          order: formData.order,
-          explanation: formData.explanation || null,
-        });
+        await adminUpdate(["exams", examId, "questions", editingId], payload);
       } else {
-        await addDoc(questionsCollection(examId), {
-          examId,
-          type: formData.type,
-          content: formData.content,
-          options: formData.type === "MULTIPLE_CHOICE" ? formData.options.filter(Boolean) : [],
-          correctAnswer: formData.correctAnswer || null,
-          points: formData.points,
-          order: formData.order,
-          explanation: formData.explanation || null,
-          createdAt: Timestamp.now(),
-        });
+        await adminCreate(["exams", examId, "questions"], { examId, ...payload });
       }
 
       // 문제 수 업데이트
@@ -138,13 +117,10 @@ export default function AdminQuestionsPage() {
       // 시험의 questionCount 업데이트
       const q = query(questionsCollection(examId));
       const snap = await getDocs(q);
-      await updateDocument("exams", examId, {
-        questionCount: snap.size,
-        updatedAt: Timestamp.now(),
-      });
+      await adminUpdate(["exams", examId], { questionCount: snap.size });
     } catch (error) {
       console.error("문항 저장 실패:", error);
-      alert("저장에 실패했습니다.");
+      alert(error instanceof Error ? error.message : "저장에 실패했습니다.");
     }
   };
 
@@ -175,10 +151,7 @@ export default function AdminQuestionsPage() {
         // questionCount 동기화
         const q = query(questionsCollection(examId));
         const snap = await getDocs(q);
-        await updateDocument("exams", examId, {
-          questionCount: snap.size,
-          updatedAt: Timestamp.now(),
-        });
+        await adminUpdate(["exams", examId], { questionCount: snap.size });
       } else {
         alert(data.error || "등록에 실패했습니다.");
       }
@@ -210,17 +183,14 @@ export default function AdminQuestionsPage() {
   const handleDelete = async (docId: string) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
     try {
-      const db = getFirebaseFirestore();
-      await deleteDoc(doc(db, "exams", examId, "questions", docId));
+      await adminDelete(["exams", examId, "questions", docId]);
       setQuestions((prev) => prev.filter((q) => q.docId !== docId));
 
       // questionCount 업데이트
-      await updateDocument("exams", examId, {
-        questionCount: questions.length - 1,
-        updatedAt: Timestamp.now(),
-      });
+      await adminUpdate(["exams", examId], { questionCount: questions.length - 1 });
     } catch (error) {
       console.error("문항 삭제 실패:", error);
+      alert(error instanceof Error ? error.message : "삭제에 실패했습니다.");
     }
   };
 

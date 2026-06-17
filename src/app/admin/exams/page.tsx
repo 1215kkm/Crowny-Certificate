@@ -5,15 +5,11 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getDocuments,
-  createDocument,
-  updateDocument,
-  deleteDocument,
-  where,
-  Timestamp,
   type ExamDoc,
   type CertificateTypeDoc,
   type ExamSubmissionDoc,
 } from "@/lib/firestore";
+import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
 import { getGradeInfo, formatTimestamp } from "@/lib/grade-utils";
 
 interface ExamRow {
@@ -118,18 +114,16 @@ export default function AdminExamsPage() {
     }
 
     try {
-      const now = Timestamp.now();
       if (editingId) {
-        await updateDocument("exams", editingId, {
+        await adminUpdate(["exams", editingId], {
           title: formData.title,
           certificateTypeId: formData.certificateTypeId,
           duration: formData.duration,
           questionCount: formData.questionCount,
           isActive: formData.isActive,
-          updatedAt: now,
         });
       } else {
-        await createDocument("exams", {
+        await adminCreate(["exams"], {
           title: formData.title,
           certificateTypeId: formData.certificateTypeId,
           description: null,
@@ -140,8 +134,6 @@ export default function AdminExamsPage() {
           questionCount: formData.questionCount,
           maxAttempts: 3,
           isActive: formData.isActive,
-          createdAt: now,
-          updatedAt: now,
         });
       }
       setShowForm(false);
@@ -151,17 +143,18 @@ export default function AdminExamsPage() {
       await fetchData();
     } catch (error) {
       console.error("시험 저장 실패:", error);
-      alert("저장에 실패했습니다.");
+      alert(error instanceof Error ? error.message : "저장에 실패했습니다.");
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
     try {
-      await deleteDocument("exams", id);
+      await adminDelete(["exams", id]);
       setExams((prev) => prev.filter((e) => e.id !== id));
     } catch (error) {
       console.error("시험 삭제 실패:", error);
+      alert(error instanceof Error ? error.message : "삭제에 실패했습니다.");
     }
   };
 

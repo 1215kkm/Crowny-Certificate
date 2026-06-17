@@ -5,14 +5,11 @@ import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import {
   getDocuments,
-  createDocument,
-  updateDocument,
-  deleteDocument,
-  Timestamp,
   type CertificateTypeDoc,
   type CertificateGrade,
   type ExamFormat,
 } from "@/lib/firestore";
+import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
 import { getGradeInfo } from "@/lib/grade-utils";
 
 const GRADE_OPTIONS: { value: CertificateGrade; label: string }[] = [
@@ -91,18 +88,10 @@ export default function AdminCertificateTypesPage() {
     }
 
     try {
-      const now = Timestamp.now();
       if (editingId) {
-        await updateDocument("certificateTypes", editingId, {
-          ...formData,
-          updatedAt: now,
-        });
+        await adminUpdate(["certificateTypes", editingId], { ...formData });
       } else {
-        await createDocument("certificateTypes", {
-          ...formData,
-          createdAt: now,
-          updatedAt: now,
-        });
+        await adminCreate(["certificateTypes"], { ...formData });
       }
       setShowForm(false);
       setEditingId(null);
@@ -111,7 +100,7 @@ export default function AdminCertificateTypesPage() {
       await fetchData();
     } catch (error) {
       console.error("저장 실패:", error);
-      alert("저장에 실패했습니다.");
+      alert(error instanceof Error ? error.message : "저장에 실패했습니다.");
     }
   };
 
@@ -136,10 +125,11 @@ export default function AdminCertificateTypesPage() {
     if (!confirm("정말 삭제하시겠습니까? 관련된 시험/강의에 영향을 줄 수 있습니다."))
       return;
     try {
-      await deleteDocument("certificateTypes", id);
+      await adminDelete(["certificateTypes", id]);
       setCertTypes((prev) => prev.filter((ct) => ct.id !== id));
     } catch (error) {
       console.error("삭제 실패:", error);
+      alert(error instanceof Error ? error.message : "삭제에 실패했습니다.");
     }
   };
 
