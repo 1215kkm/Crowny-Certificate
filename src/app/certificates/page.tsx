@@ -171,18 +171,16 @@ export default function CertificatesPage() {
         }),
       });
 
+      const data = await res.json();
       if (res.ok) {
-        if (price > 0) {
-          const data = await res.json();
-          if (data.paymentUrl) {
-            window.location.href = data.paymentUrl;
-            return;
-          }
+        // 발급 즉시 합격증 보기/다운로드 페이지로 이동 (이메일 발송 대신 바로 다운로드)
+        if (data.issuanceId) {
+          window.location.href = `/certificates/view/${data.issuanceId}`;
+          return;
         }
-        alert("인증서 발급이 신청되었습니다!");
+        alert("발급이 완료되었습니다.");
         window.location.reload();
       } else {
-        const data = await res.json();
         alert(data.error || "발급 신청에 실패했습니다.");
       }
     } catch {
@@ -328,12 +326,13 @@ export default function CertificatesPage() {
                                 issuance.deliveryMethod}
                             </span>
                             <span>발급번호: {issuance.issueNumber}</span>
-                            {issuance.deliveryMethod === "EMAIL" && (
-                              <span className="flex items-center gap-1 text-orange-500">
-                                <AlertTriangle className="w-4 h-4" />
-                                1개월 후 삭제
-                              </span>
-                            )}
+                            <Link href={`/certificates/view/${issuance.id}`} className="text-primary font-medium hover:underline">
+                              합격증 보기/다운로드
+                            </Link>
+                            <span className="flex items-center gap-1 text-orange-500">
+                              <AlertTriangle className="w-4 h-4" />
+                              1개월간 보관
+                            </span>
                           </div>
                         )}
                       </div>

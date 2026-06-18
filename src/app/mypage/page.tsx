@@ -404,15 +404,9 @@ export default function MyPage() {
                     {cert.trackingNumber ? ` | 송장번호: ${cert.trackingNumber}` : ""}
                   </div>
                 </div>
-                {cert.pdfUrl ? (
-                  <a href={cert.pdfUrl} target="_blank" rel="noopener noreferrer" className="border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
-                    PDF 다운로드
-                  </a>
-                ) : (
-                  <button disabled className="border border-border px-4 py-2 rounded-lg text-sm font-medium opacity-50 cursor-not-allowed">
-                    PDF 준비 중
-                  </button>
-                )}
+                <Link href={`/certificates/view/${cert.id}`} className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+                  합격증 보기/다운로드
+                </Link>
               </div>
             ))}
           </div>
