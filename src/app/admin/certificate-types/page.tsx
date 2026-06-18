@@ -39,6 +39,8 @@ interface FormData {
   duration: number;
   isActive: boolean;
   examples: CertExample[];
+  competencies: string;
+  passingCriteria: string;
 }
 
 const DEFAULT_FORM: FormData = {
@@ -53,6 +55,8 @@ const DEFAULT_FORM: FormData = {
   duration: 60,
   isActive: true,
   examples: [],
+  competencies: "",
+  passingCriteria: "",
 };
 
 export default function AdminCertificateTypesPage() {
@@ -128,6 +132,8 @@ export default function AdminCertificateTypesPage() {
       duration: ct.duration,
       isActive: ct.isActive,
       examples: ct.examples ? ct.examples.map((e) => ({ ...e })) : [],
+      competencies: ct.competencies || "",
+      passingCriteria: ct.passingCriteria || "",
     });
     setShowForm(true);
   };
@@ -223,6 +229,34 @@ export default function AdminCertificateTypesPage() {
                   setFormData({ ...formData, description: e.target.value })
                 }
                 rows={2}
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">
+                키우려는 역량 <span className="text-xs text-muted-foreground">(합격기준 모달에 노출)</span>
+              </label>
+              <textarea
+                value={formData.competencies}
+                onChange={(e) =>
+                  setFormData({ ...formData, competencies: e.target.value })
+                }
+                rows={3}
+                placeholder="예: 프롬프트 설계 능력, AI 도구를 활용한 랜딩페이지 기획·제작 능력 ..."
+                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">
+                합격기준 설명 <span className="text-xs text-muted-foreground">(합격기준 모달에 노출)</span>
+              </label>
+              <textarea
+                value={formData.passingCriteria}
+                onChange={(e) =>
+                  setFormData({ ...formData, passingCriteria: e.target.value })
+                }
+                rows={3}
+                placeholder="예: 필기 70점 이상, 실기(랜딩페이지) 70점 이상 각각 충족 시 합격 ..."
                 className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>

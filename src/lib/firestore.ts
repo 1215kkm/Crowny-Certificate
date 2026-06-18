@@ -64,6 +64,8 @@ export interface CertificateTypeDoc {
   duration: number;
   isActive: boolean;
   examples?: CertExample[];
+  competencies?: string; // 이 시험을 통해 키우려는 역량
+  passingCriteria?: string; // 합격기준 설명 (관리자 작성)
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

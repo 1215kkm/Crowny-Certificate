@@ -11,6 +11,18 @@ export function getGradeInfo(grade: CertificateGrade) {
   return GRADE_MAP[grade] || { label: grade, color: "bg-gray-500" };
 }
 
+// 등급별 썸네일 (public 폴더)
+export const GRADE_THUMB: Record<CertificateGrade, string> = {
+  GRADE_3: "/grade3.png",
+  GRADE_2: "/grade2.png",
+  GRADE_1: "/grade1.png",
+  SPECIAL: "/gradeS.png",
+};
+
+export function getGradeThumb(grade: CertificateGrade | undefined | null): string | null {
+  return grade && grade in GRADE_THUMB ? GRADE_THUMB[grade as CertificateGrade] : null;
+}
+
 // 표시 순서: 3급 → 2급 → 1급 → 특급
 export const GRADE_ORDER: Record<string, number> = {
   GRADE_3: 0,
