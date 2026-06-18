@@ -36,6 +36,7 @@ export interface UserDoc {
   email: string;
   name: string | null;
   phone: string | null;
+  birthDate: string | null; // YYYY-MM-DD (합격증 인쇄용)
   address: string | null;
   role: UserRole;
   image: string | null;

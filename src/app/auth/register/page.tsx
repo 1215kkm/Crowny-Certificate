@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { registerWithEmail } from "@/lib/firebase-auth";
+import { loginWithEmail } from "@/lib/firebase-auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,6 +13,7 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     phone: "",
+    birthDate: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,22 +39,28 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await registerWithEmail(
-        formData.email,
-        formData.password,
-        formData.name,
-        formData.phone || undefined
-      );
-      router.push("/mypage");
-    } catch (err: unknown) {
-      const firebaseError = err as { code?: string };
-      if (firebaseError.code === "auth/email-already-in-use") {
-        setError("이미 등록된 이메일입니다.");
-      } else if (firebaseError.code === "auth/weak-password") {
-        setError("비밀번호가 너무 약합니다.");
-      } else {
-        setError("회원가입 중 오류가 발생했습니다.");
+      // 서버(Admin SDK)에서 계정·프로필 생성 (클라이언트 쓰기 규칙 우회)
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone || undefined,
+          birthDate: formData.birthDate || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "회원가입 중 오류가 발생했습니다.");
+        return;
       }
+      // 생성 후 로그인
+      await loginWithEmail(formData.email, formData.password);
+      router.push("/mypage");
+    } catch {
+      setError("회원가입 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -119,6 +126,22 @@ export default function RegisterPage() {
               className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="010-0000-0000"
             />
+          </div>
+
+          <div>
+            <label htmlFor="birthDate" className="block text-sm font-medium mb-1">
+              생년월일 <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="birthDate"
+              name="birthDate"
+              type="date"
+              value={formData.birthDate}
+              onChange={handleChange}
+              required
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <p className="text-xs text-muted-foreground mt-1">합격증에 인쇄됩니다.</p>
           </div>
 
           <div>
