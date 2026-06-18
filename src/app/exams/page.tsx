@@ -180,7 +180,11 @@ export default function ExamsPage() {
                     <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
                         <span className="text-muted-foreground">시험 형식</span>
-                        <div className="font-medium">{certType?.examFormat === "MULTIPLE_CHOICE" ? "객관식" : certType?.examFormat === "PRACTICAL" ? "실기" : certType?.examFormat === "PROJECT" ? "프로젝트" : "해커톤"}</div>
+                        <div className="font-medium">
+                          {certType && ["GRADE_2", "GRADE_1", "SPECIAL"].includes(certType.grade)
+                            ? "필기(객관식) + 실기"
+                            : "필기(객관식)"}
+                        </div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">시험 시간</span>
@@ -188,11 +192,15 @@ export default function ExamsPage() {
                       </div>
                       <div>
                         <span className="text-muted-foreground">합격 기준</span>
-                        <div className="font-medium">{passingScore}점 이상</div>
+                        <div className="font-medium">
+                          {certType && ["GRADE_2", "GRADE_1", "SPECIAL"].includes(certType.grade)
+                            ? `필기·실기 각 ${passingScore}점 이상`
+                            : `${passingScore}점 이상`}
+                        </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">문제 수</span>
-                        <div className="font-medium">{exam.questionCount}문항</div>
+                        <span className="text-muted-foreground">필기 문제 수</span>
+                        <div className="font-medium">{exam.questionCount}문항 (랜덤 출제)</div>
                       </div>
                     </div>
                   </div>
