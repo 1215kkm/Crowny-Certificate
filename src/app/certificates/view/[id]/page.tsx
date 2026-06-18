@@ -128,9 +128,16 @@ export default function CertificateViewPage() {
       <style>{`
         @media print {
           body { margin: 0; background: #fff; }
+          /* 인쇄 시 사이트 전역 헤더·푸터·내비 숨김 (합격증만 출력) */
+          header, footer, nav { display: none !important; }
           .no-print { display: none !important; }
-          .cert-print-area { box-shadow: none !important; }
+          .cert-print-area { box-shadow: none !important; margin: 0 auto !important; }
           @page { size: 700px 960px; margin: 0; }
+        }
+        /* 배경 그라데이션·색이 인쇄/PDF에 그대로 나오도록 강제 */
+        .cert-print-area, .cert-print-area * {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
       `}</style>
 
