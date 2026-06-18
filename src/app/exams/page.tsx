@@ -155,6 +155,9 @@ export default function ExamsPage() {
             const gradeInfo = certType ? getGradeInfo(certType.grade) : null;
             const price = certType?.price ?? 0;
             const passingScore = certType?.passingScore ?? 70;
+            const g = certType?.grade;
+            const specialOnly = g === "SPECIAL"; // 특급은 실기 단독(필기 없음)
+            const hasWritten = !specialOnly; // 3급·2급·1급은 필기 있음
 
             return (
               <div
@@ -181,26 +184,22 @@ export default function ExamsPage() {
                       <div>
                         <span className="text-muted-foreground">시험 형식</span>
                         <div className="font-medium">
-                          {certType && ["GRADE_2", "GRADE_1", "SPECIAL"].includes(certType.grade)
-                            ? "필기(객관식) + 실기"
-                            : "필기(객관식)"}
+                          {specialOnly ? "실기 (제품 전주기)" : g === "GRADE_2" || g === "GRADE_1" ? "필기 + 실기" : "필기(객관식)"}
                         </div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">시험 시간</span>
-                        <div className="font-medium">{formatExamDuration(exam.duration)}</div>
+                        <div className="font-medium">{specialOnly ? "제출형" : formatExamDuration(exam.duration)}</div>
                       </div>
                       <div>
                         <span className="text-muted-foreground">합격 기준</span>
                         <div className="font-medium">
-                          {certType && ["GRADE_2", "GRADE_1", "SPECIAL"].includes(certType.grade)
-                            ? `필기·실기 각 ${passingScore}점 이상`
-                            : `${passingScore}점 이상`}
+                          {specialOnly ? "100점 중 60점 이상" : g === "GRADE_2" || g === "GRADE_1" ? `필기·실기 각 ${passingScore}점` : `${passingScore}점 이상`}
                         </div>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">필기 문제 수</span>
-                        <div className="font-medium">{exam.questionCount}문항 (랜덤 출제)</div>
+                        <span className="text-muted-foreground">{specialOnly ? "구성" : "필기 문제 수"}</span>
+                        <div className="font-medium">{specialOnly ? "실기 단독" : `${exam.questionCount}문항 (랜덤 출제)`}</div>
                       </div>
                     </div>
                   </div>
@@ -215,12 +214,14 @@ export default function ExamsPage() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 justify-end">
-                    <Link
-                      href={`/payment?type=exam&id=${exam.id}`}
-                      className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
-                    >
-                      시험 신청하기
-                    </Link>
+                    {hasWritten && (
+                      <Link
+                        href={`/payment?type=exam&id=${exam.id}`}
+                        className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
+                      >
+                        필기 응시
+                      </Link>
+                    )}
                     {certType?.grade === "GRADE_2" && !(exam as { isSample?: boolean }).isSample && (
                       <Link
                         href={`/exams/${exam.id}/practical`}
