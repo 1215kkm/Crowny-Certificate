@@ -286,6 +286,23 @@ export interface SpecialSubmissionDoc {
   updatedAt: Timestamp;
 }
 
+export type ShowcaseGrade = "GRADE_2" | "GRADE_1" | "SPECIAL";
+
+export interface ShowcaseDoc {
+  userId: string;
+  userName: string;
+  grade: ShowcaseGrade;
+  title: string;
+  url: string;
+  screenshotUrl: string | null;
+  description: string;
+  authorAge: string | null; // 선택, 공개 동의 시
+  authorBackground: string | null; // 선택, 공개 동의 시
+  isPublished: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export interface InquiryDoc {
   userId: string;
   userName: string;
@@ -323,6 +340,7 @@ export const collections = {
   get practicalSubmissions() { return collection(db(), "practicalSubmissions"); },
   get appSubmissions() { return collection(db(), "appSubmissions"); },
   get specialSubmissions() { return collection(db(), "specialSubmissions"); },
+  get showcases() { return collection(db(), "showcases"); },
 };
 
 // 서브컬렉션 참조
