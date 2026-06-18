@@ -244,14 +244,22 @@ export default function MyPage() {
 
       {/* 사용자 정보 */}
       <div className="bg-gradient-to-r from-primary to-secondary text-white rounded-xl p-6 mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
-            {(user.displayName || user.email || "?").charAt(0)}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-2xl font-bold">
+              {(user.displayName || user.email || "?").charAt(0)}
+            </div>
+            <div>
+              <h2 className="text-xl font-bold">{user.displayName || "이름 미설정"}</h2>
+              <p className="opacity-80">{user.email}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-bold">{user.displayName || "이름 미설정"}</h2>
-            <p className="opacity-80">{user.email}</p>
-          </div>
+          <Link
+            href="/profile"
+            className="bg-white/20 hover:bg-white/30 transition px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap"
+          >
+            내정보 수정
+          </Link>
         </div>
       </div>
 

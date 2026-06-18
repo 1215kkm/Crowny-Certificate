@@ -14,11 +14,14 @@ export default function RegisterPage() {
     confirmPassword: "",
     phone: "",
     birthDate: "",
+    address: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -49,6 +52,7 @@ export default function RegisterPage() {
           password: formData.password,
           phone: formData.phone || undefined,
           birthDate: formData.birthDate || undefined,
+          address: formData.address || undefined,
         }),
       });
       const data = await res.json();
@@ -125,6 +129,21 @@ export default function RegisterPage() {
               onChange={handleChange}
               className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="010-0000-0000"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="address" className="block text-sm font-medium mb-1">
+              주소
+            </label>
+            <textarea
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+              rows={2}
+              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="우편 수령 시 사용됩니다 (선택)"
             />
           </div>
 

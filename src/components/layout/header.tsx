@@ -59,6 +59,12 @@ export function Header() {
               <span className="text-sm text-muted-foreground">
                 {user.displayName || user.email}
               </span>
+              <Link
+                href="/profile"
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition"
+              >
+                내정보
+              </Link>
               {(user.role === "ADMIN" || user.role === "SUPER_ADMIN") && (
                 <Link
                   href="/admin"
@@ -143,6 +149,13 @@ export function Header() {
                 <div className="text-sm text-muted-foreground">
                   {user.displayName || user.email}
                 </div>
+                <Link
+                  href="/profile"
+                  className="block text-sm font-medium text-muted-foreground hover:text-foreground"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  내정보
+                </Link>
                 <button
                   onClick={handleSignOut}
                   className="block text-sm font-medium text-red-500"
