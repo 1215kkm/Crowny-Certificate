@@ -2,13 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDocuments, getDocument, where, type ExamDoc, type CertificateTypeDoc, Timestamp } from "@/lib/firestore";
+import Image from "next/image";
+import { getDocuments, getDocument, where, type ExamDoc, type CertificateTypeDoc, type CertExample, Timestamp } from "@/lib/firestore";
 import { getGradeInfo, formatTimestamp, gradeRank } from "@/lib/grade-utils";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function ExamsPage() {
+  const { user } = useAuth();
   const [exams, setExams] = useState<(ExamDoc & { id: string; isSample?: boolean })[]>([]);
   const [certTypes, setCertTypes] = useState<Record<string, CertificateTypeDoc & { id: string }>>({});
   const [loading, setLoading] = useState(true);
+  const [passedCerts, setPassedCerts] = useState<Set<string>>(new Set());
+  const [modal, setModal] = useState<{ title: string; examples: CertExample[] } | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -109,6 +114,24 @@ export default function ExamsPage() {
     fetchData();
   }, []);
 
+  // 로그인 사용자가 합격한 자격증 표시용
+  useEffect(() => {
+    if (!user) { setPassedCerts(new Set()); return; }
+    (async () => {
+      try {
+        const { getFirebaseAuth } = await import("@/lib/firebase");
+        const token = await getFirebaseAuth().currentUser?.getIdToken();
+        const res = await fetch("/api/my/passed-certs", { headers: { Authorization: `Bearer ${token}` } });
+        if (res.ok) {
+          const d = await res.json();
+          setPassedCerts(new Set<string>(d.passed || []));
+        }
+      } catch {
+        /* 무시 */
+      }
+    })();
+  }, [user]);
+
   if (loading) {
     return (
       <div className="max-w-[1400px] mx-auto px-4 py-12">
@@ -158,12 +181,20 @@ export default function ExamsPage() {
             const g = certType?.grade;
             const specialOnly = g === "SPECIAL"; // 특급은 실기 단독(필기 없음)
             const hasWritten = !specialOnly; // 3급·2급·1급은 필기 있음
+            const examples = certType?.examples ?? [];
+            const isPassed = certType ? passedCerts.has(certType.id) : false;
 
             return (
               <div
                 key={exam.id}
-                className={`border rounded-xl p-6 hover:shadow-md transition ${(exam as { isSample?: boolean }).isSample ? "border-dashed border-orange-300" : "border-border"}`}
+                className={`relative border rounded-xl p-6 hover:shadow-md transition ${isPassed ? "border-amber-300 ring-1 ring-amber-200" : (exam as { isSample?: boolean }).isSample ? "border-dashed border-orange-300" : "border-border"}`}
               >
+                {isPassed && (
+                  <div className="absolute top-3 right-3 flex flex-col items-center">
+                    <Image src="/aiat.png" alt="합격" width={56} height={56} className="w-14 h-14 object-contain drop-shadow" />
+                    <span className="mt-0.5 text-[11px] font-bold text-amber-600">합격한 자격증</span>
+                  </div>
+                )}
                 <div className="flex flex-col gap-4 h-full">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -202,6 +233,14 @@ export default function ExamsPage() {
                         <div className="font-medium">{specialOnly ? "실기 단독" : `${exam.questionCount}문항 (랜덤 출제)`}</div>
                       </div>
                     </div>
+                    {examples.length > 0 && (
+                      <button
+                        onClick={() => setModal({ title: exam.title, examples })}
+                        className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      >
+                        📄 합격 예시 보기 ({examples.length})
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-4 mt-auto">
@@ -252,6 +291,48 @@ export default function ExamsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 합격 예시 모달 */}
+      {modal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold">합격 예시</h3>
+                <p className="text-sm text-muted-foreground">{modal.title}</p>
+              </div>
+              <button onClick={() => setModal(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3">
+              {modal.examples.map((ex, i) => (
+                <a
+                  key={i}
+                  href={ex.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block border border-border rounded-lg p-4 hover:border-primary hover:bg-primary/5 transition"
+                >
+                  <div className="font-medium text-primary flex items-center gap-1">
+                    {ex.title}
+                    <span className="text-xs">↗</span>
+                  </div>
+                  {ex.description && (
+                    <p className="text-sm text-muted-foreground mt-1">{ex.description}</p>
+                  )}
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

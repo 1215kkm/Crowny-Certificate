@@ -8,6 +8,7 @@ import {
   type CertificateTypeDoc,
   type CertificateGrade,
   type ExamFormat,
+  type CertExample,
 } from "@/lib/firestore";
 import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
 import { getGradeInfo, gradeRank } from "@/lib/grade-utils";
@@ -37,6 +38,7 @@ interface FormData {
   passingScore: number;
   duration: number;
   isActive: boolean;
+  examples: CertExample[];
 }
 
 const DEFAULT_FORM: FormData = {
@@ -50,6 +52,7 @@ const DEFAULT_FORM: FormData = {
   passingScore: 70,
   duration: 60,
   isActive: true,
+  examples: [],
 };
 
 export default function AdminCertificateTypesPage() {
@@ -88,11 +91,17 @@ export default function AdminCertificateTypesPage() {
       return;
     }
 
+    // 빈 예시 행 제거
+    const cleaned = {
+      ...formData,
+      examples: formData.examples.filter((ex) => ex.title.trim() && ex.url.trim()),
+    };
+
     try {
       if (editingId) {
-        await adminUpdate(["certificateTypes", editingId], { ...formData });
+        await adminUpdate(["certificateTypes", editingId], cleaned);
       } else {
-        await adminCreate(["certificateTypes"], { ...formData });
+        await adminCreate(["certificateTypes"], cleaned);
       }
       setShowForm(false);
       setEditingId(null);
@@ -118,6 +127,7 @@ export default function AdminCertificateTypesPage() {
       passingScore: ct.passingScore,
       duration: ct.duration,
       isActive: ct.isActive,
+      examples: ct.examples ? ct.examples.map((e) => ({ ...e })) : [],
     });
     setShowForm(true);
   };
@@ -315,6 +325,86 @@ export default function AdminCertificateTypesPage() {
               />
             </div>
           </div>
+          {/* 합격 예시 관리 */}
+          <div className="mt-6 border-t border-border pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium">
+                합격 예시 (시험신청 페이지에 노출, 여러 개 등록 가능)
+              </label>
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    examples: [...formData.examples, { title: "", url: "", description: "" }],
+                  })
+                }
+                className="text-sm text-primary hover:underline"
+              >
+                + 예시 추가
+              </button>
+            </div>
+            {formData.examples.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                등록된 예시가 없습니다. &quot;예시 추가&quot;로 합격작 링크를 등록하세요.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {formData.examples.map((ex, idx) => (
+                  <div key={idx} className="bg-white border border-border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium text-muted-foreground">예시 {idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData({
+                            ...formData,
+                            examples: formData.examples.filter((_, i) => i !== idx),
+                          })
+                        }
+                        className="text-xs text-red-500 hover:underline"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <input
+                        value={ex.title}
+                        onChange={(e) => {
+                          const next = [...formData.examples];
+                          next[idx] = { ...next[idx], title: e.target.value };
+                          setFormData({ ...formData, examples: next });
+                        }}
+                        placeholder="제목 (예: 2급 합격 랜딩페이지 A)"
+                        className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      <input
+                        value={ex.url}
+                        onChange={(e) => {
+                          const next = [...formData.examples];
+                          next[idx] = { ...next[idx], url: e.target.value };
+                          setFormData({ ...formData, examples: next });
+                        }}
+                        placeholder="링크 (https://... 또는 이미지/파일 URL)"
+                        className="px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                    </div>
+                    <input
+                      value={ex.description || ""}
+                      onChange={(e) => {
+                        const next = [...formData.examples];
+                        next[idx] = { ...next[idx], description: e.target.value };
+                        setFormData({ ...formData, examples: next });
+                      }}
+                      placeholder="설명 (선택)"
+                      className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="flex items-center gap-2 mt-4">
             <input
               type="checkbox"

@@ -45,6 +45,13 @@ export interface UserDoc {
   updatedAt: Timestamp;
 }
 
+// 시험별 합격 예시(여러 개). 관리자가 등록, 시험신청 페이지에서 누구나 열람.
+export interface CertExample {
+  title: string;
+  url: string;
+  description?: string;
+}
+
 export interface CertificateTypeDoc {
   name: string;
   grade: CertificateGrade;
@@ -56,6 +63,7 @@ export interface CertificateTypeDoc {
   passingScore: number;
   duration: number;
   isActive: boolean;
+  examples?: CertExample[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

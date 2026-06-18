@@ -96,13 +96,10 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-1">
-              이메일 <span className="text-red-500">*</span>
-            </label>
-            <input id="email" name="email" type="email" value={form.email} onChange={handleChange} required
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="email@example.com" />
-            <p className="text-xs text-muted-foreground mt-1">로그인에 사용되는 이메일입니다.</p>
+            <label className="block text-sm font-medium mb-1">이메일 (로그인 계정)</label>
+            <div className="w-full px-4 py-3 border border-border rounded-lg bg-muted text-muted-foreground">
+              {form.email || "-"}
+            </div>
           </div>
 
           <div>
