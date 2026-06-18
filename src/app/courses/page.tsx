@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getDocuments, getDocument, where, type CourseDoc, type CertificateTypeDoc, Timestamp } from "@/lib/firestore";
-import { getGradeInfo } from "@/lib/grade-utils";
+import { getGradeInfo, gradeRank } from "@/lib/grade-utils";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<(CourseDoc & { id: string; isSample?: boolean })[]>([]);
@@ -85,6 +85,7 @@ export default function CoursesPage() {
           allCourses = [...sampleCourses, ...coursesData];
         }
 
+        allCourses.sort((a, b) => gradeRank(typesMap[a.certificateTypeId]?.grade) - gradeRank(typesMap[b.certificateTypeId]?.grade));
         setCourses(allCourses);
         setCertTypes(typesMap);
       } catch (error) {

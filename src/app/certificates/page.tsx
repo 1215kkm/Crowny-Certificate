@@ -12,7 +12,7 @@ import {
   type CertificateTypeDoc,
   getDocument,
 } from "@/lib/firestore";
-import { getGradeInfo, ISSUANCE_STATUS_MAP, DELIVERY_METHOD_MAP } from "@/lib/grade-utils";
+import { getGradeInfo, gradeRank, ISSUANCE_STATUS_MAP, DELIVERY_METHOD_MAP } from "@/lib/grade-utils";
 import { Mail, Truck, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 const CERT_PRICES = {
@@ -103,6 +103,7 @@ export default function CertificatesPage() {
           });
         }
 
+        examsData.sort((a, b) => gradeRank(a.grade) - gradeRank(b.grade));
         setPassedExams(examsData);
       } catch (error) {
         console.error("합격 시험 조회 실패:", error);

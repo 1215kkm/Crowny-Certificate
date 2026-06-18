@@ -10,7 +10,7 @@ import {
   type ExamSubmissionDoc,
 } from "@/lib/firestore";
 import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
-import { getGradeInfo, formatTimestamp } from "@/lib/grade-utils";
+import { getGradeInfo, formatTimestamp, gradeRank } from "@/lib/grade-utils";
 
 interface ExamRow {
   id: string;
@@ -53,7 +53,8 @@ export default function AdminExamsPage() {
 
       const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
       typeDocs.forEach((t) => { typesMap[t.id] = t; });
-      setCertTypes(typeDocs);
+      const sortedTypes = [...typeDocs].sort((a, b) => gradeRank(a.grade) - gradeRank(b.grade));
+      setCertTypes(sortedTypes);
 
       // 시험별 신청자 수 카운트
       const applicantCount: Record<string, number> = {};
@@ -75,7 +76,7 @@ export default function AdminExamsPage() {
             active: e.isActive,
             certificateTypeId: e.certificateTypeId,
           };
-        })
+        }).sort((a, b) => gradeRank(typesMap[a.certificateTypeId]?.grade) - gradeRank(typesMap[b.certificateTypeId]?.grade))
       );
 
       // 채점 대기

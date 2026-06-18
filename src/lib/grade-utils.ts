@@ -11,6 +11,18 @@ export function getGradeInfo(grade: CertificateGrade) {
   return GRADE_MAP[grade] || { label: grade, color: "bg-gray-500" };
 }
 
+// 표시 순서: 3급 → 2급 → 1급 → 특급
+export const GRADE_ORDER: Record<string, number> = {
+  GRADE_3: 0,
+  GRADE_2: 1,
+  GRADE_1: 2,
+  SPECIAL: 3,
+};
+
+export function gradeRank(grade: string | undefined | null): number {
+  return grade && grade in GRADE_ORDER ? GRADE_ORDER[grade] : 99;
+}
+
 export function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes}분`;
   const hours = Math.floor(minutes / 60);

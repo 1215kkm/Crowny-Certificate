@@ -10,7 +10,7 @@ import {
   type ExamFormat,
 } from "@/lib/firestore";
 import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
-import { getGradeInfo } from "@/lib/grade-utils";
+import { getGradeInfo, gradeRank } from "@/lib/grade-utils";
 
 const GRADE_OPTIONS: { value: CertificateGrade; label: string }[] = [
   { value: "GRADE_3", label: "3급" },
@@ -65,6 +65,7 @@ export default function AdminCertificateTypesPage() {
   const fetchData = async () => {
     try {
       const docs = await getDocuments<CertificateTypeDoc>("certificateTypes");
+      docs.sort((a, b) => gradeRank(a.grade) - gradeRank(b.grade));
       setCertTypes(docs);
     } catch (error) {
       console.error("자격증 종류 로드 실패:", error);
