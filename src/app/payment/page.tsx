@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { v4 as uuidv4 } from "uuid";
+import { getDocument, type ExamDoc, type CertificateTypeDoc } from "@/lib/firestore";
 
 declare global {
   interface Window {
@@ -27,33 +29,60 @@ declare global {
 function PaymentContent() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type") || "course";
-  const targetId = searchParams.get("targetId") || "";
+  // 시험 목록은 id로, 일부 흐름은 targetId로 넘기므로 둘 다 허용
+  const targetId = searchParams.get("id") || searchParams.get("targetId") || "";
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [widgetReady, setWidgetReady] = useState(false);
+  const [infoLoading, setInfoLoading] = useState(true);
   const widgetsRef = useRef<ReturnType<ReturnType<NonNullable<Window["TossPayments"]>>["widgets"]> | null>(null);
+  // 실제 가격은 관리자가 설정한 자격증 종류에서 불러온다 (하드코딩 X)
+  const [paymentInfo, setPaymentInfo] = useState<{ title: string; subtitle: string; price: number; takeHref?: string }>({
+    title: "결제", subtitle: "", price: 0,
+  });
 
-  const paymentInfo = {
-    course: {
-      title: "AI 기초 활용 마스터 과정",
-      subtitle: "3급 수강권",
-      price: 59000,
-    },
-    exam: {
-      title: "Crowny AI 활용 자격증 3급",
-      subtitle: "2026년 4월 정기시험 응시",
-      price: 30000,
-    },
-    certificate: {
-      title: "인증서 발급",
-      subtitle: "디지털 인증서 (이메일)",
-      price: 10000,
-    },
-  }[type] || { title: "결제", subtitle: "", price: 0 };
+  // 결제 정보(제목·금액)를 Firestore에서 동적으로 로드
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      setInfoLoading(true);
+      try {
+        if (type === "exam" && targetId) {
+          const exam = await getDocument<ExamDoc>("exams", targetId);
+          if (exam) {
+            const ct = await getDocument<CertificateTypeDoc>("certificateTypes", exam.certificateTypeId);
+            if (active) setPaymentInfo({
+              title: ct?.name ?? "시험 응시",
+              subtitle: `${exam.title} 응시`,
+              price: ct?.price ?? 0,
+              takeHref: `/exams/${targetId}/take`,
+            });
+            return;
+          }
+        }
+        if (type === "certificate" && targetId) {
+          const ct = await getDocument<CertificateTypeDoc>("certificateTypes", targetId);
+          if (ct && active) { setPaymentInfo({ title: ct.name, subtitle: "인증서 발급", price: ct.certPrice ?? 0 }); return; }
+        }
+        if (type === "course" && targetId) {
+          const ct = await getDocument<CertificateTypeDoc>("certificateTypes", targetId);
+          if (ct && active) { setPaymentInfo({ title: ct.name, subtitle: "강의 수강", price: ct.coursePrice ?? 0 }); return; }
+        }
+        if (active) setPaymentInfo({ title: "결제", subtitle: "", price: 0 });
+      } catch {
+        if (active) setPaymentInfo({ title: "결제", subtitle: "", price: 0 });
+      } finally {
+        if (active) setInfoLoading(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [type, targetId]);
 
   useEffect(() => {
     const clientKey = process.env.NEXT_PUBLIC_TOSS_CLIENT_KEY;
-    if (!clientKey || !user) return;
+    // 무료(0원)이거나 정보 로딩 중이면 결제 위젯을 띄우지 않는다
+    if (!clientKey || !user || infoLoading || paymentInfo.price <= 0) return;
 
     const script = document.createElement("script");
     script.src = "https://js.tosspayments.com/v2/standard";
@@ -77,7 +106,7 @@ function PaymentContent() {
         script.parentNode.removeChild(script);
       }
     };
-  }, [user, paymentInfo.price]);
+  }, [user, paymentInfo.price, infoLoading]);
 
   const handlePayment = async () => {
     if (!widgetsRef.current) return;
@@ -97,6 +126,34 @@ function PaymentContent() {
       setLoading(false);
     }
   };
+
+  if (infoLoading) {
+    return <div className="max-w-xl mx-auto px-4 py-12 text-center text-muted-foreground">결제 정보를 불러오는 중...</div>;
+  }
+
+  // 무료(0원) 시험은 결제 없이 바로 응시
+  if (paymentInfo.price <= 0) {
+    return (
+      <div className="max-w-xl mx-auto px-4 py-12 text-center">
+        <h1 className="text-2xl font-bold mb-2">{paymentInfo.title}</h1>
+        <p className="text-muted-foreground mb-6">{paymentInfo.subtitle}</p>
+        <div className="bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
+          <div className="text-2xl font-bold text-green-600 mb-1">무료</div>
+          <div className="text-sm text-muted-foreground">결제 없이 바로 응시할 수 있습니다.</div>
+        </div>
+        {paymentInfo.takeHref ? (
+          <Link href={paymentInfo.takeHref} className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition inline-block">
+            응시하러 가기
+          </Link>
+        ) : (
+          <Link href="/exams" className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition inline-block">
+            시험 목록으로
+          </Link>
+        )}
+        {!user && <p className="text-center text-sm text-red-500 mt-4">먼저 로그인해주세요.</p>}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-xl mx-auto px-4 py-12">

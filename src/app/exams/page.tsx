@@ -148,7 +148,7 @@ export default function ExamsPage() {
           현재 접수 가능한 시험이 없습니다.
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {exams.map((exam) => {
             const certType = certTypes[exam.certificateTypeId];
             const gradeInfo = certType ? getGradeInfo(certType.grade) : null;
@@ -160,7 +160,7 @@ export default function ExamsPage() {
                 key={exam.id}
                 className={`border rounded-xl p-6 hover:shadow-md transition ${(exam as { isSample?: boolean }).isSample ? "border-dashed border-orange-300" : "border-border"}`}
               >
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                <div className="flex flex-col gap-4 h-full">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       {(exam as { isSample?: boolean }).isSample && (
@@ -176,7 +176,7 @@ export default function ExamsPage() {
                       </span>
                     </div>
                     <h2 className="text-lg font-bold mb-3">{exam.title}</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
                         <span className="text-muted-foreground">시험 형식</span>
                         <div className="font-medium">{certType?.examFormat === "MULTIPLE_CHOICE" ? "객관식" : certType?.examFormat === "PRACTICAL" ? "실기" : certType?.examFormat === "PROJECT" ? "프로젝트" : "해커톤"}</div>
@@ -196,13 +196,16 @@ export default function ExamsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col items-end gap-2">
-                    <div className="text-xl font-bold text-primary">
-                      {price.toLocaleString()}원
+                  <div className="flex flex-wrap items-end justify-between gap-3 border-t border-border pt-4 mt-auto">
+                    <div>
+                      <div className="text-xl font-bold text-primary">
+                        {price.toLocaleString()}원
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        시험일: {formatTimestamp(exam.scheduledDate)}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      시험일: {formatTimestamp(exam.scheduledDate)}
-                    </div>
+                    <div className="flex flex-wrap gap-2 justify-end">
                     <Link
                       href={`/payment?type=exam&id=${exam.id}`}
                       className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
@@ -233,6 +236,7 @@ export default function ExamsPage() {
                         실기 응시 (제품 챌린지)
                       </Link>
                     )}
+                    </div>
                   </div>
                 </div>
               </div>
