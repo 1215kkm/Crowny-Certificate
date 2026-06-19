@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase-admin";
+import { getGradeCompetencies, getDefaultPassingCriteria } from "@/lib/grade-utils";
 
 /**
  * 합격증 렌더용 데이터 (본인만). 발급일 + 30일까지 열람/다운로드 가능.
@@ -51,8 +52,11 @@ export async function POST(request: Request) {
     const owner = await adminDb.collection("users").doc(iss.userId).get();
     const ownerData = owner.data() || {};
     const certType = await adminDb.collection("certificateTypes").doc(iss.certificateTypeId).get();
-    const grade = certType.data()?.grade ?? "GRADE_3";
+    const ctData = certType.data() || {};
+    const grade = ctData.grade ?? "GRADE_3";
     const g = GRADE_MAP[grade] || GRADE_MAP.GRADE_3;
+    const competencies = (typeof ctData.competencies === "string" && ctData.competencies.trim()) || getGradeCompetencies(grade);
+    const passingCriteria = (typeof ctData.passingCriteria === "string" && ctData.passingCriteria.trim()) || getDefaultPassingCriteria(grade, ctData.passingScore);
 
     let birth = "-";
     if (ownerData.birthDate) {
@@ -77,6 +81,10 @@ export async function POST(request: Request) {
         docNumber: iss.issueNumber || "-",
         issuedDate: fmtDot(issued),
         issuedDateKo: fmtKo(issued),
+        examName: ctData.name || "AIAT 자격",
+        examDescription: ctData.description || "",
+        competencies,
+        passingCriteria,
       },
     });
   } catch (error) {
