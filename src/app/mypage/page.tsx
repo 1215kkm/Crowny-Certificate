@@ -401,7 +401,15 @@ export default function MyPage() {
 
       {/* 시험 결과 */}
       <section className="mb-8">
-        <h2 className="text-xl font-bold mb-4">시험 결과</h2>
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <h2 className="text-xl font-bold">시험 결과</h2>
+          <Link
+            href="/showcase/manage"
+            className="inline-flex items-center gap-2 border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/5 transition whitespace-nowrap"
+          >
+            🏆 내 합격작 등록/관리
+          </Link>
+        </div>
         {examResults.length > 0 ? (
           <div className="space-y-4">
             {examResults.map((result) => (

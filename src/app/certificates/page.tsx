@@ -192,10 +192,20 @@ export default function CertificatesPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-12">
-      <h1 className="text-3xl font-bold mb-2">자격증 발급</h1>
-      <p className="text-muted-foreground mb-8">
-        시험 합격 후 공식 자격증을 발급받으세요
-      </p>
+      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">자격증 발급</h1>
+          <p className="text-muted-foreground">
+            시험 합격 후 공식 자격증을 발급받으세요
+          </p>
+        </div>
+        <Link
+          href="/showcase/manage"
+          className="inline-flex items-center gap-2 border border-primary text-primary px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/5 transition whitespace-nowrap"
+        >
+          🏆 내 합격작 등록/관리
+        </Link>
+      </div>
 
       {/* 발급 방법 안내 */}
       <div className="grid md:grid-cols-2 gap-6 mb-12">
