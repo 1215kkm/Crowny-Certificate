@@ -60,6 +60,7 @@ export default function PracticalExamPage() {
   }, []);
 
   const startExam = () => {
+    if (!confirm("시험을 시작하면 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?")) return;
     setTheme(pickRandom(PRACTICAL_THEMES));
     setWireframe(pickRandom(wireframes.length > 0 ? wireframes : DEFAULT_WIREFRAMES));
     setStarted(true);

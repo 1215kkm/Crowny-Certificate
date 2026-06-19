@@ -54,6 +54,11 @@ export default function ChallengeExamPage() {
   }, [examId, user, authLoading, router]);
 
   const startExam = () => {
+    const msg =
+      exam && exam.duration > 0
+        ? `시험이 시작된 후 ${exam.duration}분 동안 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?`
+        : "시험을 시작하면 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?";
+    if (!confirm(msg)) return;
     setStarted(true);
     if (exam && exam.duration > 0 && !localStorage.getItem(lsKey)) {
       localStorage.setItem(lsKey, String(Date.now()));

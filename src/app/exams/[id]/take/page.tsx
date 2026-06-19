@@ -355,7 +355,15 @@ export default function ExamTakePage() {
           </div>
 
           <button
-            onClick={() => setExamStarted(true)}
+            onClick={() => {
+              if (
+                confirm(
+                  `시험이 시작된 후 ${exam.duration}분 동안 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?`
+                )
+              ) {
+                setExamStarted(true);
+              }
+            }}
             className="bg-primary text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-primary-dark transition-all shadow-md"
           >
             시험 시작하기
