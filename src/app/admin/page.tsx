@@ -38,6 +38,7 @@ interface StatItem {
   label: string;
   value: string;
   color: string;
+  href?: string;
 }
 
 export default function AdminPage() {
@@ -82,13 +83,13 @@ export default function AdminPage() {
         const refunds = await getDocuments<PaymentDoc>("payments", where("status", "==", "REFUNDED"));
 
         setStats([
-          { label: "총 회원수", value: usersSnap.size.toLocaleString(), color: "text-blue-600" },
-          { label: "수강생", value: enrollmentsSnap.size.toLocaleString(), color: "text-purple-600" },
-          { label: "시험 응시", value: submissionsSnap.size.toLocaleString(), color: "text-orange-600" },
-          { label: "인증서 발급", value: issuancesSnap.size.toLocaleString(), color: "text-green-600" },
-          { label: "이번 달 매출", value: `${monthlyRevenue.toLocaleString()}원`, color: "text-primary" },
-          { label: "환불 건수", value: refunds.length.toLocaleString(), color: "text-red-600" },
-          { label: "미답변 문의", value: pendingInq.toLocaleString(), color: pendingInq > 0 ? "text-red-600" : "text-green-600" },
+          { label: "총 회원수", value: usersSnap.size.toLocaleString(), color: "text-blue-600", href: "/admin/users" },
+          { label: "수강생", value: enrollmentsSnap.size.toLocaleString(), color: "text-purple-600", href: "/admin/courses" },
+          { label: "시험 응시", value: submissionsSnap.size.toLocaleString(), color: "text-orange-600", href: "/admin/exams" },
+          { label: "인증서 발급", value: issuancesSnap.size.toLocaleString(), color: "text-green-600", href: "/admin/certificates" },
+          { label: "이번 달 매출", value: `${monthlyRevenue.toLocaleString()}원`, color: "text-primary", href: "/admin/payments" },
+          { label: "환불 건수", value: refunds.length.toLocaleString(), color: "text-red-600", href: "/admin/payments" },
+          { label: "미답변 문의", value: pendingInq.toLocaleString(), color: pendingInq > 0 ? "text-red-600" : "text-green-600", href: "/admin/inquiries" },
         ]);
 
         // 최근 활동 (최근 시험 제출 5건)
@@ -157,12 +158,23 @@ export default function AdminPage() {
 
       {/* 통계 */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-10">
-        {stats.map((stat) => (
-          <div key={stat.label} className="bg-card border border-border rounded-xl p-4">
-            <div className="text-sm text-muted-foreground mb-1">{stat.label}</div>
-            <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-          </div>
-        ))}
+        {stats.map((stat) =>
+          stat.href ? (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className="bg-card border border-border rounded-xl p-4 hover:shadow-md hover:border-primary/50 transition"
+            >
+              <div className="text-sm text-muted-foreground mb-1">{stat.label}</div>
+              <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
+            </Link>
+          ) : (
+            <div key={stat.label} className="bg-card border border-border rounded-xl p-4">
+              <div className="text-sm text-muted-foreground mb-1">{stat.label}</div>
+              <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
+            </div>
+          )
+        )}
       </div>
 
       {/* 샘플 데이터 토글 */}

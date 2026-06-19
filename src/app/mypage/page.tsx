@@ -14,13 +14,37 @@ import {
   type CertificateIssuanceDoc,
   type CertificateTypeDoc,
   type PaymentDoc,
+  type InquiryDoc,
+  orderBy,
 } from "@/lib/firestore";
 import { getThemeById } from "@/data/grade-2-practical";
 import { getAppThemeById } from "@/data/grade-1-practical";
-import { getGradeInfo, formatTimestamp, ISSUANCE_STATUS_MAP, DELIVERY_METHOD_MAP } from "@/lib/grade-utils";
+import { getGradeInfo, formatTimestamp, ISSUANCE_STATUS_MAP, DELIVERY_METHOD_MAP, INQUIRY_CATEGORY_MAP } from "@/lib/grade-utils";
 import { REFUND_POLICY, REFUND_POLICY_TITLE, REFUND_AGREE_LABEL } from "@/lib/refund-policy";
 
 const PAY_TYPE_LABEL: Record<string, string> = { COURSE: "강의", EXAM: "시험", CERTIFICATE: "인증서" };
+
+type TabKey = "courses" | "exams" | "practical" | "payments" | "certificates" | "inquiries";
+const TABS: { key: TabKey; label: string }[] = [
+  { key: "courses", label: "수강 현황" },
+  { key: "exams", label: "시험 결과" },
+  { key: "practical", label: "실기 결과" },
+  { key: "payments", label: "결제 내역·환불" },
+  { key: "certificates", label: "발급된 인증서" },
+  { key: "inquiries", label: "내 문의 내역" },
+];
+
+interface InquiryRow {
+  id: string;
+  category: string;
+  title: string;
+  content: string;
+  imageUrl: string | null;
+  status: string;
+  adminReply: string | null;
+  adminRepliedAt: string;
+  createdAt: string;
+}
 
 interface PaymentRow {
   id: string;
@@ -50,6 +74,9 @@ export default function MyPage() {
   // 합격작 등록 상태
   const [registeredSubs, setRegisteredSubs] = useState<Set<string>>(new Set());
   const [registeringId, setRegisteringId] = useState<string | null>(null);
+  const [inquiries, setInquiries] = useState<InquiryRow[]>([]);
+  const [activeTab, setActiveTab] = useState<TabKey>("courses");
+  const [openInquiryId, setOpenInquiryId] = useState<string | null>(null);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   // 환불/취소 신청 모달 상태
   const [refundModal, setRefundModal] = useState<{ row: PaymentRow; kind: "REFUND" | "CANCEL_BEFORE_EXAM" } | null>(null);
@@ -73,6 +100,30 @@ export default function MyPage() {
           getDocuments<CertificateTypeDoc>("certificateTypes"),
           getDocuments<PaymentDoc>("payments", where("userId", "==", user!.uid)),
         ]);
+
+        // 내 문의 내역
+        try {
+          const inquiryDocs = await getDocuments<InquiryDoc>(
+            "inquiries",
+            where("userId", "==", user!.uid),
+            orderBy("createdAt", "desc")
+          );
+          setInquiries(
+            inquiryDocs.map((d) => ({
+              id: d.id,
+              category: d.category || "ETC",
+              title: d.title,
+              content: d.content,
+              imageUrl: d.imageUrl ?? null,
+              status: d.status,
+              adminReply: d.adminReply,
+              adminRepliedAt: formatTimestamp(d.adminRepliedAt),
+              createdAt: formatTimestamp(d.createdAt),
+            }))
+          );
+        } catch (e) {
+          console.error("문의 내역 로드 실패:", e);
+        }
 
         // 응시(제출)한 시험 examId 집합 — 시험 응시 전 취소 가능 여부 판단용
         const takenExamIds = new Set(submissionDocs.map((s) => s.examId));
@@ -336,6 +387,24 @@ export default function MyPage() {
     );
   };
 
+  const toggleInquiry = async (inq: InquiryRow) => {
+    const next = openInquiryId === inq.id ? null : inq.id;
+    setOpenInquiryId(next);
+    if (next && inq.adminReply) {
+      try {
+        const { getFirebaseAuth } = await import("@/lib/firebase");
+        const token = await getFirebaseAuth().currentUser?.getIdToken();
+        fetch("/api/inquiries/mark-read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ inquiryId: inq.id }),
+        });
+      } catch {
+        /* 무시 */
+      }
+    }
+  };
+
   const openRefund = (row: PaymentRow, kind: "REFUND" | "CANCEL_BEFORE_EXAM") => {
     setRefundModal({ row, kind });
     setRefundReason("");
@@ -432,7 +501,31 @@ export default function MyPage() {
         </div>
       </div>
 
+      {/* 좌측 메뉴 + 우측 내용 */}
+      <div className="grid md:grid-cols-[220px_1fr] gap-8">
+        <aside>
+          <nav className="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible border border-border rounded-xl p-2 md:sticky md:top-4">
+            {TABS.map((t) => {
+              const badge = t.key === "inquiries" ? inquiries.filter((i) => i.status === "ANSWERED" && i.adminReply).length : 0;
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`flex items-center justify-between gap-2 text-left px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition ${activeTab === t.key ? "bg-primary text-white" : "hover:bg-muted text-foreground"}`}
+                >
+                  {t.label}
+                  {t.key === "inquiries" && badge > 0 && (
+                    <span className={`text-xs px-1.5 rounded-full ${activeTab === t.key ? "bg-white/30" : "bg-primary/10 text-primary"}`}>{badge}</span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        <div>
       {/* 수강 현황 */}
+      {activeTab === "courses" && (
       <section className="mb-8">
         <h2 className="text-xl font-bold mb-4">수강 현황</h2>
         {enrollments.length > 0 ? (
@@ -464,10 +557,12 @@ export default function MyPage() {
           </div>
         )}
       </section>
+      )}
 
       {/* 시험 결과 */}
+      {activeTab === "exams" && (
       <section className="mb-8">
-        <h2 className="text-xl font-bold mb-4">시험 결과</h2>
+        <h2 className="text-xl font-bold mb-4">시험 결과 (필기)</h2>
         {examResults.length > 0 ? (
           <div className="space-y-4">
             {examResults.map((result) => (
@@ -506,12 +601,20 @@ export default function MyPage() {
           <div className="text-center py-8 text-muted-foreground">시험 결과가 없습니다.</div>
         )}
       </section>
+      )}
 
-      {/* 실기(2급 랜딩페이지) 결과 */}
-      {practicals.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-xl font-bold mb-4">실기 결과 (2급 랜딩페이지)</h2>
-          <div className="space-y-4">
+      {/* 실기 결과 (2급/1급/특급) */}
+      {activeTab === "practical" && (
+      <section className="mb-8">
+        <h2 className="text-xl font-bold mb-4">실기 결과</h2>
+        {practicals.length === 0 && appSubs.length === 0 && specialSubs.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">실기 제출 내역이 없습니다.</div>
+        ) : (
+        <div className="space-y-8">
+        {practicals.length > 0 && (
+          <div>
+            <h3 className="font-bold mb-3">2급 랜딩페이지</h3>
+            <div className="space-y-4">
             {practicals.map((p) => (
               <div key={p.id} className="border border-border rounded-xl p-5 flex items-center justify-between gap-3 flex-wrap">
                 <div>
@@ -522,15 +625,14 @@ export default function MyPage() {
                 {p.eligible && <ShowcaseAction type="practical" id={p.id} />}
               </div>
             ))}
+            </div>
           </div>
-        </section>
-      )}
+        )}
 
-      {/* 1급 앱 실기 결과 */}
-      {appSubs.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-xl font-bold mb-4">앱 실기 결과 (1급)</h2>
-          <div className="space-y-4">
+        {appSubs.length > 0 && (
+          <div>
+            <h3 className="font-bold mb-3">1급 앱 실기</h3>
+            <div className="space-y-4">
             {appSubs.map((a) => (
               <div key={a.id} className="border border-border rounded-xl p-5">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -544,15 +646,14 @@ export default function MyPage() {
                 <div className="text-sm text-muted-foreground mt-1">{a.detail}</div>
               </div>
             ))}
+            </div>
           </div>
-        </section>
-      )}
+        )}
 
-      {/* 특급 챌린지 결과 */}
-      {specialSubs.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-xl font-bold mb-4">특급 챌린지 결과</h2>
-          <div className="space-y-4">
+        {specialSubs.length > 0 && (
+          <div>
+            <h3 className="font-bold mb-3">특급 챌린지</h3>
+            <div className="space-y-4">
             {specialSubs.map((s) => (
               <div key={s.id} className="border border-border rounded-xl p-5">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -566,11 +667,16 @@ export default function MyPage() {
                 <div className="text-sm text-muted-foreground mt-1">{s.detail}</div>
               </div>
             ))}
+            </div>
           </div>
-        </section>
+        )}
+        </div>
+        )}
+      </section>
       )}
 
       {/* 결제 내역 · 환불 */}
+      {activeTab === "payments" && (
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">결제 내역 · 환불</h2>
@@ -642,8 +748,10 @@ export default function MyPage() {
           <div className="text-center py-8 text-muted-foreground">결제 내역이 없습니다.</div>
         )}
       </section>
+      )}
 
       {/* 발급된 인증서 */}
+      {activeTab === "certificates" && (
       <section>
         <h2 className="text-xl font-bold mb-4">발급된 인증서</h2>
         {certificates.length > 0 ? (
@@ -671,6 +779,66 @@ export default function MyPage() {
           <div className="text-center py-8 text-muted-foreground">발급된 인증서가 없습니다.</div>
         )}
       </section>
+      )}
+
+      {/* 내 문의 내역 */}
+      {activeTab === "inquiries" && (
+      <section>
+        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+          <h2 className="text-xl font-bold">내 문의 내역</h2>
+          <Link href="/inquiries?new=1" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+            새 문의 작성
+          </Link>
+        </div>
+        {inquiries.length > 0 ? (
+          <div className="space-y-3">
+            {inquiries.map((inq) => (
+              <div key={inq.id} className="border border-border rounded-xl overflow-hidden">
+                <button
+                  onClick={() => toggleInquiry(inq)}
+                  className="w-full flex items-center justify-between gap-3 p-4 hover:bg-muted/50 text-left"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className={`text-xs px-2 py-1 rounded font-medium whitespace-nowrap ${inq.status === "ANSWERED" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                      {inq.status === "ANSWERED" ? "답변 완료" : "답변 대기"}
+                    </span>
+                    <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground whitespace-nowrap">
+                      {INQUIRY_CATEGORY_MAP[inq.category] || "기타"}
+                    </span>
+                    <span className="font-medium truncate">{inq.title}</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">{inq.createdAt}</span>
+                </button>
+                {openInquiryId === inq.id && (
+                  <div className="border-t border-border p-4 bg-muted/30">
+                    <div className="text-sm whitespace-pre-wrap mb-3">{inq.content}</div>
+                    {inq.imageUrl && (
+                      <a href={inq.imageUrl} target="_blank" rel="noopener noreferrer" className="inline-block mb-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={inq.imageUrl} alt="첨부 이미지" className="max-h-56 rounded-lg border border-border" />
+                      </a>
+                    )}
+                    {inq.adminReply && (
+                      <div className="mt-3 border-t border-border pt-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-sm font-bold text-primary">관리자 답변</span>
+                          <span className="text-xs text-muted-foreground">{inq.adminRepliedAt}</span>
+                        </div>
+                        <div className="text-sm whitespace-pre-wrap bg-primary/5 p-3 rounded-lg border border-primary/10">{inq.adminReply}</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">등록된 문의가 없습니다.</div>
+        )}
+      </section>
+      )}
+        </div>
+      </div>
 
       {/* 환불/취소 신청 + 환불 약정 모달 */}
       {refundModal && (
