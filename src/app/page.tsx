@@ -201,9 +201,8 @@ export default function HomePage() {
         <ParticleCanvas />
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3">
-              <Image src="/aiat.png" alt="AIAT 자격증" width={88} height={88} className="w-20 h-20 object-contain" priority />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/aiat_w.png" alt="AIAT 자격증" className="block max-w-full h-auto" />
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
             Crowny AI 활용 자격증
