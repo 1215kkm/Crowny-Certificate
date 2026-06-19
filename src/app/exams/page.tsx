@@ -14,6 +14,9 @@ export default function ExamsPage() {
   const [loading, setLoading] = useState(true);
   const [passedCerts, setPassedCerts] = useState<Set<string>>(new Set());
   const [modal, setModal] = useState<{ title: string; examples: CertExample[] } | null>(null);
+  const [selectedEx, setSelectedEx] = useState<CertExample | null>(null);
+
+  const closeModal = () => { setModal(null); setSelectedEx(null); };
 
   useEffect(() => {
     async function fetchData() {
@@ -298,40 +301,76 @@ export default function ExamsPage() {
       {modal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setModal(null)}
+          onClick={closeModal}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-6"
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[88vh] overflow-y-auto p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-bold">합격 예시</h3>
-                <p className="text-sm text-muted-foreground">{modal.title}</p>
+              <div className="flex items-center gap-2">
+                {selectedEx && (
+                  <button onClick={() => setSelectedEx(null)} className="text-sm text-primary hover:underline">← 목록</button>
+                )}
+                <div>
+                  <h3 className="text-lg font-bold">합격 예시</h3>
+                  <p className="text-sm text-muted-foreground">{modal.title}</p>
+                </div>
               </div>
-              <button onClick={() => setModal(null)} className="text-muted-foreground hover:text-foreground text-xl leading-none">
+              <button onClick={closeModal} className="text-muted-foreground hover:text-foreground text-xl leading-none">
                 ✕
               </button>
             </div>
-            <div className="space-y-3">
-              {modal.examples.map((ex, i) => (
-                <a
-                  key={i}
-                  href={ex.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block border border-border rounded-lg p-4 hover:border-primary hover:bg-primary/5 transition"
-                >
-                  <div className="font-medium text-primary flex items-center gap-1">
-                    {ex.title}
-                    <span className="text-xs">↗</span>
+
+            {!selectedEx ? (
+              // 캡쳐 이미지 그리드 (클릭 시 상세)
+              <div className="grid grid-cols-2 gap-3">
+                {modal.examples.map((ex, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSelectedEx(ex)}
+                    className="text-left border border-border rounded-lg overflow-hidden hover:border-primary hover:shadow-md transition"
+                  >
+                    <div className="h-32 bg-gray-100 flex items-center justify-center overflow-hidden">
+                      {ex.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={ex.imageUrl} alt={ex.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-gray-400 text-sm">미리보기 없음</span>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <div className="font-medium text-sm truncate">{ex.title}</div>
+                      {ex.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{ex.description}</p>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              // 상세: 큰 이미지 + 제목/설명 + 실물 보기 버튼
+              <div>
+                {selectedEx.imageUrl && (
+                  <div className="rounded-xl overflow-hidden border border-border mb-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selectedEx.imageUrl} alt={selectedEx.title} className="w-full object-contain max-h-[50vh]" />
                   </div>
-                  {ex.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{ex.description}</p>
-                  )}
-                </a>
-              ))}
-            </div>
+                )}
+                <h4 className="text-lg font-bold mb-1">{selectedEx.title}</h4>
+                {selectedEx.description && (
+                  <p className="text-sm text-muted-foreground whitespace-pre-line mb-4">{selectedEx.description}</p>
+                )}
+                {selectedEx.url && (
+                  <a
+                    href={selectedEx.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full bg-primary text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-dark transition"
+                  >
+                    작업물 실물 보러가기 ↗
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

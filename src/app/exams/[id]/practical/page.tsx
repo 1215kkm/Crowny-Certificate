@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { uploadFile } from "@/lib/firebase-storage";
+import { getDocument, type ExamDoc } from "@/lib/firestore";
 import {
   PRACTICAL_THEMES,
   DEFAULT_WIREFRAMES,
@@ -34,6 +35,12 @@ export default function PracticalExamPage() {
   const [theme, setTheme] = useState<PracticalTheme | null>(null);
   const [wireframe, setWireframe] = useState<PracticalWireframe | null>(null);
 
+  // 실기 제한 시간(분) — 관리자가 시험에 설정한 practicalDuration
+  const [examMins, setExamMins] = useState(0);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [timedOut, setTimedOut] = useState(false);
+  const lsKey = `practical-start-${examId}-${user?.uid ?? ""}`;
+
   // 결과물 제출
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
@@ -59,11 +66,51 @@ export default function PracticalExamPage() {
     })();
   }, []);
 
+  // 시험의 실기 제한 시간 로드
+  useEffect(() => {
+    (async () => {
+      try {
+        const exam = await getDocument<ExamDoc>("exams", examId);
+        if (exam) setExamMins(exam.practicalDuration ?? 0);
+      } catch {
+        /* 무시 */
+      }
+    })();
+  }, [examId]);
+
+  // 카운트다운 (시작 후, 제한 시간이 있는 경우)
+  useEffect(() => {
+    if (!started || examMins <= 0) return;
+    const startMs = Number(localStorage.getItem(lsKey)) || Date.now();
+    const totalSec = examMins * 60;
+    const tick = () => {
+      const left = totalSec - Math.floor((Date.now() - startMs) / 1000);
+      setTimeLeft(left);
+      if (left <= 0) setTimedOut(true);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [started, examMins, lsKey]);
+
   const startExam = () => {
-    if (!confirm("시험을 시작하면 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?")) return;
+    const msg =
+      examMins > 0
+        ? `시험이 시작된 후 ${examMins}분 동안 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?`
+        : "시험을 시작하면 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?";
+    if (!confirm(msg)) return;
     setTheme(pickRandom(PRACTICAL_THEMES));
     setWireframe(pickRandom(wireframes.length > 0 ? wireframes : DEFAULT_WIREFRAMES));
+    if (examMins > 0 && !localStorage.getItem(lsKey)) {
+      localStorage.setItem(lsKey, String(Date.now()));
+    }
     setStarted(true);
+  };
+
+  const fmtTime = (s: number) => {
+    const a = Math.abs(s);
+    const h = Math.floor(a / 3600), m = Math.floor((a % 3600) / 60), sec = a % 60;
+    return `${s < 0 ? "-" : ""}${h > 0 ? `${h}시간 ` : ""}${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
   };
 
   const uploadScreenshot = async (file: File) => {
@@ -133,6 +180,7 @@ export default function PracticalExamPage() {
       });
       const data = await res.json();
       if (res.ok) {
+        localStorage.removeItem(lsKey);
         setAnnounceAt(data.announceAt || "");
         setSubmitted(true);
       } else {
@@ -209,16 +257,31 @@ export default function PracticalExamPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* 배정 정보 */}
       <div className="bg-gradient-to-r from-primary to-secondary text-white rounded-2xl p-6 mb-6">
-        <div className="text-sm opacity-80 mb-1">배정된 과제</div>
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-          <div><span className="opacity-80 text-sm">주제 </span><span className="font-bold text-lg">{theme?.name}</span></div>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <span className="opacity-80 text-sm">와이어프레임 </span>
-            <span className="font-bold text-lg">{wireframe?.code ? `${wireframe.code}. ` : ""}{wireframe?.name}</span>
+            <div className="text-sm opacity-80 mb-1">배정된 과제</div>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+              <div><span className="opacity-80 text-sm">주제 </span><span className="font-bold text-lg">{theme?.name}</span></div>
+              <div>
+                <span className="opacity-80 text-sm">와이어프레임 </span>
+                <span className="font-bold text-lg">{wireframe?.code ? `${wireframe.code}. ` : ""}{wireframe?.name}</span>
+              </div>
+            </div>
+            <div className="text-sm opacity-90 mt-2">{theme?.desc}</div>
           </div>
+          {timeLeft !== null && (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold ${timedOut ? "bg-red-500/30" : "bg-white/20"}`}>
+              ⏱ {timedOut ? "시간 종료" : fmtTime(timeLeft)}
+            </div>
+          )}
         </div>
-        <div className="text-sm opacity-90 mt-2">{theme?.desc}</div>
       </div>
+
+      {timedOut && (
+        <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 mb-4 text-sm text-orange-700">
+          제한 시간이 지났습니다. 지금 제출하면 시간 초과로 간주될 수 있습니다.
+        </div>
+      )}
 
       <div className="grid md:grid-cols-[320px_1fr] gap-6">
         {/* 와이어프레임 그레이아웃 */}

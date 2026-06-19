@@ -11,6 +11,7 @@ import {
   type CertExample,
 } from "@/lib/firestore";
 import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
+import { uploadFile } from "@/lib/firebase-storage";
 import { getGradeInfo, gradeRank, getGradeCompetencies, getDefaultPassingCriteria } from "@/lib/grade-utils";
 
 const GRADE_OPTIONS: { value: CertificateGrade; label: string }[] = [
@@ -88,6 +89,25 @@ export default function AdminCertificateTypesPage() {
     }
     fetchData();
   }, [isAdmin, authLoading]);
+
+  const [exUploading, setExUploading] = useState<number | null>(null);
+
+  const uploadExampleImage = async (idx: number, file: File) => {
+    setExUploading(idx);
+    try {
+      const safe = file.name.replace(/[^\w.\-]/g, "_");
+      const url = await uploadFile(`cert-examples/${Math.floor(Math.random() * 1e9)}-${safe}`, file);
+      setFormData((prev) => ({
+        ...prev,
+        examples: prev.examples.map((ex, i) => (i === idx ? { ...ex, imageUrl: url } : ex)),
+      }));
+    } catch (e) {
+      console.error(e);
+      alert("이미지 업로드에 실패했습니다. (Storage 규칙 확인 필요)");
+    } finally {
+      setExUploading(null);
+    }
+  };
 
   const handleSave = async () => {
     if (!formData.name) {
@@ -459,6 +479,21 @@ export default function AdminCertificateTypesPage() {
                       placeholder="설명 (선택)"
                       className="w-full mt-2 px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                     />
+                    {/* 캡쳐 이미지 */}
+                    <div className="mt-2">
+                      <label className="flex items-center gap-3 border border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 transition p-2 bg-gray-50 overflow-hidden">
+                        {ex.imageUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={ex.imageUrl} alt="캡쳐" className="w-20 h-14 object-cover rounded" />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">🖼️ 캡쳐 이미지</span>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {exUploading === idx ? "업로드 중..." : ex.imageUrl ? "이미지 변경" : "이미지 선택 (클릭)"}
+                        </span>
+                        <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadExampleImage(idx, f); }} />
+                      </label>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -52,8 +52,9 @@ export interface UserDoc {
 // 시험별 합격 예시(여러 개). 관리자가 등록, 시험신청 페이지에서 누구나 열람.
 export interface CertExample {
   title: string;
-  url: string;
+  url: string; // 작업물 실물을 볼 수 있는 주소
   description?: string;
+  imageUrl?: string; // 합격작 캡쳐 이미지
 }
 
 export interface CertificateTypeDoc {
@@ -123,7 +124,8 @@ export interface ExamDoc {
   scheduledDate: Timestamp | null;
   registrationStart: Timestamp | null;
   registrationEnd: Timestamp | null;
-  duration: number;
+  duration: number; // 필기 시험 시간(분)
+  practicalDuration?: number | null; // 실기 시험 시간(분)
   questionCount: number;
   maxAttempts: number;
   isActive: boolean;

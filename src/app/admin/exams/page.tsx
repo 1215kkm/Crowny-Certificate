@@ -18,7 +18,8 @@ interface ExamRow {
   grade: string;
   questionCount: number;
   applicants: number;
-  date: string;
+  duration: number;
+  practicalDuration: number;
   active: boolean;
   certificateTypeId: string;
 }
@@ -40,7 +41,7 @@ export default function AdminExamsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
-    title: "", certificateTypeId: "", duration: 60, questionCount: 0, isActive: true,
+    title: "", certificateTypeId: "", duration: 60, practicalDuration: 120, questionCount: 0, isActive: true,
   });
 
   const fetchData = async () => {
@@ -72,7 +73,8 @@ export default function AdminExamsPage() {
             grade: gradeInfo.label,
             questionCount: e.questionCount,
             applicants: applicantCount[e.id] || 0,
-            date: formatTimestamp(e.scheduledDate),
+            duration: e.duration ?? 0,
+            practicalDuration: e.practicalDuration ?? 0,
             active: e.isActive,
             certificateTypeId: e.certificateTypeId,
           };
@@ -120,6 +122,7 @@ export default function AdminExamsPage() {
           title: formData.title,
           certificateTypeId: formData.certificateTypeId,
           duration: formData.duration,
+          practicalDuration: formData.practicalDuration,
           questionCount: formData.questionCount,
           isActive: formData.isActive,
         });
@@ -132,6 +135,7 @@ export default function AdminExamsPage() {
           registrationStart: null,
           registrationEnd: null,
           duration: formData.duration,
+          practicalDuration: formData.practicalDuration,
           questionCount: formData.questionCount,
           maxAttempts: 3,
           isActive: formData.isActive,
@@ -139,7 +143,7 @@ export default function AdminExamsPage() {
       }
       setShowForm(false);
       setEditingId(null);
-      setFormData({ title: "", certificateTypeId: "", duration: 60, questionCount: 0, isActive: true });
+      setFormData({ title: "", certificateTypeId: "", duration: 60, practicalDuration: 120, questionCount: 0, isActive: true });
       setLoading(true);
       await fetchData();
     } catch (error) {
@@ -175,7 +179,7 @@ export default function AdminExamsPage() {
           <h1 className="text-2xl font-bold">시험 관리</h1>
         </div>
         <button
-          onClick={() => { setShowForm(true); setEditingId(null); setFormData({ title: "", certificateTypeId: "", duration: 60, questionCount: 0, isActive: true }); }}
+          onClick={() => { setShowForm(true); setEditingId(null); setFormData({ title: "", certificateTypeId: "", duration: 60, practicalDuration: 120, questionCount: 0, isActive: true }); }}
           className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition"
         >
           + 새 시험 등록
@@ -208,14 +212,27 @@ export default function AdminExamsPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">시험 시간 (분)</label>
-              <input
-                type="number"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
-                className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">필기 시간 (분)</label>
+                <input
+                  type="number"
+                  value={formData.duration}
+                  onChange={(e) => setFormData({ ...formData, duration: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground mt-1">필기(객관식) 응시 시간. 필기 없으면 0</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">실기 시간 (분)</label>
+                <input
+                  type="number"
+                  value={formData.practicalDuration}
+                  onChange={(e) => setFormData({ ...formData, practicalDuration: Number(e.target.value) })}
+                  className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-muted-foreground mt-1">실기 응시 시간. 실기 없으면 0</p>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">출제 문제 수</label>
@@ -256,7 +273,7 @@ export default function AdminExamsPage() {
                 <th className="text-left p-4 font-medium">등급</th>
                 <th className="text-left p-4 font-medium">문제 수</th>
                 <th className="text-left p-4 font-medium">신청자</th>
-                <th className="text-left p-4 font-medium">시험일</th>
+                <th className="text-left p-4 font-medium">시험시간</th>
                 <th className="text-left p-4 font-medium">상태</th>
                 <th className="text-left p-4 font-medium">관리</th>
               </tr>
@@ -271,7 +288,11 @@ export default function AdminExamsPage() {
                     <td className="p-4">{exam.grade}</td>
                     <td className="p-4">{exam.questionCount}문항</td>
                     <td className="p-4">{exam.applicants}명</td>
-                    <td className="p-4">{exam.date}</td>
+                    <td className="p-4 text-xs">
+                      {exam.duration > 0 && <div>필기 {exam.duration}분</div>}
+                      {exam.practicalDuration > 0 && <div className="text-muted-foreground">실기 {exam.practicalDuration}분</div>}
+                      {exam.duration <= 0 && exam.practicalDuration <= 0 && <span className="text-muted-foreground">-</span>}
+                    </td>
                     <td className="p-4">
                       <span className={`text-xs px-2 py-1 rounded ${exam.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
                         {exam.active ? "접수중" : "준비중"}
@@ -281,7 +302,7 @@ export default function AdminExamsPage() {
                       <Link href={`/admin/exams/${exam.id}/questions`} className="text-purple-600 hover:underline text-sm mr-3">문제 관리</Link>
                       <button onClick={() => {
                         setEditingId(exam.id);
-                        setFormData({ title: exam.title, certificateTypeId: exam.certificateTypeId, duration: 60, questionCount: exam.questionCount, isActive: exam.active });
+                        setFormData({ title: exam.title, certificateTypeId: exam.certificateTypeId, duration: exam.duration, practicalDuration: exam.practicalDuration, questionCount: exam.questionCount, isActive: exam.active });
                         setShowForm(true);
                       }} className="text-primary hover:underline text-sm mr-3">수정</button>
                       <button onClick={() => handleDelete(exam.id)} className="text-red-500 hover:underline text-sm">삭제</button>

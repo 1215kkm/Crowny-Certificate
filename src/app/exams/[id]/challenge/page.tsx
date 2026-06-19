@@ -53,22 +53,24 @@ export default function ChallengeExamPage() {
     getDocument<ExamDoc>("exams", examId).then((e) => setExam(e)).finally(() => setLoadingExam(false));
   }, [examId, user, authLoading, router]);
 
+  const examMins = exam ? (exam.practicalDuration ?? exam.duration ?? 0) : 0;
+
   const startExam = () => {
     const msg =
-      exam && exam.duration > 0
-        ? `시험이 시작된 후 ${exam.duration}분 동안 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?`
+      examMins > 0
+        ? `시험이 시작된 후 ${examMins}분 동안 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?`
         : "시험을 시작하면 취소 및 환불이 되지 않습니다.\n진행하시겠습니까?";
     if (!confirm(msg)) return;
     setStarted(true);
-    if (exam && exam.duration > 0 && !localStorage.getItem(lsKey)) {
+    if (examMins > 0 && !localStorage.getItem(lsKey)) {
       localStorage.setItem(lsKey, String(Date.now()));
     }
   };
 
   useEffect(() => {
-    if (!started || !exam || exam.duration <= 0) return;
+    if (!started || !exam || examMins <= 0) return;
     const startTs = Number(localStorage.getItem(lsKey)) || Date.now();
-    const totalSec = exam.duration * 60;
+    const totalSec = examMins * 60;
     const tick = () => {
       const left = totalSec - Math.floor((Date.now() - startTs) / 1000);
       setTimeLeft(left);
@@ -77,7 +79,7 @@ export default function ChallengeExamPage() {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [started, exam, lsKey]);
+  }, [started, exam, lsKey, examMins]);
 
   const setStage = (k: StageKey, v: string) => setStages((p) => ({ ...p, [k]: v }));
 
@@ -169,7 +171,7 @@ export default function ChallengeExamPage() {
             <p>• 단계: 시장조사 → 기획 → 디자인 → 제작 → 디버깅·수정 → 구현완료 → <strong>배포</strong> → 홍보 → <strong>홍보 반응</strong></p>
             <p>• 주제·코드·스택 <strong>자유</strong> (직접 정하거나 제시된 문제 풀에서 선택)</p>
             <p>• 채점: 100점, <strong>{CHALLENGE_PASSING_SCORE}점 이상 합격</strong> (배포 URL 필수). 제출 후 발표일에 결과 공개.</p>
-            {exam && exam.duration > 0 && <p className="text-orange-600">• 제한 시간: <strong>{exam.duration}분</strong> (시작 시각부터 카운트다운)</p>}
+            {examMins > 0 && <p className="text-orange-600">• 제한 시간: <strong>{examMins}분</strong> (시작 시각부터 카운트다운)</p>}
           </div>
           <button onClick={startExam} className="bg-primary text-white px-10 py-4 rounded-xl font-bold text-lg hover:bg-primary-dark transition shadow-md">챌린지 시작</button>
         </div>
