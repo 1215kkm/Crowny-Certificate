@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
-    const { category, title, content } = await request.json();
+    const { category, title, content, imageUrl } = await request.json();
 
     if (!title?.trim() || !content?.trim()) {
       return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
       category: safeCategory,
       title: String(title).trim(),
       content: String(content).trim(),
+      imageUrl: typeof imageUrl === "string" && imageUrl ? imageUrl : null,
       status: "PENDING",
       adminReply: null,
       adminRepliedAt: null,

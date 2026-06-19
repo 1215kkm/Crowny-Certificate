@@ -21,6 +21,7 @@ interface InquiryRow {
   category: string;
   title: string;
   content: string;
+  imageUrl: string | null;
   status: "PENDING" | "ANSWERED";
   adminReply: string | null;
   adminRepliedAt: string;
@@ -51,6 +52,7 @@ export default function AdminInquiriesPage() {
           category: d.category || "ETC",
           title: d.title,
           content: d.content,
+          imageUrl: d.imageUrl ?? null,
           status: d.status,
           adminReply: d.adminReply,
           adminRepliedAt: formatTimestamp(d.adminRepliedAt),
@@ -265,6 +267,14 @@ export default function AdminInquiriesPage() {
                   <div className="text-sm whitespace-pre-wrap mb-4 bg-white/50 p-3 rounded-lg border border-border">
                     {inquiry.content}
                   </div>
+
+                  {/* 첨부 이미지 */}
+                  {inquiry.imageUrl && (
+                    <a href={inquiry.imageUrl} target="_blank" rel="noopener noreferrer" className="inline-block mb-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={inquiry.imageUrl} alt="첨부 이미지" className="max-h-72 rounded-lg border border-border" />
+                    </a>
+                  )}
 
                   {/* 기존 답변 */}
                   {inquiry.adminReply && (

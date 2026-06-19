@@ -45,6 +45,7 @@ export default function AdminPage() {
   const [recentActivities, setRecentActivities] = useState<{ time: string; action: string; user: string; status: string; statusColor: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSampleData, setShowSampleData] = useState(false);
+  const [pendingInquiries, setPendingInquiries] = useState(0);
 
   useEffect(() => {
     if (authLoading || !user || !isAdmin) {
@@ -56,13 +57,18 @@ export default function AdminPage() {
       try {
         const db = getFirebaseFirestore();
 
-        const [usersSnap, enrollmentsSnap, submissionsSnap, issuancesSnap, paymentsData] = await Promise.all([
+        const [usersSnap, enrollmentsSnap, submissionsSnap, issuancesSnap, paymentsData, inquiriesSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "enrollments")),
           getDocs(collection(db, "examSubmissions")),
           getDocs(collection(db, "certificateIssuances")),
           getDocuments<PaymentDoc>("payments", where("status", "==", "COMPLETED")),
+          getDocs(collection(db, "inquiries")),
         ]);
+
+        // 미답변(처리 안 한) 문의 수
+        const pendingInq = inquiriesSnap.docs.filter((d) => d.data().status === "PENDING").length;
+        setPendingInquiries(pendingInq);
 
         // 이번 달 매출 계산
         const now = new Date();
@@ -81,6 +87,7 @@ export default function AdminPage() {
           { label: "인증서 발급", value: issuancesSnap.size.toLocaleString(), color: "text-green-600" },
           { label: "이번 달 매출", value: `${monthlyRevenue.toLocaleString()}원`, color: "text-primary" },
           { label: "환불 건수", value: refunds.length.toLocaleString(), color: "text-red-600" },
+          { label: "미답변 문의", value: pendingInq.toLocaleString(), color: pendingInq > 0 ? "text-red-600" : "text-green-600" },
         ]);
 
         // 최근 활동 (최근 시험 제출 5건)
@@ -168,17 +175,25 @@ export default function AdminPage() {
       {/* 관리 메뉴 */}
       <h2 className="text-xl font-bold mb-4">관리 메뉴</h2>
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-        {MENU_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="border border-border rounded-xl p-5 hover:shadow-md hover:border-primary/50 transition group"
-          >
-            <div className="text-2xl mb-2">{item.icon}</div>
-            <h3 className="font-bold group-hover:text-primary transition">{item.title}</h3>
-            <p className="text-sm text-muted-foreground">{item.desc}</p>
-          </Link>
-        ))}
+        {MENU_ITEMS.map((item) => {
+          const badge = item.href === "/admin/inquiries" && pendingInquiries > 0 ? pendingInquiries : 0;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="relative border border-border rounded-xl p-5 hover:shadow-md hover:border-primary/50 transition group"
+            >
+              {badge > 0 && (
+                <span className="absolute top-3 right-3 min-w-[22px] h-[22px] px-1.5 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-xs font-bold">
+                  {badge}
+                </span>
+              )}
+              <div className="text-2xl mb-2">{item.icon}</div>
+              <h3 className="font-bold group-hover:text-primary transition">{item.title}</h3>
+              <p className="text-sm text-muted-foreground">{item.desc}</p>
+            </Link>
+          );
+        })}
       </div>
 
       {/* 최근 활동 */}

@@ -112,6 +112,25 @@ export interface AiUsage {
 /** 실기 합격 점수(100점 만점) */
 export const PRACTICAL_PASSING_SCORE = 60;
 
+// 2급 실기(랜딩페이지) 채점표 (총 100점, 60점 이상 합격, 필수 항목 미충족 시 불합격)
+export interface PracticalRubricItem {
+  id: string;
+  label: string;
+  points: number;
+  required?: boolean; // 필수 게이트 (미충족 시 총점과 무관하게 불합격)
+}
+
+export const PRACTICAL_RUBRIC: PracticalRubricItem[] = [
+  { id: "deploy", label: "배포·접속 동작 (실제 볼 수 있는 주소가 정상 작동)", points: 15, required: true },
+  { id: "structure", label: "와이어프레임 구조 준수 (배정 레이아웃대로 섹션 구성)", points: 20 },
+  { id: "theme", label: "주제 적합성 (배정 주제에 맞는 콘텐츠·이미지)", points: 15 },
+  { id: "design", label: "디자인 완성도·일관성 (색상·여백·정렬, 반응형)", points: 20 },
+  { id: "copy", label: "카피·가독성 (문구 품질, 오탈자 없음)", points: 15 },
+  { id: "ai", label: "AI 활용 내역 충실도 (대화 내용·공유 링크)", points: 15 },
+];
+
+export const PRACTICAL_RUBRIC_TOTAL = PRACTICAL_RUBRIC.reduce((s, r) => s + r.points, 0); // 100
+
 export function getThemeById(id: string): PracticalTheme | undefined {
   return PRACTICAL_THEMES.find((t) => t.id === id);
 }

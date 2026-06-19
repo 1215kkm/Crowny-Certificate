@@ -9,6 +9,7 @@ import { formatTimestamp } from "@/lib/grade-utils";
 import {
   getThemeById,
   PRACTICAL_PASSING_SCORE,
+  PRACTICAL_RUBRIC,
 } from "@/data/grade-2-practical";
 
 type Row = PracticalSubmissionDoc & { id: string };
@@ -18,7 +19,7 @@ export default function AdminPracticalPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [scoreInput, setScoreInput] = useState<Record<string, string>>({});
+  const [checks, setChecks] = useState<Record<string, Record<string, boolean>>>({});
   const [feedbackInput, setFeedbackInput] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -45,18 +46,30 @@ export default function AdminPracticalPage() {
     fetchData();
   }, [isAdmin, authLoading]);
 
+  const toggleCheck = (rowId: string, itemId: string) => {
+    setChecks((prev) => ({
+      ...prev,
+      [rowId]: { ...(prev[rowId] || {}), [itemId]: !prev[rowId]?.[itemId] },
+    }));
+  };
+
+  const computeTotal = (rowId: string) =>
+    PRACTICAL_RUBRIC.reduce((sum, r) => sum + (checks[rowId]?.[r.id] ? r.points : 0), 0);
+
   const handleGrade = async (id: string) => {
-    const raw = scoreInput[id];
-    const score = Number(raw);
-    if (raw === undefined || raw === "" || isNaN(score) || score < 0 || score > 100) {
-      alert("0~100 사이의 점수를 입력해주세요.");
-      return;
-    }
+    const rowChecks = checks[id] || {};
+    const total = computeTotal(id);
+    const requiredOk = PRACTICAL_RUBRIC.filter((r) => r.required).every((r) => rowChecks[r.id]);
+    const passed = total >= PRACTICAL_PASSING_SCORE && requiredOk;
+    const scores: Record<string, number> = {};
+    PRACTICAL_RUBRIC.forEach((r) => { scores[r.id] = rowChecks[r.id] ? r.points : 0; });
+
     setSaving(id);
     try {
       await adminUpdate(["practicalSubmissions", id], {
-        score,
-        passed: score >= PRACTICAL_PASSING_SCORE,
+        scores,
+        score: total,
+        passed,
         feedback: feedbackInput[id]?.trim() || null,
         status: "GRADED",
         gradedAt: "__SERVER_TIMESTAMP__",
@@ -217,23 +230,43 @@ export default function AdminPracticalPage() {
                       </>
                     )}
 
-                    {/* 채점 */}
+                    {/* 채점표 */}
                     <div className="border-t border-border pt-4">
-                      <div className="font-bold text-sm mb-2">채점 (100점 만점, {PRACTICAL_PASSING_SCORE}점 이상 합격)</div>
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <input
-                          type="number" min={0} max={100}
-                          value={scoreInput[r.id] ?? (r.score ?? "")}
-                          onChange={(e) => setScoreInput((p) => ({ ...p, [r.id]: e.target.value }))}
-                          placeholder="점수"
-                          className="w-28 px-3 py-2 border border-border rounded-lg"
-                        />
-                        <input
-                          value={feedbackInput[r.id] ?? (r.feedback ?? "")}
-                          onChange={(e) => setFeedbackInput((p) => ({ ...p, [r.id]: e.target.value }))}
-                          placeholder="피드백 (선택)"
-                          className="flex-1 px-3 py-2 border border-border rounded-lg"
-                        />
+                      <div className="font-bold text-sm mb-2">
+                        채점표 (체크 시 배점 부여, {PRACTICAL_PASSING_SCORE}점 이상 합격) — 현재 합계:{" "}
+                        <span className="text-primary">{computeTotal(r.id)}점</span>
+                      </div>
+                      <div className="space-y-2">
+                        {PRACTICAL_RUBRIC.map((item) => {
+                          const checked = checks[r.id]?.[item.id] ?? (r.scores ? (r.scores[item.id] ?? 0) > 0 : false);
+                          return (
+                            <label key={item.id} className="flex items-start gap-2 text-sm cursor-pointer">
+                              <input
+                                type="checkbox"
+                                className="mt-0.5"
+                                checked={checked}
+                                onChange={() => {
+                                  if (!checks[r.id]) {
+                                    const init: Record<string, boolean> = {};
+                                    PRACTICAL_RUBRIC.forEach((it) => { init[it.id] = r.scores ? (r.scores[it.id] ?? 0) > 0 : false; });
+                                    setChecks((prev) => ({ ...prev, [r.id]: { ...init, [item.id]: !init[item.id] } }));
+                                  } else {
+                                    toggleCheck(r.id, item.id);
+                                  }
+                                }}
+                              />
+                              <span>{item.label} <span className="text-muted-foreground">({item.points}점)</span>{item.required && <span className="text-red-500"> *필수</span>}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <input
+                        value={feedbackInput[r.id] ?? (r.feedback ?? "")}
+                        onChange={(e) => setFeedbackInput((p) => ({ ...p, [r.id]: e.target.value }))}
+                        placeholder="피드백 (선택)"
+                        className="w-full mt-3 px-3 py-2 border border-border rounded-lg text-sm"
+                      />
+                      <div className="flex justify-end mt-3">
                         <button
                           onClick={() => handleGrade(r.id)}
                           disabled={saving === r.id}

@@ -257,6 +257,7 @@ export interface PracticalSubmissionDoc {
   liveUrl?: string | null; // 실제 볼 수 있는 주소(배포 URL)
   screenshotUrl?: string | null; // 결과물 스크린샷 (합격작 연동)
   aiUsages?: AiUsageEntry[]; // AI 대화내용 + 공유링크 여러 개
+  scores?: Record<string, number> | null; // 채점표 항목별 점수
   // (구버전 호환) 슬롯 기반 제출
   hero?: PracticalSlotHero | null;
   icons?: PracticalSlotIcon[] | null;
@@ -373,6 +374,7 @@ export interface InquiryDoc {
   category: InquiryCategory;
   title: string;
   content: string;
+  imageUrl?: string | null; // 첨부 이미지 1장 (선택)
   status: InquiryStatus;
   adminReply: string | null;
   adminRepliedAt: Timestamp | null;

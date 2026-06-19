@@ -10,13 +10,15 @@ import {
   type InquiryDoc,
 } from "@/lib/firestore";
 import { formatTimestamp, INQUIRY_CATEGORY_MAP, INQUIRY_CATEGORY_OPTIONS } from "@/lib/grade-utils";
-import { MessageSquare, Send, ChevronDown, ChevronUp, Clock, CheckCircle } from "lucide-react";
+import { uploadFile } from "@/lib/firebase-storage";
+import { MessageSquare, Send, ChevronDown, ChevronUp, Clock, CheckCircle, Upload } from "lucide-react";
 
 interface InquiryRow {
   id: string;
   category: string;
   title: string;
   content: string;
+  imageUrl: string | null;
   status: "PENDING" | "ANSWERED";
   adminReply: string | null;
   adminRepliedAt: string;
@@ -31,6 +33,8 @@ export default function InquiriesPage() {
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ category: "ETC", title: "", content: "" });
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imgUploading, setImgUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // URL 쿼리(?new=1&category=EXAM)로 폼 자동 열기/분류 프리필
@@ -66,6 +70,7 @@ export default function InquiriesPage() {
             category: d.category || "ETC",
             title: d.title,
             content: d.content,
+            imageUrl: d.imageUrl ?? null,
             status: d.status,
             adminReply: d.adminReply,
             adminRepliedAt: formatTimestamp(d.adminRepliedAt),
@@ -81,12 +86,28 @@ export default function InquiriesPage() {
     fetchInquiries();
   }, [user, authLoading, router]);
 
+  const uploadImage = async (file: File) => {
+    if (!user) return;
+    setImgUploading(true);
+    try {
+      const safe = file.name.replace(/[^\w.\-]/g, "_");
+      const url = await uploadFile(`inquiries/${user.uid}/${Math.floor(Math.random() * 1e9)}-${safe}`, file);
+      setImageUrl(url);
+    } catch (e) {
+      console.error(e);
+      alert("이미지 업로드에 실패했습니다. (Storage 규칙 확인 필요)");
+    } finally {
+      setImgUploading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!formData.title.trim() || !formData.content.trim()) {
       alert("제목과 내용을 입력해주세요.");
       return;
     }
     if (!user) return;
+    if (imgUploading) { alert("이미지 업로드가 끝날 때까지 기다려주세요."); return; }
 
     setSubmitting(true);
     try {
@@ -102,6 +123,7 @@ export default function InquiriesPage() {
           category: formData.category,
           title: formData.title.trim(),
           content: formData.content.trim(),
+          imageUrl,
         }),
       });
       const data = await res.json();
@@ -116,6 +138,7 @@ export default function InquiriesPage() {
           category: formData.category,
           title: formData.title.trim(),
           content: formData.content.trim(),
+          imageUrl,
           status: "PENDING",
           adminReply: null,
           adminRepliedAt: "-",
@@ -124,6 +147,7 @@ export default function InquiriesPage() {
         ...prev,
       ]);
       setFormData({ category: "ETC", title: "", content: "" });
+      setImageUrl(null);
       setShowForm(false);
     } catch (error) {
       console.error("문의 등록 실패:", error);
@@ -202,6 +226,24 @@ export default function InquiriesPage() {
                 rows={5}
                 className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary resize-none"
               />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">이미지 첨부 (1장, 선택)</label>
+              <label className="flex items-center gap-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 transition p-3 bg-white overflow-hidden">
+                {imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={imageUrl} alt="첨부 이미지" className="w-20 h-16 object-cover rounded" />
+                ) : (
+                  <Upload className="w-5 h-5 text-muted-foreground shrink-0" />
+                )}
+                <span className="text-sm text-muted-foreground truncate">
+                  {imgUploading ? "업로드 중..." : imageUrl ? "이미지 변경 (클릭)" : "이미지 선택 (클릭)"}
+                </span>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); }} />
+              </label>
+              {imageUrl && (
+                <button onClick={() => setImageUrl(null)} className="text-xs text-red-500 hover:underline mt-1">이미지 제거</button>
+              )}
             </div>
           </div>
           <div className="flex gap-3 mt-4">
@@ -284,6 +326,13 @@ export default function InquiriesPage() {
               {expandedId === inquiry.id && (
                 <div className="border-t border-border p-4 bg-muted/30">
                   <div className="text-sm whitespace-pre-wrap mb-4">{inquiry.content}</div>
+
+                  {inquiry.imageUrl && (
+                    <a href={inquiry.imageUrl} target="_blank" rel="noopener noreferrer" className="inline-block mb-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={inquiry.imageUrl} alt="첨부 이미지" className="max-h-64 rounded-lg border border-border" />
+                    </a>
+                  )}
 
                   {inquiry.adminReply && (
                     <div className="mt-4 border-t border-border pt-4">
