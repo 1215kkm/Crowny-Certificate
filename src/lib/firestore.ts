@@ -41,6 +41,7 @@ export interface UserDoc {
   name: string | null;
   phone: string | null;
   birthDate: string | null; // YYYY-MM-DD (합격증 인쇄용)
+  rrn?: string | null; // 주민등록번호 앞 6자리 + 뒤 1자리 (예: "901231-1")
   address: string | null;
   role: UserRole;
   image: string | null;

@@ -13,9 +13,10 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
     phone: "",
-    birthDate: "",
     address: "",
   });
+  const [rrnFront, setRrnFront] = useState(""); // 주민번호 앞 6자리
+  const [rrnBack, setRrnBack] = useState(""); // 뒤 1자리
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -23,6 +24,15 @@ export default function RegisterPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  // 주민번호 앞 6자리(YYMMDD) + 뒤 1자리 → 생년월일 YYYY-MM-DD
+  const rrnToBirthDate = (front: string, back: string): string => {
+    if (front.length !== 6) return "";
+    const yy = front.slice(0, 2), mm = front.slice(2, 4), dd = front.slice(4, 6);
+    const century = ["3", "4", "7", "8"].includes(back) ? "20"
+      : ["9", "0"].includes(back) ? "18" : "19";
+    return `${century}${yy}-${mm}-${dd}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +49,14 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!/^\d{6}$/.test(rrnFront) || !/^\d$/.test(rrnBack)) {
+      setError("주민등록번호 앞 6자리와 뒷자리 첫 번째 숫자를 정확히 입력해주세요.");
+      return;
+    }
+
+    const rrn = `${rrnFront}-${rrnBack}`;
+    const birthDate = rrnToBirthDate(rrnFront, rrnBack);
+
     setLoading(true);
 
     try {
@@ -51,7 +69,8 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           phone: formData.phone || undefined,
-          birthDate: formData.birthDate || undefined,
+          birthDate: birthDate || undefined,
+          rrn,
           address: formData.address || undefined,
         }),
       });
@@ -148,19 +167,32 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label htmlFor="birthDate" className="block text-sm font-medium mb-1">
-              생년월일 <span className="text-red-500">*</span>
+            <label className="block text-sm font-medium mb-1">
+              주민등록번호 <span className="text-red-500">*</span>
             </label>
-            <input
-              id="birthDate"
-              name="birthDate"
-              type="date"
-              value={formData.birthDate}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-            <p className="text-xs text-muted-foreground mt-1">합격증에 인쇄됩니다.</p>
+            <div className="flex items-center gap-2">
+              <input
+                inputMode="numeric"
+                value={rrnFront}
+                onChange={(e) => setRrnFront(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                required
+                placeholder="앞 6자리"
+                className="flex-1 px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary tracking-widest"
+              />
+              <span className="text-muted-foreground">-</span>
+              <input
+                inputMode="numeric"
+                value={rrnBack}
+                onChange={(e) => setRrnBack(e.target.value.replace(/\D/g, "").slice(0, 1))}
+                required
+                placeholder="1"
+                className="w-14 px-3 py-3 border border-border rounded-lg text-center focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <span className="text-muted-foreground tracking-widest">••••••</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              뒷자리는 첫 번째 숫자만 입력합니다. 생년월일·합격증 인쇄에 사용됩니다.
+            </p>
           </div>
 
           <div>

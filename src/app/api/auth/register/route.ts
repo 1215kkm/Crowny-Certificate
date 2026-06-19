@@ -8,6 +8,7 @@ const registerSchema = z.object({
   password: z.string().min(8, "비밀번호는 8자 이상이어야 합니다."),
   phone: z.string().optional(),
   birthDate: z.string().optional(),
+  rrn: z.string().optional(),
   address: z.string().optional(),
 });
 
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { name, email, password, phone, birthDate, address } = result.data;
+    const { name, email, password, phone, birthDate, rrn, address } = result.data;
 
     // Firebase Auth에 사용자 생성
     const userRecord = await adminAuth.createUser({
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
       name,
       phone: phone || null,
       birthDate: birthDate || null,
+      rrn: rrn || null,
       address: address || null,
       role: "STUDENT",
       image: null,

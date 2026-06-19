@@ -8,6 +8,7 @@ import { Download, AlertTriangle } from "lucide-react";
 interface CertData {
   name: string;
   birthDate: string;
+  rrn: string;
   gradeLabel: string;
   qualLine: string;
   badgeBg: string;
@@ -37,6 +38,8 @@ function buildCertHtml(d: CertData): string {
             <div style="font-size:15px; color:#222; font-weight:500;">${d.name}</div>
             <div style="font-size:14px; font-weight:700; color:#1a2a6c; letter-spacing:1px;">생년월일</div>
             <div style="font-size:15px; color:#222; font-weight:500;">${d.birthDate}</div>
+            <div style="font-size:14px; font-weight:700; color:#1a2a6c; letter-spacing:1px;">주민번호</div>
+            <div style="font-size:15px; color:#222; font-weight:500; letter-spacing:1px;">${d.rrn}</div>
             <div style="font-size:14px; font-weight:700; color:#1a2a6c; letter-spacing:1px;">자격등급</div>
             <div style="font-size:15px; color:#222; font-weight:500;">${d.qualLine}</div>
             <div style="font-size:14px; font-weight:700; color:#1a2a6c; letter-spacing:1px;">합격일자</div>

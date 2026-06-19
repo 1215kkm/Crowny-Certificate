@@ -92,6 +92,13 @@ export function Footer() {
       </div>
 
       <div className="max-w-[1400px] mx-auto mt-10 pt-6 border-t border-gray-700 text-sm text-center">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-3">
+          <Link href="/terms" className="hover:text-white transition font-medium">이용약관</Link>
+          <span className="text-gray-600">|</span>
+          <Link href="/privacy" className="hover:text-white transition font-medium">개인정보처리방침</Link>
+          <span className="text-gray-600">|</span>
+          <Link href="/inquiries" className="hover:text-white transition">문의하기</Link>
+        </div>
         <p>&copy; {new Date().getFullYear()} Crowny Certificate. All rights reserved.</p>
         <p className="mt-1">
           등록 민간자격 | 주무부처: 과학기술정보통신부 | 등록번호: 준비중

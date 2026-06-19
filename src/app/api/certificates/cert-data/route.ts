@@ -60,12 +60,16 @@ export async function POST(request: Request) {
       if (!isNaN(bd.getTime())) birth = fmtDot(bd);
     }
 
+    // 주민번호: 수집한 앞6+뒤1만 표시하고 나머지는 마스킹
+    const rrn = ownerData.rrn ? `${ownerData.rrn}` + "•".repeat(6) : "-";
+
     return NextResponse.json({
       expired,
       expireAt: fmtKo(expireAt),
       data: {
         name: ownerData.name || "-",
         birthDate: birth,
+        rrn,
         gradeLabel: g.label,
         qualLine: g.qual,
         badgeBg: g.badge,
