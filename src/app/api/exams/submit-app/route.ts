@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const decoded = await adminAuth.verifyIdToken(token);
     const userId = decoded.uid;
 
-    const { examId, themeId, appUrl, repoUrl, description, shareLink } = await request.json();
+    const { examId, themeId, appUrl, repoUrl, description, shareLink, screenshotUrl } = await request.json();
 
     if (!examId || !themeId || !appUrl?.trim()) {
       return NextResponse.json(
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       repoUrl: repoUrl?.trim() || null,
       description: description?.trim() || "",
       shareLink: shareLink?.trim() || null,
+      screenshotUrl: screenshotUrl || null,
       status: "SUBMITTED",
       scores: null,
       score: null,

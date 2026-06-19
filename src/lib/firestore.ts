@@ -255,6 +255,7 @@ export interface PracticalSubmissionDoc {
   zipName?: string | null; // 원본 파일명
   repoUrl?: string | null; // 깃허브 주소
   liveUrl?: string | null; // 실제 볼 수 있는 주소(배포 URL)
+  screenshotUrl?: string | null; // 결과물 스크린샷 (합격작 연동)
   aiUsages?: AiUsageEntry[]; // AI 대화내용 + 공유링크 여러 개
   // (구버전 호환) 슬롯 기반 제출
   hero?: PracticalSlotHero | null;
@@ -299,6 +300,7 @@ export interface AppSubmissionDoc {
   repoUrl: string | null;
   description: string;
   shareLink: string | null;
+  screenshotUrl?: string | null; // 결과물 스크린샷 (합격작 연동)
   status: PracticalStatus; // SUBMITTED | GRADED
   scores: Record<string, number> | null; // 채점표 항목별 점수
   score: number | null; // 총점(100)
@@ -331,6 +333,7 @@ export interface SpecialSubmissionDoc {
   demoLink: string | null;
   repoUrl: string | null;
   shareLink: string | null; // AI 활용 내역
+  screenshotUrl?: string | null; // 결과물 스크린샷 (합격작 연동)
   timedOut: boolean;
   status: PracticalStatus; // SUBMITTED | GRADED
   scores: Record<string, number> | null;
@@ -357,6 +360,8 @@ export interface ShowcaseDoc {
   authorAge: string | null; // 선택, 공개 동의 시
   authorBackground: string | null; // 선택, 공개 동의 시
   isPublished: boolean;
+  sourceType?: string | null; // 자동 등록 출처 컬렉션 (practicalSubmissions 등)
+  sourceSubmissionId?: string | null; // 출처 제출 id (중복 등록 방지)
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

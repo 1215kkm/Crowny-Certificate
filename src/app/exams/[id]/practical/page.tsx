@@ -36,6 +36,8 @@ export default function PracticalExamPage() {
 
   // 결과물 제출
   const [zipFile, setZipFile] = useState<File | null>(null);
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [shotUploading, setShotUploading] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
   const [liveUrl, setLiveUrl] = useState("");
   const [aiUsages, setAiUsages] = useState<AiUsage[]>([{ content: "", link: "" }]);
@@ -63,6 +65,21 @@ export default function PracticalExamPage() {
     setStarted(true);
   };
 
+  const uploadScreenshot = async (file: File) => {
+    if (!user) return;
+    setShotUploading(true);
+    try {
+      const safe = file.name.replace(/[^\w.\-]/g, "_");
+      const url = await uploadFile(`practical/${user.uid}/${startTs}/shot-${safe}`, file);
+      setScreenshotUrl(url);
+    } catch (e) {
+      console.error(e);
+      alert("스크린샷 업로드에 실패했습니다. (Storage 규칙 확인 필요)");
+    } finally {
+      setShotUploading(false);
+    }
+  };
+
   const addAiUsage = () => setAiUsages((p) => [...p, { content: "", link: "" }]);
   const removeAiUsage = (i: number) =>
     setAiUsages((p) => (p.length <= 1 ? p : p.filter((_, j) => j !== i)));
@@ -77,6 +94,10 @@ export default function PracticalExamPage() {
     }
     if (!liveUrl.trim()) {
       alert("실제 볼 수 있는 주소(배포 URL)를 입력해주세요.");
+      return;
+    }
+    if (shotUploading) {
+      alert("스크린샷 업로드가 끝날 때까지 기다려주세요.");
       return;
     }
     setSubmitting(true);
@@ -103,6 +124,7 @@ export default function PracticalExamPage() {
           wireframeCode: wireframe.code,
           zipUrl,
           zipName: zipFile.name,
+          screenshotUrl,
           repoUrl: repoUrl.trim() || null,
           liveUrl: liveUrl.trim() || null,
           aiUsages: usages,
@@ -232,6 +254,32 @@ export default function PracticalExamPage() {
                     return;
                   }
                   setZipFile(f);
+                }}
+              />
+            </label>
+          </section>
+
+          {/* 결과물 스크린샷 */}
+          <section className="bg-white border border-border rounded-2xl p-5">
+            <h3 className="font-bold mb-2">결과물 스크린샷</h3>
+            <p className="text-sm text-muted-foreground mb-3">완성한 결과물의 대표 화면을 캡처해 등록하세요. 합격 시 합격작에 그대로 사용됩니다.</p>
+            <label className="flex items-center gap-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 transition p-4 overflow-hidden">
+              {screenshotUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={screenshotUrl} alt="결과물 스크린샷" className="w-28 h-20 object-cover rounded" />
+              ) : (
+                <Upload className="w-5 h-5 text-muted-foreground shrink-0" />
+              )}
+              <span className="text-sm text-muted-foreground truncate">
+                {shotUploading ? "업로드 중..." : screenshotUrl ? "스크린샷 변경 (클릭)" : "이미지 선택 (클릭)"}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadScreenshot(f);
                 }}
               />
             </label>

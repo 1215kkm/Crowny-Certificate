@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { uploadFile } from "@/lib/firebase-storage";
 import { APP_THEMES, APP_RUBRIC, APP_PASSING_SCORE } from "@/data/grade-1-practical";
-import { Rocket, CheckCircle, Send } from "lucide-react";
+import { Rocket, CheckCircle, Send, Upload } from "lucide-react";
 
 export default function AppSubmitPage() {
   const params = useParams();
@@ -17,6 +18,8 @@ export default function AppSubmitPage() {
   const [repoUrl, setRepoUrl] = useState("");
   const [description, setDescription] = useState("");
   const [shareLink, setShareLink] = useState("");
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [shotUploading, setShotUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -28,9 +31,28 @@ export default function AppSubmitPage() {
     return null;
   }
 
+  const uploadScreenshot = async (file: File) => {
+    if (!user) return;
+    setShotUploading(true);
+    try {
+      const safe = file.name.replace(/[^\w.\-]/g, "_");
+      const url = await uploadFile(`app/${user.uid}/${Math.floor(Math.random() * 1e9)}-${safe}`, file);
+      setScreenshotUrl(url);
+    } catch (e) {
+      console.error(e);
+      alert("스크린샷 업로드에 실패했습니다. (Storage 규칙 확인 필요)");
+    } finally {
+      setShotUploading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!appUrl.trim()) {
       alert("배포된 앱 URL을 입력해주세요.");
+      return;
+    }
+    if (shotUploading) {
+      alert("스크린샷 업로드가 끝날 때까지 기다려주세요.");
       return;
     }
     setSubmitting(true);
@@ -40,7 +62,7 @@ export default function AppSubmitPage() {
       const res = await fetch("/api/exams/submit-app", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ examId, themeId, appUrl, repoUrl, description, shareLink }),
+        body: JSON.stringify({ examId, themeId, appUrl, repoUrl, description, shareLink, screenshotUrl }),
       });
       const data = await res.json();
       if (res.ok) setSubmitted(true);
@@ -110,6 +132,22 @@ export default function AppSubmitPage() {
         <div>
           <label className="block text-sm font-medium mb-1">AI 대화 공유링크 (선택, 권장)</label>
           <input value={shareLink} onChange={(e) => setShareLink(e.target.value)} placeholder="https://chatgpt.com/share/..." className="w-full px-3 py-2 border border-border rounded-lg" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">결과물 스크린샷</label>
+          <p className="text-xs text-muted-foreground mb-2">대표 화면을 캡처해 등록하세요. 합격 시 합격작에 그대로 사용됩니다.</p>
+          <label className="flex items-center gap-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 transition p-3 overflow-hidden">
+            {screenshotUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={screenshotUrl} alt="결과물 스크린샷" className="w-24 h-16 object-cover rounded" />
+            ) : (
+              <Upload className="w-5 h-5 text-muted-foreground shrink-0" />
+            )}
+            <span className="text-sm text-muted-foreground truncate">
+              {shotUploading ? "업로드 중..." : screenshotUrl ? "스크린샷 변경 (클릭)" : "이미지 선택 (클릭)"}
+            </span>
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadScreenshot(f); }} />
+          </label>
         </div>
       </div>
 

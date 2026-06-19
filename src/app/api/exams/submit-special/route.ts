@@ -65,6 +65,7 @@ export async function POST(request: Request) {
       demoLink: str(b.demoLink) || null,
       repoUrl: str(b.repoUrl) || null,
       shareLink: str(b.shareLink) || null,
+      screenshotUrl: b.screenshotUrl || null,
       timedOut: !!b.timedOut,
       status: "SUBMITTED",
       scores: null,

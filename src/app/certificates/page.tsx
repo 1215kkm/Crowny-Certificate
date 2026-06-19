@@ -200,10 +200,10 @@ export default function CertificatesPage() {
           </p>
         </div>
         <Link
-          href="/showcase/manage"
+          href="/mypage"
           className="inline-flex items-center gap-2 border border-primary text-primary px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/5 transition whitespace-nowrap"
         >
-          🏆 내 합격작 등록/관리
+          🏆 내 합격작 등록 (마이페이지)
         </Link>
       </div>
 

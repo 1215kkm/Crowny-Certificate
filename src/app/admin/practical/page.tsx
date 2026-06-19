@@ -167,6 +167,13 @@ export default function AdminPracticalPage() {
                       </>
                     ) : (
                       <>
+                        {/* 결과물 스크린샷 */}
+                        {r.screenshotUrl && (
+                          <div>
+                            <div className="font-bold text-sm mb-1">결과물 스크린샷</div>
+                            <img src={r.screenshotUrl} alt="스크린샷" className="max-h-60 rounded-lg border border-border" />
+                          </div>
+                        )}
                         {/* 결과물 / 주소 */}
                         <div className="flex flex-wrap gap-2">
                           {r.zipUrl ? (

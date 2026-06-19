@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { uploadFile } from "@/lib/firebase-storage";
 import { getDocument, type ExamDoc } from "@/lib/firestore";
 import {
   CHALLENGE_PROBLEMS,
@@ -10,7 +11,7 @@ import {
   CHALLENGE_RUBRIC,
   CHALLENGE_PASSING_SCORE,
 } from "@/data/grade-special-practical";
-import { Trophy, Clock, Send, CheckCircle } from "lucide-react";
+import { Trophy, Clock, Send, CheckCircle, Upload } from "lucide-react";
 
 type StageKey = (typeof LIFECYCLE_STAGES)[number]["key"];
 
@@ -41,6 +42,8 @@ export default function ChallengeExamPage() {
   const [repoUrl, setRepoUrl] = useState("");
   const [demoLink, setDemoLink] = useState("");
   const [shareLink, setShareLink] = useState("");
+  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(null);
+  const [shotUploading, setShotUploading] = useState(false);
 
   const lsKey = `challenge-start-${examId}-${user?.uid ?? ""}`;
 
@@ -73,6 +76,21 @@ export default function ChallengeExamPage() {
 
   const setStage = (k: StageKey, v: string) => setStages((p) => ({ ...p, [k]: v }));
 
+  const uploadScreenshot = async (file: File) => {
+    if (!user) return;
+    setShotUploading(true);
+    try {
+      const safe = file.name.replace(/[^\w.\-]/g, "_");
+      const url = await uploadFile(`special/${user.uid}/${Math.floor(Math.random() * 1e9)}-${safe}`, file);
+      setScreenshotUrl(url);
+    } catch (e) {
+      console.error(e);
+      alert("스크린샷 업로드에 실패했습니다. (Storage 규칙 확인 필요)");
+    } finally {
+      setShotUploading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
     const title = topicMode === "POOL"
@@ -80,6 +98,7 @@ export default function ChallengeExamPage() {
       : topicTitle.trim();
     if (!title) { alert("주제를 입력하거나 선택해주세요."); return; }
     if (!appUrl.trim()) { alert("배포된 결과물 URL을 입력해주세요."); return; }
+    if (shotUploading) { alert("스크린샷 업로드가 끝날 때까지 기다려주세요."); return; }
 
     setSubmitting(true);
     try {
@@ -91,7 +110,7 @@ export default function ChallengeExamPage() {
         body: JSON.stringify({
           examId, topicMode, topicTitle: title,
           problemId: topicMode === "POOL" ? problemId : null,
-          ...stages, appUrl, repoUrl, demoLink, shareLink, timedOut,
+          ...stages, appUrl, repoUrl, demoLink, shareLink, screenshotUrl, timedOut,
         }),
       });
       const data = await res.json();
@@ -221,6 +240,22 @@ export default function ChallengeExamPage() {
           <input value={repoUrl} onChange={(e) => setRepoUrl(e.target.value)} placeholder="저장소 링크(선택)" className="px-3 py-2 border border-border rounded-lg text-sm" />
           <input value={demoLink} onChange={(e) => setDemoLink(e.target.value)} placeholder="데모 링크(선택)" className="px-3 py-2 border border-border rounded-lg text-sm" />
           <input value={shareLink} onChange={(e) => setShareLink(e.target.value)} placeholder="AI 공유링크(선택)" className="px-3 py-2 border border-border rounded-lg text-sm" />
+        </div>
+        <div className="pt-2 border-t border-border">
+          <label className="block text-sm font-medium mb-1">결과물 스크린샷</label>
+          <p className="text-xs text-muted-foreground mb-2">대표 화면을 캡처해 등록하세요. 합격 시 합격작에 그대로 사용됩니다.</p>
+          <label className="flex items-center gap-3 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/40 transition p-3 overflow-hidden">
+            {screenshotUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={screenshotUrl} alt="결과물 스크린샷" className="w-24 h-16 object-cover rounded" />
+            ) : (
+              <Upload className="w-5 h-5 text-muted-foreground shrink-0" />
+            )}
+            <span className="text-sm text-muted-foreground truncate">
+              {shotUploading ? "업로드 중..." : screenshotUrl ? "스크린샷 변경 (클릭)" : "이미지 선택 (클릭)"}
+            </span>
+            <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadScreenshot(f); }} />
+          </label>
         </div>
       </div>
 

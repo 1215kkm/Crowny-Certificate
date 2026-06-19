@@ -44,9 +44,12 @@ export default function MyPage() {
   const [enrollments, setEnrollments] = useState<{ id: string; courseTitle: string; grade: string; gradeColor: string; progress: number; courseId: string }[]>([]);
   const [examResults, setExamResults] = useState<{ id: string; examTitle: string; grade: string; score: number | null; passed: boolean | null; date: string; feedback: string | null }[]>([]);
   const [certificates, setCertificates] = useState<{ id: string; grade: string; issueNumber: string; issuedAt: string; status: string; statusClassName: string; method: string; trackingNumber: string | null; pdfUrl: string | null }[]>([]);
-  const [practicals, setPracticals] = useState<{ id: string; themeName: string; status: string; statusClassName: string; detail: string }[]>([]);
-  const [appSubs, setAppSubs] = useState<{ id: string; themeName: string; appUrl: string; status: string; statusClassName: string; detail: string }[]>([]);
-  const [specialSubs, setSpecialSubs] = useState<{ id: string; topicTitle: string; appUrl: string; status: string; statusClassName: string; detail: string }[]>([]);
+  const [practicals, setPracticals] = useState<{ id: string; themeName: string; status: string; statusClassName: string; detail: string; eligible: boolean }[]>([]);
+  const [appSubs, setAppSubs] = useState<{ id: string; themeName: string; appUrl: string; status: string; statusClassName: string; detail: string; eligible: boolean }[]>([]);
+  const [specialSubs, setSpecialSubs] = useState<{ id: string; topicTitle: string; appUrl: string; status: string; statusClassName: string; detail: string; eligible: boolean }[]>([]);
+  // 합격작 등록 상태
+  const [registeredSubs, setRegisteredSubs] = useState<Set<string>>(new Set());
+  const [registeringId, setRegisteringId] = useState<string | null>(null);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   // 환불/취소 신청 모달 상태
   const [refundModal, setRefundModal] = useState<{ row: PaymentRow; kind: "REFUND" | "CANCEL_BEFORE_EXAM" } | null>(null);
@@ -183,6 +186,7 @@ export default function MyPage() {
                 status: p.passed ? "합격" : "불합격",
                 statusClassName: p.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
                 detail: `${p.score ?? 0}점${p.feedback ? ` · ${p.feedback}` : ""}`,
+                eligible: !!p.passed,
               };
             }
             return {
@@ -191,6 +195,7 @@ export default function MyPage() {
               status: "발표 예정",
               statusClassName: "bg-orange-100 text-orange-700",
               detail: `발표: ${formatTimestamp(p.announceAt)} 오후 1시`,
+              eligible: false,
             };
           })
         );
@@ -208,6 +213,7 @@ export default function MyPage() {
                 ? a.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                 : "bg-orange-100 text-orange-700",
               detail: graded ? `${a.score ?? 0}점${a.feedback ? ` · ${a.feedback}` : ""}` : "관리자 채점 후 발표됩니다.",
+              eligible: graded && !!a.passed,
             };
           })
         );
@@ -223,15 +229,33 @@ export default function MyPage() {
                 status: s.passed ? "합격" : "불합격",
                 statusClassName: s.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700",
                 detail: `${s.score ?? 0}점${s.feedback ? ` · ${s.feedback}` : ""}`,
+                eligible: !!s.passed,
               };
             }
             return {
               id: s.id, topicTitle: s.topicTitle, appUrl: s.appUrl,
               status: "발표 예정", statusClassName: "bg-orange-100 text-orange-700",
               detail: `발표: ${formatTimestamp(s.announceAt)} 오후 1시`,
+              eligible: false,
             };
           })
         );
+
+        // 이미 등록한 합격작(sourceSubmissionId) 집합
+        try {
+          const { getFirebaseAuth } = await import("@/lib/firebase");
+          const token = await getFirebaseAuth().currentUser?.getIdToken();
+          const res = await fetch("/api/showcase/mine", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+          if (res.ok) {
+            const d = await res.json();
+            const ids = (d.mine || [])
+              .map((m: { sourceSubmissionId?: string }) => m.sourceSubmissionId)
+              .filter(Boolean) as string[];
+            setRegisteredSubs(new Set(ids));
+          }
+        } catch {
+          /* 무시 */
+        }
 
         // 결제 내역 + 환불/재시험
         setPayments(
@@ -269,6 +293,48 @@ export default function MyPage() {
     }
     fetchData();
   }, [user, authLoading]);
+
+  // 실기 제출물을 그대로 합격작으로 등록(원클릭)
+  const registerShowcase = async (type: "practical" | "app" | "special", submissionId: string) => {
+    setRegisteringId(submissionId);
+    try {
+      const { getFirebaseAuth } = await import("@/lib/firebase");
+      const token = await getFirebaseAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/showcase/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type, submissionId }),
+      });
+      const d = await res.json();
+      if (!res.ok) { alert(d.error || "합격작 등록에 실패했습니다."); return; }
+      setRegisteredSubs((prev) => new Set(prev).add(submissionId));
+      alert("합격작으로 등록되었습니다. 합격작 갤러리에 공개됩니다.");
+    } catch {
+      alert("합격작 등록 중 오류가 발생했습니다.");
+    } finally {
+      setRegisteringId(null);
+    }
+  };
+
+  const ShowcaseAction = ({ type, id }: { type: "practical" | "app" | "special"; id: string }) => {
+    if (registeredSubs.has(id)) {
+      return (
+        <div className="flex items-center gap-2 whitespace-nowrap">
+          <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-700 font-medium">✅ 합격작 등록됨</span>
+          <Link href="/showcase/manage" className="text-xs text-primary hover:underline">관리</Link>
+        </div>
+      );
+    }
+    return (
+      <button
+        onClick={() => registerShowcase(type, id)}
+        disabled={registeringId === id}
+        className="border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/5 transition disabled:opacity-50 whitespace-nowrap"
+      >
+        {registeringId === id ? "등록 중..." : "🏆 합격작으로 등록"}
+      </button>
+    );
+  };
 
   const openRefund = (row: PaymentRow, kind: "REFUND" | "CANCEL_BEFORE_EXAM") => {
     setRefundModal({ row, kind });
@@ -401,15 +467,7 @@ export default function MyPage() {
 
       {/* 시험 결과 */}
       <section className="mb-8">
-        <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-          <h2 className="text-xl font-bold">시험 결과</h2>
-          <Link
-            href="/showcase/manage"
-            className="inline-flex items-center gap-2 border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/5 transition whitespace-nowrap"
-          >
-            🏆 내 합격작 등록/관리
-          </Link>
-        </div>
+        <h2 className="text-xl font-bold mb-4">시험 결과</h2>
         {examResults.length > 0 ? (
           <div className="space-y-4">
             {examResults.map((result) => (
@@ -455,12 +513,13 @@ export default function MyPage() {
           <h2 className="text-xl font-bold mb-4">실기 결과 (2급 랜딩페이지)</h2>
           <div className="space-y-4">
             {practicals.map((p) => (
-              <div key={p.id} className="border border-border rounded-xl p-5 flex items-center justify-between">
+              <div key={p.id} className="border border-border rounded-xl p-5 flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <span className={`text-xs px-2 py-0.5 rounded mr-2 ${p.statusClassName}`}>{p.status}</span>
                   <span className="font-medium">주제: {p.themeName}</span>
                   <div className="text-sm text-muted-foreground mt-1">{p.detail}</div>
                 </div>
+                {p.eligible && <ShowcaseAction type="practical" id={p.id} />}
               </div>
             ))}
           </div>
@@ -474,10 +533,13 @@ export default function MyPage() {
           <div className="space-y-4">
             {appSubs.map((a) => (
               <div key={a.id} className="border border-border rounded-xl p-5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xs px-2 py-0.5 rounded ${a.statusClassName}`}>{a.status}</span>
-                  <span className="font-medium">주제: {a.themeName}</span>
-                  <a href={a.appUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">{a.appUrl}</a>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs px-2 py-0.5 rounded ${a.statusClassName}`}>{a.status}</span>
+                    <span className="font-medium">주제: {a.themeName}</span>
+                    <a href={a.appUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">{a.appUrl}</a>
+                  </div>
+                  {a.eligible && <ShowcaseAction type="app" id={a.id} />}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">{a.detail}</div>
               </div>
@@ -493,10 +555,13 @@ export default function MyPage() {
           <div className="space-y-4">
             {specialSubs.map((s) => (
               <div key={s.id} className="border border-border rounded-xl p-5">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`text-xs px-2 py-0.5 rounded ${s.statusClassName}`}>{s.status}</span>
-                  <span className="font-medium">{s.topicTitle}</span>
-                  <a href={s.appUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">{s.appUrl}</a>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-xs px-2 py-0.5 rounded ${s.statusClassName}`}>{s.status}</span>
+                    <span className="font-medium">{s.topicTitle}</span>
+                    <a href={s.appUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline break-all">{s.appUrl}</a>
+                  </div>
+                  {s.eligible && <ShowcaseAction type="special" id={s.id} />}
                 </div>
                 <div className="text-sm text-muted-foreground mt-1">{s.detail}</div>
               </div>
