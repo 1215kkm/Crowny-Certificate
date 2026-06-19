@@ -20,10 +20,6 @@ interface CertData {
 function buildCertHtml(d: CertData): string {
   return `
   <div style="position:relative; width:660px; height:918px; background:linear-gradient(135deg,#1a2a6c 0%,#2540a0 40%,#1a2a6c 100%); box-shadow:0 24px 60px rgba(20,30,70,0.35); flex:none;">
-    <div style="position:absolute; top:0; left:0; width:96px; height:96px; background:linear-gradient(135deg,#0d1840,#26307a); clip-path:polygon(0 0,100% 0,0 100%); z-index:3;"></div>
-    <div style="position:absolute; top:0; right:0; width:96px; height:96px; background:linear-gradient(225deg,#0d1840,#26307a); clip-path:polygon(0 0,100% 0,100% 100%); z-index:3;"></div>
-    <div style="position:absolute; bottom:0; left:0; width:120px; height:120px; background:linear-gradient(45deg,#a9842f,#e6c873 60%,#c9a24a); clip-path:polygon(0 0,0 100%,100% 100%); z-index:3;"></div>
-    <div style="position:absolute; bottom:0; right:0; width:120px; height:120px; background:linear-gradient(-45deg,#a9842f,#e6c873 60%,#c9a24a); clip-path:polygon(100% 0,100% 100%,0 100%); z-index:3;"></div>
     <div style="position:absolute; inset:13px; background:#fbfaf5; box-shadow:inset 0 0 0 2px #c9a24a, inset 0 0 0 6px #fbfaf5, inset 0 0 0 7.5px #d8b863; z-index:2;">
       <div style="position:absolute; inset:0; background-image:repeating-linear-gradient(45deg,rgba(40,55,130,0.018) 0 2px,transparent 2px 9px); pointer-events:none;"></div>
       <div style="position:absolute; top:34px; left:44px; font-size:13px; letter-spacing:0.5px; color:#3a3a3a; z-index:5;">제 ${d.docNumber} 호</div>
