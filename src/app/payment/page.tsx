@@ -6,7 +6,21 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 import { v4 as uuidv4 } from "uuid";
-import { getDocument, type ExamDoc, type CertificateTypeDoc } from "@/lib/firestore";
+import { getDocument, type ExamDoc, type CourseDoc, type CertificateTypeDoc } from "@/lib/firestore";
+
+// 샘플 데이터(DB에 없음) 폴백 제목 — 결제 페이지에서 무슨 항목인지 보여주기 위함
+const SAMPLE_EXAM_TITLES: Record<string, string> = {
+  "sample-exam-1": "[샘플] AI 활용 자격증 3급 정기시험",
+  "sample-exam-2": "[샘플] AI UI 제작 자격증 2급 정기시험",
+  "sample-exam-3": "[샘플] AI 풀스택 자격증 1급 정기시험",
+  "sample-exam-4": "[샘플] AI 문제해결 특급 해커톤",
+};
+const SAMPLE_COURSE_TITLES: Record<string, string> = {
+  "sample-1": "[샘플] AI 기초 활용 과정 - 3급 대비",
+  "sample-2": "[샘플] AI UI 제작 과정 - 2급 대비",
+  "sample-3": "[샘플] AI 풀스택 개발 과정 - 1급 대비",
+  "sample-4": "[샘플] AI 문제해결 마스터 과정 - 특급 대비",
+};
 
 declare global {
   interface Window {
@@ -52,21 +66,43 @@ function PaymentContent() {
           if (exam) {
             const ct = await getDocument<CertificateTypeDoc>("certificateTypes", exam.certificateTypeId);
             if (active) setPaymentInfo({
-              title: ct?.name ?? "시험 응시",
-              subtitle: `${exam.title} 응시`,
+              title: exam.title,
+              subtitle: ct?.name ? `${ct.name} · 시험 응시` : "시험 응시",
               price: ct?.price ?? 0,
               takeHref: `/exams/${targetId}/take`,
             });
             return;
           }
+          // 샘플 시험 폴백
+          if (active) setPaymentInfo({
+            title: SAMPLE_EXAM_TITLES[targetId] ?? "시험 응시",
+            subtitle: "시험 응시 (샘플)",
+            price: 0,
+            takeHref: `/exams/${targetId}/take`,
+          });
+          return;
         }
         if (type === "certificate" && targetId) {
           const ct = await getDocument<CertificateTypeDoc>("certificateTypes", targetId);
           if (ct && active) { setPaymentInfo({ title: ct.name, subtitle: "인증서 발급", price: ct.certPrice ?? 0 }); return; }
         }
         if (type === "course" && targetId) {
-          const ct = await getDocument<CertificateTypeDoc>("certificateTypes", targetId);
-          if (ct && active) { setPaymentInfo({ title: ct.name, subtitle: "강의 수강", price: ct.coursePrice ?? 0 }); return; }
+          // 강의는 course 문서로 제목을, 연결된 자격증 종류로 가격을 가져온다
+          const course = await getDocument<CourseDoc>("courses", targetId);
+          if (course) {
+            const ct = course.certificateTypeId
+              ? await getDocument<CertificateTypeDoc>("certificateTypes", course.certificateTypeId)
+              : null;
+            if (active) setPaymentInfo({ title: course.title, subtitle: "강의 수강", price: ct?.coursePrice ?? 0 });
+            return;
+          }
+          // 샘플 강의 폴백
+          if (active) setPaymentInfo({
+            title: SAMPLE_COURSE_TITLES[targetId] ?? "강의 수강",
+            subtitle: "강의 수강 (샘플)",
+            price: 0,
+          });
+          return;
         }
         if (active) setPaymentInfo({ title: "결제", subtitle: "", price: 0 });
       } catch {
