@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   BookOpen,
   ClipboardCheck,
@@ -17,83 +17,51 @@ import {
   Code,
   Rocket,
 } from "lucide-react";
-import { getDocuments, type CertificateTypeDoc, type CertificateGrade } from "@/lib/firestore";
 
-const FORMAT_LABELS: Record<string, string> = {
-  MULTIPLE_CHOICE: "객관식",
-  PRACTICAL: "실기",
-  PROJECT: "프로젝트",
-  CHALLENGE: "해커톤",
-};
-
-function formatDurationShort(minutes: number): string {
-  if (minutes < 60) return `${minutes}분`;
-  if (minutes < 1440) return `${Math.round(minutes / 60)}시간`;
-  return `${Math.round(minutes / 1440)}일`;
-}
-
-interface GradeVisual {
-  gradeKey: CertificateGrade;
-  grade: string;
-  title: string;
-  description: string;
-  format: string;
-  time: string;
-  price: string;
-  color: string;
-  bgLight: string;
-  textColor: string;
-  icon: typeof Sparkles;
-}
-
-const GRADE_DEFAULTS: GradeVisual[] = [
+const GRADES = [
   {
-    gradeKey: "GRADE_3",
     grade: "3급",
     title: "AI 기초 활용",
     description: "AI 도구 5종 이상 활용, 프롬프트 엔지니어링 기본",
-    format: "객관식",
+    format: "객관식 25문항 (40문항 중 랜덤)",
     time: "60분",
-    price: "-",
+    price: "19,000원",
     color: "from-primary to-secondary",
     bgLight: "bg-primary-50",
     textColor: "text-primary",
     icon: Sparkles,
   },
   {
-    gradeKey: "GRADE_2",
     grade: "2급",
     title: "AI UI 제작",
     description: "AI를 활용한 UI 디자인 및 프론트엔드 구현",
-    format: "실기",
+    format: "실기 시험 (화면 녹화)",
     time: "120분",
-    price: "-",
+    price: "29,000원",
     color: "from-purple-500 to-purple-600",
     bgLight: "bg-purple-50",
     textColor: "text-purple-600",
     icon: Cpu,
   },
   {
-    gradeKey: "GRADE_1",
     grade: "1급",
     title: "AI 풀스택 제작",
     description: "UI/UX + 프론트엔드 + 백엔드 API 연동 완성",
-    format: "프로젝트",
+    format: "프로젝트 제출 + 코드 리뷰",
     time: "7일",
-    price: "-",
+    price: "39,000원",
     color: "from-orange-500 to-orange-600",
     bgLight: "bg-orange-50",
     textColor: "text-orange-600",
     icon: Code,
   },
   {
-    gradeKey: "SPECIAL",
     grade: "특급",
     title: "AI 문제해결",
     description: "실제 비즈니스 문제를 AI로 해결하는 솔루션 제작",
-    format: "해커톤",
+    format: "실무 과제 해결 (해커톤)",
     time: "48시간",
-    price: "-",
+    price: "49,000원",
     color: "from-red-500 to-red-600",
     bgLight: "bg-red-50",
     textColor: "text-red-600",
@@ -225,32 +193,6 @@ function ParticleCanvas() {
 }
 
 export default function HomePage() {
-  const [grades, setGrades] = useState<GradeVisual[]>(GRADE_DEFAULTS);
-
-  useEffect(() => {
-    getDocuments<CertificateTypeDoc>("certificateTypes")
-      .then((types) => {
-        if (types.length === 0) return;
-        const byGrade: Record<string, CertificateTypeDoc & { id: string }> = {};
-        types.forEach((t) => { byGrade[t.grade] = t; });
-
-        setGrades(
-          GRADE_DEFAULTS.map((d) => {
-            const ct = byGrade[d.gradeKey];
-            if (!ct) return d;
-            return {
-              ...d,
-              title: ct.name.replace(/^Crowny AI 활용 자격증\s*/, "").replace(/^\d급\s*[-–—]\s*/, "").replace(/^특급\s*[-–—]\s*/, "") || d.title,
-              price: `${ct.price.toLocaleString()}원`,
-              format: FORMAT_LABELS[ct.examFormat] || d.format,
-              time: formatDurationShort(ct.duration),
-            };
-          })
-        );
-      })
-      .catch(() => {});
-  }, []);
-
   return (
     <div>
       {/* Hero Section */}
@@ -260,7 +202,7 @@ export default function HomePage() {
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3">
-              <Image src="/logo.png" alt="Crowny" width={56} height={56} className="w-14 h-14" priority />
+              <Image src="/aiat.webp" alt="AIAT 자격증" width={88} height={88} className="w-20 h-20 object-contain" priority />
             </div>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
@@ -309,7 +251,7 @@ export default function HomePage() {
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {grades.map((item) => {
+            {GRADES.map((item) => {
               const IconComponent = item.icon;
               return (
                 <div
