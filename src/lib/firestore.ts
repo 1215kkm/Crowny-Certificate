@@ -361,6 +361,8 @@ export interface ShowcaseDoc {
   authorAge: string | null; // 선택, 공개 동의 시
   authorBackground: string | null; // 선택, 공개 동의 시
   isPublished: boolean;
+  hiddenByAdmin?: boolean; // 관리자가 숨김 처리 (공개 갤러리에서 제외)
+  adminHideReason?: string | null; // 숨김/삭제 사유
   sourceType?: string | null; // 자동 등록 출처 컬렉션 (practicalSubmissions 등)
   sourceSubmissionId?: string | null; // 출처 제출 id (중복 등록 방지)
   createdAt: Timestamp;
@@ -378,6 +380,7 @@ export interface InquiryDoc {
   status: InquiryStatus;
   adminReply: string | null;
   adminRepliedAt: Timestamp | null;
+  replyReadAt?: Timestamp | null; // 작성자가 답변을 읽은 시각 (null=안읽음)
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

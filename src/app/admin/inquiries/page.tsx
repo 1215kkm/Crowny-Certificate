@@ -25,8 +25,14 @@ interface InquiryRow {
   status: "PENDING" | "ANSWERED";
   adminReply: string | null;
   adminRepliedAt: string;
+  replyRead: boolean;
+  replyReadAt: string;
   createdAt: string;
 }
+
+const PRESET_REPLIES: { label: string; text: string }[] = [
+  { label: "확인중", text: "문의 주셔서 감사합니다. 현재 내용을 확인 중이며, 확인되는 대로 다시 안내드리겠습니다." },
+];
 
 export default function AdminInquiriesPage() {
   const { isAdmin, loading: authLoading } = useAuth();
@@ -56,6 +62,8 @@ export default function AdminInquiriesPage() {
           status: d.status,
           adminReply: d.adminReply,
           adminRepliedAt: formatTimestamp(d.adminRepliedAt),
+          replyRead: !!d.replyReadAt,
+          replyReadAt: d.replyReadAt ? formatTimestamp(d.replyReadAt) : "",
           createdAt: formatTimestamp(d.createdAt),
         }))
       );
@@ -75,7 +83,8 @@ export default function AdminInquiriesPage() {
   }, [isAdmin, authLoading]);
 
   const handleReply = async (inquiryId: string) => {
-    const reply = replyText[inquiryId]?.trim();
+    const current = inquiries.find((i) => i.id === inquiryId);
+    const reply = (replyText[inquiryId] ?? current?.adminReply ?? "").trim();
     if (!reply) {
       alert("답변 내용을 입력해주세요.");
       return;
@@ -110,6 +119,8 @@ export default function AdminInquiriesPage() {
                 status: "ANSWERED" as const,
                 adminReply: reply,
                 adminRepliedAt: formatTimestamp(Timestamp.now()),
+                replyRead: false,
+                replyReadAt: "",
               }
             : inq
         )
@@ -279,11 +290,21 @@ export default function AdminInquiriesPage() {
                   {/* 기존 답변 */}
                   {inquiry.adminReply && (
                     <div className="mb-4 border-t border-border pt-4">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <span className="text-sm font-bold text-primary">관리자 답변</span>
                         <span className="text-xs text-muted-foreground">
                           {inquiry.adminRepliedAt}
                         </span>
+                        {/* 작성자 읽음 여부 */}
+                        {inquiry.replyRead ? (
+                          <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                            읽음{inquiry.replyReadAt ? ` · ${inquiry.replyReadAt}` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 font-medium">
+                            안읽음
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm whitespace-pre-wrap bg-primary/5 p-3 rounded-lg border border-primary/10">
                         {inquiry.adminReply}
@@ -291,13 +312,27 @@ export default function AdminInquiriesPage() {
                     </div>
                   )}
 
-                  {/* 답변 작성 폼 */}
+                  {/* 답변 작성/수정 폼 */}
                   <div className="border-t border-border pt-4">
-                    <label className="block text-sm font-medium mb-2">
-                      {inquiry.adminReply ? "답변 수정" : "답변 작성"}
-                    </label>
+                    <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                      <label className="block text-sm font-medium">
+                        {inquiry.adminReply ? "답변 수정" : "답변 작성"}
+                      </label>
+                      <div className="flex gap-1.5">
+                        {PRESET_REPLIES.map((p) => (
+                          <button
+                            key={p.label}
+                            type="button"
+                            onClick={() => setReplyText((prev) => ({ ...prev, [inquiry.id]: p.text }))}
+                            className="text-xs border border-border rounded-full px-3 py-1 hover:bg-muted transition"
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                     <textarea
-                      value={replyText[inquiry.id] || ""}
+                      value={replyText[inquiry.id] ?? (inquiry.adminReply ?? "")}
                       onChange={(e) =>
                         setReplyText((prev) => ({
                           ...prev,
@@ -315,7 +350,7 @@ export default function AdminInquiriesPage() {
                         className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition disabled:opacity-50 flex items-center gap-2"
                       >
                         <Send className="w-4 h-4" />
-                        {replying === inquiry.id ? "등록 중..." : "답변 등록"}
+                        {replying === inquiry.id ? "등록 중..." : inquiry.adminReply ? "답변 수정" : "답변 등록"}
                       </button>
                     </div>
                   </div>

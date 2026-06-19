@@ -86,6 +86,25 @@ export default function InquiriesPage() {
     fetchInquiries();
   }, [user, authLoading, router]);
 
+  // 답변이 있는 문의를 펼치면 '읽음' 처리
+  const handleExpand = async (inq: InquiryRow) => {
+    const next = expandedId === inq.id ? null : inq.id;
+    setExpandedId(next);
+    if (next && inq.adminReply) {
+      try {
+        const { getFirebaseAuth } = await import("@/lib/firebase");
+        const token = await getFirebaseAuth().currentUser?.getIdToken();
+        fetch("/api/inquiries/mark-read", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ inquiryId: inq.id }),
+        });
+      } catch {
+        /* 무시 */
+      }
+    }
+  };
+
   const uploadImage = async (file: File) => {
     if (!user) return;
     setImgUploading(true);
@@ -283,7 +302,7 @@ export default function InquiriesPage() {
               className="border border-border rounded-xl overflow-hidden"
             >
               <button
-                onClick={() => setExpandedId(expandedId === inquiry.id ? null : inquiry.id)}
+                onClick={() => handleExpand(inquiry)}
                 className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition text-left"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">

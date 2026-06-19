@@ -202,7 +202,7 @@ export default function HomePage() {
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
             <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3">
-              <Image src="/aiat.webp" alt="AIAT 자격증" width={88} height={88} className="w-20 h-20 object-contain" priority />
+              <Image src="/aiat.png" alt="AIAT 자격증" width={88} height={88} className="w-20 h-20 object-contain" priority />
             </div>
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">

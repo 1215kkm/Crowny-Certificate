@@ -52,6 +52,7 @@ export default function CertificatesPage() {
   const [issuing, setIssuing] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<Record<string, "EMAIL" | "BOTH">>({});
   const [mailingInfo, setMailingInfo] = useState<Record<string, MailingInfo>>({});
+  const [verifyCode, setVerifyCode] = useState("");
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -557,11 +558,13 @@ export default function CertificatesPage() {
         <div className="flex gap-3 max-w-md">
           <input
             type="text"
+            value={verifyCode}
+            onChange={(e) => setVerifyCode(e.target.value)}
             placeholder="인증번호 입력 (예: CRN-2026-A1B2C3)"
             className="flex-1 px-4 py-3 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary"
           />
           <Link
-            href="/certificates/verify"
+            href={`/certificates/verify${verifyCode.trim() ? `?code=${encodeURIComponent(verifyCode.trim())}` : ""}`}
             className="bg-gray-800 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-900 transition whitespace-nowrap"
           >
             확인

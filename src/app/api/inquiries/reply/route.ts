@@ -33,10 +33,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "존재하지 않는 문의입니다." }, { status: 404 });
     }
 
-    // 답변 저장
+    // 답변 저장 (수정 시 읽음 표시 초기화 → 다시 '안읽음')
     await adminDb.collection("inquiries").doc(inquiryId).update({
       adminReply: reply,
       adminRepliedAt: FieldValue.serverTimestamp(),
+      replyReadAt: null,
       status: "ANSWERED",
       updatedAt: FieldValue.serverTimestamp(),
     });

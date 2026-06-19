@@ -30,6 +30,7 @@ export async function GET(request: Request) {
     const snap = await q.get();
     // 개인정보 최소화: 공개 목록엔 작성자 식별자(userId)는 제외
     const items = snap.docs
+      .filter((d) => !d.data().hiddenByAdmin) // 관리자가 숨긴 항목 제외
       .map((d) => {
         const data = serialize(d.data());
         delete (data as Record<string, unknown>).userId;
