@@ -235,6 +235,12 @@ export interface PracticalSlotBand {
   message: string;
 }
 
+// 응시자가 작성하는 AI 사용 내역(여러 개)
+export interface AiUsageEntry {
+  content: string;
+  link: string;
+}
+
 export interface PracticalSubmissionDoc {
   userId: string;
   userName: string;
@@ -242,10 +248,19 @@ export interface PracticalSubmissionDoc {
   certificateTypeId: string;
   themeId: string;
   wireframeId: string;
-  hero: PracticalSlotHero;
-  icons: PracticalSlotIcon[];
-  products: PracticalSlotProduct[];
-  band: PracticalSlotBand;
+  wireframeName?: string | null; // 제출 시점 와이어프레임 이름 스냅샷
+  wireframeCode?: string | null; // A~E
+  // 결과물 제출(zip) + 주소
+  zipUrl?: string | null; // 압축 결과물 다운로드 URL
+  zipName?: string | null; // 원본 파일명
+  repoUrl?: string | null; // 깃허브 주소
+  liveUrl?: string | null; // 실제 볼 수 있는 주소(배포 URL)
+  aiUsages?: AiUsageEntry[]; // AI 대화내용 + 공유링크 여러 개
+  // (구버전 호환) 슬롯 기반 제출
+  hero?: PracticalSlotHero | null;
+  icons?: PracticalSlotIcon[] | null;
+  products?: PracticalSlotProduct[] | null;
+  band?: PracticalSlotBand | null;
   shareLink: string | null;
   status: PracticalStatus;
   score: number | null;
@@ -254,6 +269,22 @@ export interface PracticalSubmissionDoc {
   submittedAt: Timestamp;
   announceAt: Timestamp; // 발표일 (제출일 + 15일, 오후 1시)
   gradedAt: Timestamp | null;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+// 관리자 등록/수정 가능한 2급 실기 와이어프레임(그레이아웃)
+export interface WireframeBlockDoc {
+  type: string;
+  label?: string;
+}
+export interface WireframeDoc {
+  code: string; // A~E
+  name: string;
+  desc: string;
+  blocks: WireframeBlockDoc[];
+  order: number;
+  isActive: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -368,6 +399,7 @@ export const collections = {
   get appSubmissions() { return collection(db(), "appSubmissions"); },
   get specialSubmissions() { return collection(db(), "specialSubmissions"); },
   get showcases() { return collection(db(), "showcases"); },
+  get wireframes() { return collection(db(), "wireframes"); },
 };
 
 // 서브컬렉션 참조

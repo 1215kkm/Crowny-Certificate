@@ -8,7 +8,6 @@ import { adminUpdate, adminList } from "@/lib/admin-api";
 import { formatTimestamp } from "@/lib/grade-utils";
 import {
   getThemeById,
-  getWireframeById,
   PRACTICAL_PASSING_SCORE,
 } from "@/data/grade-2-practical";
 
@@ -112,7 +111,10 @@ export default function AdminPracticalPage() {
         <div className="space-y-3">
           {rows.map((r) => {
             const theme = getThemeById(r.themeId);
-            const wf = getWireframeById(r.wireframeId);
+            const wfLabel = r.wireframeCode
+              ? `${r.wireframeCode}. ${r.wireframeName ?? ""}`.trim()
+              : r.wireframeName ?? r.wireframeId;
+            const isLegacy = !r.zipUrl && !r.liveUrl && !!r.hero;
             return (
               <div key={r.id} className="border border-border rounded-xl overflow-hidden">
                 <button
@@ -124,63 +126,88 @@ export default function AdminPracticalPage() {
                       {r.status === "GRADED" ? `채점완료 (${r.score}점·${r.passed ? "합격" : "불합격"})` : "채점대기"}
                     </span>
                     <span className="font-medium">{r.userName}</span>
-                    <span className="text-sm text-muted-foreground">주제: {theme?.name ?? r.themeId} · {wf?.name ?? r.wireframeId}</span>
+                    <span className="text-sm text-muted-foreground">주제: {theme?.name ?? r.themeId} · {wfLabel}</span>
                   </div>
                   <span className="text-sm text-muted-foreground">제출 {formatTimestamp(r.submittedAt)} · 발표 {formatTimestamp(r.announceAt)}</span>
                 </button>
 
                 {expandedId === r.id && (
                   <div className="border-t border-border p-4 bg-muted/30 space-y-4">
-                    {/* 히어로 */}
-                    <div>
-                      <div className="font-bold text-sm mb-1">히어로</div>
-                      <div className="flex gap-3">
-                        {r.hero?.imageUrl && <img src={r.hero.imageUrl} alt="hero" className="w-40 h-24 object-cover rounded-lg border border-border" />}
-                        <div className="text-sm">
-                          <div className="font-medium">{r.hero?.headline}</div>
-                          <div className="text-muted-foreground">{r.hero?.subcopy}</div>
-                          <div className="text-primary">CTA: {r.hero?.cta}</div>
+                    {isLegacy ? (
+                      <>
+                        {/* (구버전) 슬롯 기반 제출 */}
+                        <div>
+                          <div className="font-bold text-sm mb-1">히어로</div>
+                          <div className="flex gap-3">
+                            {r.hero?.imageUrl && <img src={r.hero.imageUrl} alt="hero" className="w-40 h-24 object-cover rounded-lg border border-border" />}
+                            <div className="text-sm">
+                              <div className="font-medium">{r.hero?.headline}</div>
+                              <div className="text-muted-foreground">{r.hero?.subcopy}</div>
+                              <div className="text-primary">CTA: {r.hero?.cta}</div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    {/* 아이콘 */}
-                    <div>
-                      <div className="font-bold text-sm mb-1">아이콘 6</div>
-                      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                        {r.icons?.map((ic, i) => (
-                          <div key={i} className="text-center text-xs">
-                            {ic.imageUrl ? <img src={ic.imageUrl} alt={`icon${i}`} className="w-full h-16 object-cover rounded border border-border" /> : <div className="h-16 bg-gray-100 rounded" />}
-                            <div className="mt-1 truncate">{ic.label}</div>
+                        <div>
+                          <div className="font-bold text-sm mb-1">아이콘 6</div>
+                          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                            {r.icons?.map((ic, i) => (
+                              <div key={i} className="text-center text-xs">
+                                {ic.imageUrl ? <img src={ic.imageUrl} alt={`icon${i}`} className="w-full h-16 object-cover rounded border border-border" /> : <div className="h-16 bg-gray-100 rounded" />}
+                                <div className="mt-1 truncate">{ic.label}</div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    {/* 상품 */}
-                    <div>
-                      <div className="font-bold text-sm mb-1">상품 4</div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        {r.products?.map((p, i) => (
-                          <div key={i} className="text-xs">
-                            {p.imageUrl ? <img src={p.imageUrl} alt={`prod${i}`} className="w-full h-20 object-cover rounded border border-border" /> : <div className="h-20 bg-gray-100 rounded" />}
-                            <div className="mt-1 font-medium truncate">{p.name}</div>
-                            <div className="text-muted-foreground truncate">{p.desc}</div>
+                        </div>
+                        {r.shareLink && (
+                          <div className="text-sm">
+                            <span className="font-bold">AI 공유링크: </span>
+                            <a href={r.shareLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{r.shareLink}</a>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                    {/* 띠배너 */}
-                    <div>
-                      <div className="font-bold text-sm mb-1">띠배너</div>
-                      <div className="flex gap-3 items-center">
-                        {r.band?.imageUrl && <img src={r.band.imageUrl} alt="band" className="w-40 h-12 object-cover rounded border border-border" />}
-                        <span className="text-sm">{r.band?.message}</span>
-                      </div>
-                    </div>
-                    {r.shareLink && (
-                      <div className="text-sm">
-                        <span className="font-bold">AI 공유링크: </span>
-                        <a href={r.shareLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{r.shareLink}</a>
-                      </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {/* 결과물 / 주소 */}
+                        <div className="flex flex-wrap gap-2">
+                          {r.zipUrl ? (
+                            <a href={r.zipUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
+                              결과물(zip) 다운로드{r.zipName ? ` · ${r.zipName}` : ""}
+                            </a>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">결과물 미첨부</span>
+                          )}
+                        </div>
+                        <div className="grid sm:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <div className="font-bold mb-0.5">실제 주소(배포 URL)</div>
+                            {r.liveUrl ? (
+                              <a href={r.liveUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{r.liveUrl}</a>
+                            ) : <span className="text-muted-foreground">-</span>}
+                          </div>
+                          <div>
+                            <div className="font-bold mb-0.5">깃허브 주소</div>
+                            {r.repoUrl ? (
+                              <a href={r.repoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{r.repoUrl}</a>
+                            ) : <span className="text-muted-foreground">-</span>}
+                          </div>
+                        </div>
+                        {/* AI 사용 내역 */}
+                        <div>
+                          <div className="font-bold text-sm mb-1">AI 사용 내역 ({r.aiUsages?.length ?? 0})</div>
+                          {r.aiUsages && r.aiUsages.length > 0 ? (
+                            <div className="space-y-2">
+                              {r.aiUsages.map((u, i) => (
+                                <div key={i} className="border border-border rounded-lg p-3 bg-white text-sm">
+                                  {u.content && <div className="whitespace-pre-line mb-1">{u.content}</div>}
+                                  {u.link && <a href={u.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">{u.link}</a>}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">작성된 AI 내역이 없습니다.</span>
+                          )}
+                        </div>
+                      </>
                     )}
 
                     {/* 채점 */}

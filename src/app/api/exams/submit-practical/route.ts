@@ -21,11 +21,34 @@ export async function POST(request: Request) {
     const userId = decoded.uid;
 
     const body = await request.json();
-    const { examId, themeId, wireframeId, hero, icons, products, band, shareLink } = body;
+    const {
+      examId,
+      themeId,
+      wireframeId,
+      wireframeName,
+      wireframeCode,
+      zipUrl,
+      zipName,
+      repoUrl,
+      liveUrl,
+      aiUsages,
+      shareLink,
+    } = body;
 
     if (!examId || !themeId || !wireframeId) {
       return NextResponse.json({ error: "필수 정보가 누락되었습니다." }, { status: 400 });
     }
+
+    // AI 사용 내역 정리(최대 20개)
+    const usages = Array.isArray(aiUsages)
+      ? aiUsages
+          .slice(0, 20)
+          .map((u: { content?: unknown; link?: unknown }) => ({
+            content: typeof u?.content === "string" ? u.content.slice(0, 2000) : "",
+            link: typeof u?.link === "string" ? u.link.slice(0, 1000) : "",
+          }))
+          .filter((u) => u.content || u.link)
+      : [];
 
     const examDoc = await adminDb.collection("exams").doc(examId).get();
     if (!examDoc.exists) {
@@ -52,10 +75,13 @@ export async function POST(request: Request) {
       certificateTypeId,
       themeId,
       wireframeId,
-      hero: hero ?? { imageUrl: null, headline: "", subcopy: "", cta: "" },
-      icons: Array.isArray(icons) ? icons : [],
-      products: Array.isArray(products) ? products : [],
-      band: band ?? { imageUrl: null, message: "" },
+      wireframeName: wireframeName || null,
+      wireframeCode: wireframeCode || null,
+      zipUrl: zipUrl || null,
+      zipName: zipName || null,
+      repoUrl: repoUrl || null,
+      liveUrl: liveUrl || null,
+      aiUsages: usages,
       shareLink: shareLink || null,
       status: "SUBMITTED",
       score: null,
