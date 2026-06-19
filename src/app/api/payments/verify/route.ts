@@ -26,10 +26,28 @@ export async function POST(request: Request) {
     // 토스페이먼츠 결제 승인
     const tossResult = await confirmPayment({ paymentKey, orderId, amount });
 
+    // 결제 대상의 표시용 상품명 조회 (환불·취소·재시험 UI에서 사용)
+    const payType = type || "COURSE";
+    let itemName: string | null = null;
+    try {
+      if (payType === "EXAM" && targetId) {
+        const ex = await adminDb.collection("exams").doc(targetId).get();
+        itemName = ex.exists ? (ex.data()?.title ?? null) : null;
+      } else if (payType === "COURSE" && targetId) {
+        const c = await adminDb.collection("courses").doc(targetId).get();
+        itemName = c.exists ? (c.data()?.title ?? null) : null;
+      } else if (payType === "CERTIFICATE" && targetId) {
+        const ct = await adminDb.collection("certificateTypes").doc(targetId).get();
+        itemName = ct.exists ? (ct.data()?.name ?? null) : null;
+      }
+    } catch {
+      itemName = null;
+    }
+
     // Firestore에 결제 정보 저장
     const paymentRef = await adminDb.collection("payments").add({
       userId,
-      type: type || "COURSE",
+      type: payType,
       amount: tossResult.totalAmount,
       method: tossResult.method || null,
       status: "COMPLETED",
@@ -38,6 +56,15 @@ export async function POST(request: Request) {
       receiptUrl: tossResult.receipt?.url || null,
       refundedAt: null,
       refundReason: null,
+      targetId: targetId || null,
+      itemName,
+      refundStatus: "NONE",
+      refundKind: null,
+      refundRequestedAt: null,
+      adminRefundNote: null,
+      retakeGranted: false,
+      retakeReason: null,
+      retakeGrantedAt: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     });

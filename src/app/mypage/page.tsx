@@ -13,10 +13,30 @@ import {
   type ExamDoc,
   type CertificateIssuanceDoc,
   type CertificateTypeDoc,
+  type PaymentDoc,
 } from "@/lib/firestore";
 import { getThemeById } from "@/data/grade-2-practical";
 import { getAppThemeById } from "@/data/grade-1-practical";
 import { getGradeInfo, formatTimestamp, ISSUANCE_STATUS_MAP, DELIVERY_METHOD_MAP } from "@/lib/grade-utils";
+import { REFUND_POLICY, REFUND_POLICY_TITLE, REFUND_AGREE_LABEL } from "@/lib/refund-policy";
+
+const PAY_TYPE_LABEL: Record<string, string> = { COURSE: "강의", EXAM: "시험", CERTIFICATE: "인증서" };
+
+interface PaymentRow {
+  id: string;
+  type: string;
+  itemName: string;
+  amount: number;
+  date: string;
+  status: string;
+  refundStatus: string;
+  refundKind: string | null;
+  adminRefundNote: string | null;
+  targetId: string | null;
+  isExam: boolean;
+  taken: boolean; // 시험 응시(제출) 여부
+  retakeGranted: boolean;
+}
 
 export default function MyPage() {
   const { user, loading: authLoading } = useAuth();
@@ -27,6 +47,13 @@ export default function MyPage() {
   const [practicals, setPracticals] = useState<{ id: string; themeName: string; status: string; statusClassName: string; detail: string }[]>([]);
   const [appSubs, setAppSubs] = useState<{ id: string; themeName: string; appUrl: string; status: string; statusClassName: string; detail: string }[]>([]);
   const [specialSubs, setSpecialSubs] = useState<{ id: string; topicTitle: string; appUrl: string; status: string; statusClassName: string; detail: string }[]>([]);
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
+  // 환불/취소 신청 모달 상태
+  const [refundModal, setRefundModal] = useState<{ row: PaymentRow; kind: "REFUND" | "CANCEL_BEFORE_EXAM" } | null>(null);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundAgreed, setRefundAgreed] = useState(false);
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundError, setRefundError] = useState("");
 
   useEffect(() => {
     if (authLoading || !user) {
@@ -36,12 +63,16 @@ export default function MyPage() {
 
     async function fetchData() {
       try {
-        const [enrollmentDocs, submissionDocs, issuanceDocs, certTypeDocs] = await Promise.all([
+        const [enrollmentDocs, submissionDocs, issuanceDocs, certTypeDocs, paymentDocs] = await Promise.all([
           getDocuments<EnrollmentDoc>("enrollments", where("userId", "==", user!.uid)),
           getDocuments<ExamSubmissionDoc>("examSubmissions", where("userId", "==", user!.uid)),
           getDocuments<CertificateIssuanceDoc>("certificateIssuances", where("userId", "==", user!.uid)),
           getDocuments<CertificateTypeDoc>("certificateTypes"),
+          getDocuments<PaymentDoc>("payments", where("userId", "==", user!.uid)),
         ]);
+
+        // 응시(제출)한 시험 examId 집합 — 시험 응시 전 취소 가능 여부 판단용
+        const takenExamIds = new Set(submissionDocs.map((s) => s.examId));
 
         // 실기 제출(2급 랜딩페이지/1급 앱)은 신규 컬렉션이라 서버 경유로 조회 (Firestore 규칙 우회)
         let practicalDocs: Array<{ id: string; themeId: string; announceAt: string; status: string; passed: boolean | null; score: number | null; feedback: string | null }> = [];
@@ -201,6 +232,35 @@ export default function MyPage() {
             };
           })
         );
+
+        // 결제 내역 + 환불/재시험
+        setPayments(
+          paymentDocs
+            .sort((a, b) => {
+              const at = a.createdAt?.toDate?.()?.getTime?.() || 0;
+              const bt = b.createdAt?.toDate?.()?.getTime?.() || 0;
+              return bt - at;
+            })
+            .map((p) => {
+              const isExam = p.type === "EXAM";
+              const taken = isExam && p.targetId ? takenExamIds.has(p.targetId) : false;
+              return {
+                id: p.id,
+                type: PAY_TYPE_LABEL[p.type] || p.type,
+                itemName: p.itemName || `${PAY_TYPE_LABEL[p.type] || p.type} 결제`,
+                amount: p.amount,
+                date: formatTimestamp(p.createdAt),
+                status: p.status,
+                refundStatus: p.refundStatus || "NONE",
+                refundKind: p.refundKind ?? null,
+                adminRefundNote: p.adminRefundNote ?? null,
+                targetId: p.targetId ?? null,
+                isExam,
+                taken,
+                retakeGranted: !!p.retakeGranted,
+              };
+            })
+        );
       } catch (error) {
         console.error("마이페이지 데이터 로드 실패:", error);
       } finally {
@@ -209,6 +269,49 @@ export default function MyPage() {
     }
     fetchData();
   }, [user, authLoading]);
+
+  const openRefund = (row: PaymentRow, kind: "REFUND" | "CANCEL_BEFORE_EXAM") => {
+    setRefundModal({ row, kind });
+    setRefundReason("");
+    setRefundAgreed(false);
+    setRefundError("");
+  };
+
+  const submitRefund = async () => {
+    if (!refundModal) return;
+    if (!refundAgreed) { setRefundError("환불 약정에 동의해주세요."); return; }
+    setRefundSubmitting(true);
+    setRefundError("");
+    try {
+      const { getFirebaseAuth } = await import("@/lib/firebase");
+      const token = await getFirebaseAuth().currentUser?.getIdToken();
+      const res = await fetch("/api/my/refunds", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          paymentId: refundModal.row.id,
+          reason: refundReason,
+          kind: refundModal.kind,
+          agreed: refundAgreed,
+        }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setRefundError(d.error || "신청 중 오류가 발생했습니다."); return; }
+      // 로컬 상태 갱신
+      setPayments((prev) =>
+        prev.map((p) =>
+          p.id === refundModal.row.id
+            ? { ...p, refundStatus: "REQUESTED", refundKind: refundModal.kind }
+            : p
+        )
+      );
+      setRefundModal(null);
+    } catch {
+      setRefundError("신청 중 오류가 발생했습니다.");
+    } finally {
+      setRefundSubmitting(false);
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -394,6 +497,79 @@ export default function MyPage() {
         </section>
       )}
 
+      {/* 결제 내역 · 환불 */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">결제 내역 · 환불</h2>
+          <button
+            onClick={() => setRefundModal({ row: { id: "", type: "", itemName: "", amount: 0, date: "", status: "", refundStatus: "NONE", refundKind: null, adminRefundNote: null, targetId: null, isExam: false, taken: false, retakeGranted: false }, kind: "REFUND" })}
+            className="text-sm text-primary hover:underline"
+          >
+            환불 약정 보기
+          </button>
+        </div>
+        {payments.length > 0 ? (
+          <div className="space-y-4">
+            {payments.map((p) => {
+              const completed = p.status === "COMPLETED";
+              const canAct = completed && (p.refundStatus === "NONE" || p.refundStatus === "REJECTED");
+              return (
+                <div key={p.id} className="border border-border rounded-xl p-5">
+                  <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="bg-muted text-foreground text-xs px-2 py-0.5 rounded">{p.type}</span>
+                        <span className="font-medium">{p.itemName}</span>
+                        {p.status === "REFUNDED" && <span className="text-xs px-2 py-0.5 rounded bg-red-100 text-red-700">환불완료</span>}
+                        {p.status === "CANCELLED" && <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">취소됨</span>}
+                        {p.refundStatus === "REQUESTED" && <span className="text-xs px-2 py-0.5 rounded bg-orange-100 text-orange-700">환불 검토중</span>}
+                        {p.refundStatus === "REJECTED" && p.status === "COMPLETED" && <span className="text-xs px-2 py-0.5 rounded bg-red-50 text-red-600">환불 거절</span>}
+                        {p.retakeGranted && <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">재시험 허용됨</span>}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {p.amount.toLocaleString()}원 · 결제일 {p.date}
+                        {p.isExam && completed && (p.taken ? " · 응시 완료" : " · 미응시")}
+                      </div>
+                      {p.refundStatus === "REJECTED" && p.adminRefundNote && (
+                        <div className="text-xs text-red-600 mt-2 bg-red-50 rounded-lg p-2">거절 사유: {p.adminRefundNote}</div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {p.retakeGranted && p.isExam && p.targetId && (
+                        <Link
+                          href={`/exams/${p.targetId}/take`}
+                          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition"
+                        >
+                          재시험 응시
+                        </Link>
+                      )}
+                      {canAct && p.isExam && !p.taken && (
+                        <button
+                          onClick={() => openRefund(p, "CANCEL_BEFORE_EXAM")}
+                          className="border border-primary text-primary px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/5 transition"
+                        >
+                          시험 취소(전액 환불)
+                        </button>
+                      )}
+                      {canAct && (
+                        <button
+                          onClick={() => openRefund(p, "REFUND")}
+                          className="border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition"
+                        >
+                          환불 요청
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">결제 내역이 없습니다.</div>
+        )}
+      </section>
+
       {/* 발급된 인증서 */}
       <section>
         <h2 className="text-xl font-bold mb-4">발급된 인증서</h2>
@@ -422,6 +598,103 @@ export default function MyPage() {
           <div className="text-center py-8 text-muted-foreground">발급된 인증서가 없습니다.</div>
         )}
       </section>
+
+      {/* 환불/취소 신청 + 환불 약정 모달 */}
+      {refundModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => !refundSubmitting && setRefundModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-lg w-full max-h-[88vh] overflow-y-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <h3 className="text-lg font-bold">
+                {refundModal.row.id === ""
+                  ? REFUND_POLICY_TITLE
+                  : refundModal.kind === "CANCEL_BEFORE_EXAM"
+                    ? "시험 취소(전액 환불) 신청"
+                    : "환불 요청"}
+              </h3>
+              <button
+                onClick={() => !refundSubmitting && setRefundModal(null)}
+                className="text-muted-foreground hover:text-foreground text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            {refundModal.row.id !== "" && (
+              <div className="bg-muted rounded-lg p-3 mb-4 text-sm">
+                <div className="font-medium">{refundModal.row.itemName}</div>
+                <div className="text-muted-foreground">
+                  {refundModal.row.amount.toLocaleString()}원 · 결제일 {refundModal.row.date}
+                </div>
+              </div>
+            )}
+
+            {/* 환불 약정 */}
+            <div className="border border-border rounded-lg p-4 mb-4 space-y-3 max-h-56 overflow-y-auto bg-gray-50">
+              {REFUND_POLICY.map((item) => (
+                <div key={item.heading}>
+                  <p className="text-sm font-bold">{item.heading}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{item.body}</p>
+                </div>
+              ))}
+            </div>
+
+            {refundModal.row.id === "" ? (
+              <button
+                onClick={() => setRefundModal(null)}
+                className="w-full bg-muted py-2.5 rounded-lg text-sm font-medium hover:bg-muted/70 transition"
+              >
+                닫기
+              </button>
+            ) : (
+              <>
+                <label className="block text-sm font-medium mb-1">사유 (선택)</label>
+                <textarea
+                  value={refundReason}
+                  onChange={(e) => setRefundReason(e.target.value)}
+                  rows={2}
+                  placeholder="환불/취소 사유를 입력해주세요."
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary mb-3"
+                />
+                <label className="flex items-start gap-2 text-sm cursor-pointer mb-2">
+                  <input
+                    type="checkbox"
+                    checked={refundAgreed}
+                    onChange={(e) => setRefundAgreed(e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>{REFUND_AGREE_LABEL}</span>
+                </label>
+                {refundError && <p className="text-sm text-red-600 mb-2">{refundError}</p>}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={submitRefund}
+                    disabled={refundSubmitting || !refundAgreed}
+                    className="flex-1 bg-primary text-white py-2.5 rounded-lg text-sm font-medium hover:bg-primary-dark transition disabled:opacity-50"
+                  >
+                    {refundSubmitting ? "신청 중..." : "신청하기"}
+                  </button>
+                  <button
+                    onClick={() => setRefundModal(null)}
+                    disabled={refundSubmitting}
+                    className="px-5 border border-border rounded-lg text-sm font-medium hover:bg-muted transition"
+                  >
+                    취소
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  ※ 실제 환불은 관리자 확인 후 처리되며, 영업일 기준 3~7일이 소요될 수 있습니다.
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

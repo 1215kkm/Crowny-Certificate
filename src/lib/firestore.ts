@@ -25,6 +25,10 @@ export type ExamFormat = "MULTIPLE_CHOICE" | "PRACTICAL" | "PROJECT" | "CHALLENG
 export type QuestionType = "MULTIPLE_CHOICE" | "SHORT_ANSWER" | "ESSAY" | "FILE_UPLOAD";
 export type PaymentType = "COURSE" | "EXAM" | "CERTIFICATE";
 export type PaymentStatus = "PENDING" | "COMPLETED" | "FAILED" | "REFUNDED" | "CANCELLED";
+// 환불 요청 처리 상태 (결제 자체 상태와 별개로, 사용자의 환불/취소 요청 흐름을 추적)
+export type RefundStatus = "NONE" | "REQUESTED" | "APPROVED" | "REJECTED";
+// 환불 종류: 일반 환불 요청 vs 시험 응시 전 취소(전액 환불 대상)
+export type RefundKind = "REFUND" | "CANCEL_BEFORE_EXAM";
 export type DeliveryMethod = "EMAIL" | "BOTH";
 // 준비중 → 확인완료 → (우편) 배송중 → 배송완료
 export type IssuanceStatus = "PENDING" | "CONFIRMED" | "SHIPPING" | "DELIVERED";
@@ -174,6 +178,18 @@ export interface PaymentDoc {
   receiptUrl: string | null;
   refundedAt: Timestamp | null;
   refundReason: string | null;
+  // 결제 대상 식별/표시 (환불·취소·재시험 UI에서 사용)
+  targetId?: string | null; // 시험/강의/자격증 id
+  itemName?: string | null; // 표시용 상품명 (예: "AI 활용 자격증 3급 정기시험")
+  // 환불/취소 요청 흐름
+  refundStatus?: RefundStatus; // 기본 NONE
+  refundKind?: RefundKind | null;
+  refundRequestedAt?: Timestamp | null;
+  adminRefundNote?: string | null; // 관리자 처리 메모(거절 사유 등)
+  // 재시험: 관리자가 결제한 시험의 재응시를 허용
+  retakeGranted?: boolean;
+  retakeReason?: string | null;
+  retakeGrantedAt?: Timestamp | null;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

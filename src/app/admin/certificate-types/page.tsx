@@ -11,7 +11,7 @@ import {
   type CertExample,
 } from "@/lib/firestore";
 import { adminCreate, adminUpdate, adminDelete } from "@/lib/admin-api";
-import { getGradeInfo, gradeRank } from "@/lib/grade-utils";
+import { getGradeInfo, gradeRank, getGradeCompetencies, getDefaultPassingCriteria } from "@/lib/grade-utils";
 
 const GRADE_OPTIONS: { value: CertificateGrade; label: string }[] = [
   { value: "GRADE_3", label: "3급" },
@@ -132,8 +132,9 @@ export default function AdminCertificateTypesPage() {
       duration: ct.duration,
       isActive: ct.isActive,
       examples: ct.examples ? ct.examples.map((e) => ({ ...e })) : [],
-      competencies: ct.competencies || "",
-      passingCriteria: ct.passingCriteria || "",
+      // 비어 있으면 등급별 초안을 미리 채워 바로 수정할 수 있게 한다.
+      competencies: ct.competencies || getGradeCompetencies(ct.grade),
+      passingCriteria: ct.passingCriteria || getDefaultPassingCriteria(ct.grade, ct.passingScore),
     });
     setShowForm(true);
   };
@@ -233,30 +234,55 @@ export default function AdminCertificateTypesPage() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">
-                키우려는 역량 <span className="text-xs text-muted-foreground">(합격기준 모달에 노출)</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium">
+                  키우려는 역량 <span className="text-xs text-muted-foreground">(합격기준 모달에 노출)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({ ...formData, competencies: getGradeCompetencies(formData.grade) })
+                  }
+                  className="text-xs text-primary hover:underline"
+                >
+                  ↺ {GRADE_OPTIONS.find((g) => g.value === formData.grade)?.label} 기준 초안 넣기
+                </button>
+              </div>
               <textarea
                 value={formData.competencies}
                 onChange={(e) =>
                   setFormData({ ...formData, competencies: e.target.value })
                 }
-                rows={3}
+                rows={4}
                 placeholder="예: 프롬프트 설계 능력, AI 도구를 활용한 랜딩페이지 기획·제작 능력 ..."
                 className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium mb-1">
-                합격기준 설명 <span className="text-xs text-muted-foreground">(합격기준 모달에 노출)</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium">
+                  합격기준 설명 <span className="text-xs text-muted-foreground">(합격 점수 + 실기 감점 요인, 합격기준 모달에 노출)</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      passingCriteria: getDefaultPassingCriteria(formData.grade, formData.passingScore),
+                    })
+                  }
+                  className="text-xs text-primary hover:underline"
+                >
+                  ↺ {GRADE_OPTIONS.find((g) => g.value === formData.grade)?.label} 기준 초안 넣기
+                </button>
+              </div>
               <textarea
                 value={formData.passingCriteria}
                 onChange={(e) =>
                   setFormData({ ...formData, passingCriteria: e.target.value })
                 }
-                rows={3}
-                placeholder="예: 필기 70점 이상, 실기(랜딩페이지) 70점 이상 각각 충족 시 합격 ..."
+                rows={9}
+                placeholder="예: 필기 70점 이상, 실기(랜딩페이지) 70점 이상 / 실기 감점 요인: 섹션 누락, 반응형 미대응 ..."
                 className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>

@@ -3,22 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getDocuments, getDocument, where, type CourseDoc, type CertificateTypeDoc, Timestamp } from "@/lib/firestore";
-import { getGradeInfo, gradeRank, getGradeThumb } from "@/lib/grade-utils";
-
-// 관리자가 합격기준을 비워둔 경우 등급 기반 기본 문구
-function defaultCriteria(certType?: CertificateTypeDoc & { id: string }): string {
-  if (!certType) return "";
-  const s = certType.passingScore ?? 70;
-  switch (certType.grade) {
-    case "SPECIAL":
-      return `제품 챌린지(실기 단독) 100점 만점 중 ${s}점 이상 시 합격합니다.`;
-    case "GRADE_2":
-    case "GRADE_1":
-      return `필기와 실기를 각각 ${s}점 이상 받아야 합격합니다. (두 영역 모두 충족 필요)`;
-    default:
-      return `필기(객관식) ${s}점 이상 시 합격합니다.`;
-  }
-}
+import { getGradeInfo, gradeRank, getGradeThumb, getGradeCompetencies, getDefaultPassingCriteria } from "@/lib/grade-utils";
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<(CourseDoc & { id: string; isSample?: boolean })[]>([]);
@@ -204,8 +189,8 @@ export default function CoursesPage() {
                             gradeLabel: gradeInfo?.label ?? "",
                             thumb,
                             name: certType?.name ?? course.title,
-                            competencies: certType?.competencies?.trim() || "",
-                            criteria: certType?.passingCriteria?.trim() || defaultCriteria(certType),
+                            competencies: certType?.competencies?.trim() || getGradeCompetencies(certType?.grade),
+                            criteria: certType?.passingCriteria?.trim() || getDefaultPassingCriteria(certType?.grade, certType?.passingScore),
                           })
                         }
                         className="border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition"
@@ -244,11 +229,11 @@ export default function CoursesPage() {
           onClick={() => setModal(null)}
         >
           <div
-            className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto"
+            className="bg-white rounded-2xl max-w-[538px] w-full max-h-[88vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 상단 썸네일 */}
-            <div className="relative bg-gray-100 h-44 flex items-center justify-center rounded-t-2xl overflow-hidden">
+            <div className="relative bg-gray-100 h-52 flex items-center justify-center rounded-t-2xl overflow-hidden">
               {modal.thumb ? (
                 <img src={modal.thumb} alt={modal.name} className="w-full h-full object-cover" />
               ) : (
@@ -263,33 +248,33 @@ export default function CoursesPage() {
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="p-7">
+              <div className="flex items-center gap-2 mb-5">
                 {modal.gradeLabel && (
-                  <span className="bg-primary text-white text-xs px-2 py-1 rounded font-medium">
+                  <span className="bg-primary text-white text-xs px-2.5 py-1 rounded font-medium">
                     {modal.gradeLabel}
                   </span>
                 )}
-                <h3 className="text-lg font-bold">{modal.name}</h3>
+                <h3 className="text-xl font-bold">{modal.name}</h3>
               </div>
 
-              <div className="mb-5">
-                <h4 className="text-sm font-bold text-primary mb-1">이 시험을 통해 키우려는 역량</h4>
+              <div className="mb-6">
+                <h4 className="text-base font-bold text-primary mb-1.5">이 시험을 통해 키우려는 역량</h4>
                 {modal.competencies ? (
-                  <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{modal.competencies}</p>
+                  <p className="text-[15px] text-foreground whitespace-pre-line leading-relaxed">{modal.competencies}</p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">등록된 역량 설명이 없습니다.</p>
+                  <p className="text-[15px] text-muted-foreground">등록된 역량 설명이 없습니다.</p>
                 )}
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-primary mb-1">합격기준</h4>
-                <p className="text-sm text-foreground whitespace-pre-line leading-relaxed">{modal.criteria}</p>
+                <h4 className="text-base font-bold text-primary mb-1.5">합격기준</h4>
+                <p className="text-[15px] text-foreground whitespace-pre-line leading-relaxed">{modal.criteria}</p>
               </div>
 
               <button
                 onClick={() => setModal(null)}
-                className="mt-6 w-full bg-muted py-2.5 rounded-lg text-sm font-medium hover:bg-muted/70 transition"
+                className="mt-7 w-full bg-muted py-3 rounded-lg text-sm font-medium hover:bg-muted/70 transition"
               >
                 닫기
               </button>
