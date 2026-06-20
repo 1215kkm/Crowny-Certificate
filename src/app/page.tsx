@@ -205,7 +205,7 @@ export default function HomePage() {
             <img src="/aiat_w.png" alt="AIAT 자격증" className="block max-w-full h-auto" />
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
-            Crowny AI 활용 자격증
+            Crowny AI의 실무활용 자격증
           </h1>
           <p className="text-xl md:text-2xl mb-4 text-white/90 font-medium">
             AI 시대, 당신의 역량을 증명하세요
