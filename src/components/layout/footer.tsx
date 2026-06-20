@@ -110,8 +110,11 @@ export function Footer() {
           <Link href="/inquiries" className="hover:text-white transition">문의하기</Link>
         </div>
         <p>&copy; {new Date().getFullYear()} Crowny Certificate. All rights reserved.</p>
-        <p className="mt-1">
-          등록 민간자격 | 주무부처: 과학기술정보통신부 | 등록번호: 준비중
+        <p className="mt-1 text-gray-400">
+          발급·운영: KAIAT(Korea AI Ability Test) 운영위원회
+        </p>
+        <p className="mt-1 text-xs text-gray-500">
+          본 자격은 국가공인 자격 또는 등록 민간자격이 아닌, 운영기관이 자체 발급하는 자격입니다. (민간자격 등록 준비 중)
         </p>
       </div>
     </footer>
