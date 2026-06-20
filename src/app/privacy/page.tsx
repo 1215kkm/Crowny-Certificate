@@ -50,7 +50,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "8. 개인정보 보호책임자",
     body: [
-      "서비스명: Crowny AI 자격증 (웹사이트: https://kaiat.co.kr).",
+      "서비스명: KAIAT(Korea AI Ability Test) · Crowny AI 자격증 (웹사이트: https://kaiat.co.kr).",
       "개인정보 관련 문의: rute20002@gmail.com (문의하기 메뉴 이용 가능).",
     ],
   },
