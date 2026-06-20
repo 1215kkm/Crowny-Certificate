@@ -5,15 +5,15 @@ import { Footer } from "@/components/layout/footer";
 import { AuthProvider } from "@/contexts/auth-context";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://kaiat.kr"),
+  metadataBase: new URL("https://kaiat.co.kr"),
   title: "Crowny AI 활용 자격증 - 온라인 AI 자격증 시험 플랫폼",
   description:
     "AI 활용 능력을 검증하는 공신력 있는 자격증. 온라인 강의, 시험, 인증서 발급까지 한 곳에서.",
-  keywords: ["AI 자격증", "AI 활용", "온라인 시험", "자격증 발급", "Crowny", "KAIAT", "kaiat.kr"],
+  keywords: ["AI 자격증", "AI 활용", "온라인 시험", "자격증 발급", "Crowny", "KAIAT", "kaiat.co.kr"],
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
-    url: "https://kaiat.kr",
+    url: "https://kaiat.co.kr",
     siteName: "Crowny AI 활용 자격증",
     title: "Crowny AI 활용 자격증 - 온라인 AI 자격증 시험 플랫폼",
     description:
