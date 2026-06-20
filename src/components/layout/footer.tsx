@@ -89,12 +89,12 @@ export function Footer() {
             <li>운영시간: 평일 09:00~18:00</li>
             <li>
               <a
-                href="https://kaiat.co.kr"
+                href="https://kaiat.kr"
                 className="hover:text-white transition"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                kaiat.co.kr
+                kaiat.kr
               </a>
             </li>
           </ul>
