@@ -8,15 +8,13 @@ export function Footer() {
         <div>
           <div className="flex items-center gap-2 mb-4">
             <Image
-              src="/logo.png"
-              alt="Crowny AI 자격증"
-              width={32}
-              height={32}
-              className="w-8 h-8"
+              src="/logo_footer.png"
+              alt="KAIAT (Korea AI Ability Test)"
+              width={302}
+              height={302}
+              className="h-9 w-9"
             />
-            <span className="font-bold text-lg text-white">
-              Crowny AI 자격증
-            </span>
+            <span className="font-bold text-lg text-white">KAIAT</span>
           </div>
           <p className="text-sm">
             AI 활용 능력을 검증하는
@@ -109,9 +107,9 @@ export function Footer() {
           <span className="text-gray-600">|</span>
           <Link href="/inquiries" className="hover:text-white transition">문의하기</Link>
         </div>
-        <p>&copy; {new Date().getFullYear()} Crowny Certificate. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} AI 역량평가원(KAIAT). All rights reserved.</p>
         <p className="mt-1 text-gray-400">
-          발급·운영: KAIAT(Korea AI Ability Test) 운영위원회
+          발급·운영: AI 역량평가원(KAIAT · Korea AI Ability Test)
         </p>
         <p className="mt-1 text-xs text-gray-500">
           본 자격은 국가공인 자격 또는 등록 민간자격이 아닌, 운영기관이 자체 발급하는 자격입니다. (민간자격 등록 준비 중)

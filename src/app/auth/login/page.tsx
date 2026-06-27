@@ -69,7 +69,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <h1 className="text-2xl font-bold text-center mb-2">로그인</h1>
         <p className="text-center text-muted-foreground mb-8">
-          Crowny AI 자격증 플랫폼에 오신 것을 환영합니다
+          KAIAT 자격증 플랫폼에 오신 것을 환영합니다
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">

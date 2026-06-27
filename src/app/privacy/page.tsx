@@ -1,4 +1,4 @@
-export const metadata = { title: "개인정보처리방침 | Crowny AI 자격증" };
+export const metadata = { title: "개인정보처리방침 | KAIAT" };
 
 const SECTIONS: { title: string; body: string[] }[] = [
   {
@@ -50,7 +50,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "8. 개인정보 보호책임자",
     body: [
-      "서비스명: KAIAT(Korea AI Ability Test) · Crowny AI 자격증 (웹사이트: https://kaiat.co.kr).",
+      "서비스명: KAIAT(Korea AI Ability Test), 운영: AI 역량평가원 (웹사이트: https://kaiat.co.kr).",
       "개인정보 관련 문의: rute20002@gmail.com (문의하기 메뉴 이용 가능).",
     ],
   },
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
     <div className="max-w-3xl mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-2">개인정보처리방침</h1>
       <p className="text-muted-foreground mb-8">
-        Crowny AI 자격증은 이용자의 개인정보를 중요시하며 관련 법령을 준수합니다.
+        AI 역량평가원(KAIAT)은 이용자의 개인정보를 중요시하며 관련 법령을 준수합니다.
       </p>
       <div className="space-y-6">
         {SECTIONS.map((s) => (

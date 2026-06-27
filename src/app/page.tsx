@@ -202,10 +202,10 @@ export default function HomePage() {
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/aiat_w.png" alt="AIAT 자격증" className="block max-w-full h-auto" />
+            <img src="/aiat_w.png" alt="KAIAT 자격증" className="block max-w-full h-auto" />
           </div>
           <h1 className="text-4xl md:text-6xl font-bold mb-6 tracking-tight">
-            Crowny AI의 실무활용 자격증
+            KAIAT 실무활용 AI 자격증
           </h1>
           <p className="text-xl md:text-2xl mb-4 text-white/90 font-medium">
             AI 시대, 당신의 역량을 증명하세요
@@ -318,7 +318,7 @@ export default function HomePage() {
               특징
             </div>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              왜 Crowny 자격증인가요?
+              왜 KAIAT 자격증인가요?
             </h2>
             <p className="text-muted-foreground text-lg">
               AI 역량 인증의 새로운 기준을 제시합니다
@@ -428,8 +428,8 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(213,58,107,0.22),_transparent_60%)]" />
         <div className="relative max-w-[1400px] mx-auto text-center z-10">
           <div className="flex justify-center mb-6">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3">
-              <Image src="/logo.png" alt="Crowny" width={40} height={40} className="w-10 h-10" />
+            <div className="bg-white rounded-2xl px-5 py-3 shadow-lg shadow-black/10">
+              <Image src="/logo.png" alt="KAIAT (Korea AI Ability Test) 자격증" width={987} height={398} className="h-9 w-auto" />
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">

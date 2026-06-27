@@ -219,7 +219,7 @@ export default function AdminCertificateTypesPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                placeholder="예: Crowny AI 활용 자격증"
+                placeholder="예: KAIAT 자격증"
                 className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>

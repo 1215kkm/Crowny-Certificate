@@ -761,7 +761,7 @@ export default function MyPage() {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded">{cert.grade}</span>
-                    <span className="font-medium">Crowny AI 활용 자격증 {cert.grade}</span>
+                    <span className="font-medium">KAIAT 자격증 {cert.grade}</span>
                     <span className={`text-xs px-2 py-0.5 rounded ${cert.statusClassName}`}>{cert.status}</span>
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">

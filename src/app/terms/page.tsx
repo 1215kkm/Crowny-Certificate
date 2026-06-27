@@ -1,10 +1,10 @@
-export const metadata = { title: "이용약관 | Crowny AI 자격증" };
+export const metadata = { title: "이용약관 | KAIAT" };
 
 const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "제1조 (목적)",
     body: [
-      "본 약관은 KAIAT(Korea AI Ability Test, Crowny AI 자격증, 이하 \"회사\")이 웹사이트(https://kaiat.co.kr)를 통해 제공하는 온라인 강의·시험·자격증 발급 등 서비스(이하 \"서비스\")의 이용과 관련하여 회사와 이용자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.",
+      "본 약관은 AI 역량평가원(KAIAT, Korea AI Ability Test, 이하 \"회사\")이 웹사이트(https://kaiat.co.kr)를 통해 제공하는 온라인 강의·시험·자격증 발급 등 서비스(이하 \"서비스\")의 이용과 관련하여 회사와 이용자의 권리·의무 및 책임사항을 규정함을 목적으로 합니다.",
     ],
   },
   {
@@ -61,7 +61,7 @@ export default function TermsPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-2">이용약관</h1>
-      <p className="text-muted-foreground mb-8">Crowny AI 자격증 서비스 이용약관입니다.</p>
+      <p className="text-muted-foreground mb-8">KAIAT 서비스 이용약관입니다.</p>
       <div className="space-y-6">
         {SECTIONS.map((s) => (
           <section key={s.title}>

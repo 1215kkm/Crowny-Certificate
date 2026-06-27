@@ -64,8 +64,8 @@ function buildCertHtml(d: CertData): string {
         <div style="margin-top:10px; font-size:12.5px; color:#777; line-height:1.6; font-family:'Cormorant Garamond',serif; letter-spacing:0.2px;">This is to certify that the person above has successfully passed<br>the AIAT (AI Ability Test) and is hereby awarded this certificate.</div>
         <div style="margin-top:auto; font-size:18px; font-weight:700; color:#222; letter-spacing:1px;">${d.issuedDateKo}</div>
         <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-top:16px; position:relative;">
-          <img src="/logo.png" alt="Crowny AI" style="width:38px; height:38px; object-fit:contain;" />
-          <div style="font-size:22px; font-weight:900; color:#1a2a6c; letter-spacing:0.5px;">Crowny AI 자격증</div>
+          <img src="/logo.png" alt="KAIAT" style="width:38px; height:38px; object-fit:contain;" />
+          <div style="font-size:22px; font-weight:900; color:#1a2a6c; letter-spacing:0.5px;">KAIAT 자격증</div>
           <div style="position:absolute; right:-58px; top:50%; transform:translateY(-50%) rotate(-4deg); width:54px; height:54px; border:2.5px solid #c0392b; border-radius:8px; display:grid; grid-template-columns:1fr 1fr; align-content:center; padding:3px; box-sizing:border-box;">
             <div style="color:#c0392b; font-size:17px; font-weight:700; font-family:'Noto Serif KR',serif; text-align:center;">認</div>
             <div style="color:#c0392b; font-size:17px; font-weight:700; font-family:'Noto Serif KR',serif; text-align:center;">證</div>
@@ -73,7 +73,7 @@ function buildCertHtml(d: CertData): string {
             <div style="color:#c0392b; font-size:17px; font-weight:700; font-family:'Noto Serif KR',serif; text-align:center;">員</div>
           </div>
         </div>
-        <div style="margin-top:8px; font-size:14px; font-weight:500; color:#444; letter-spacing:2px;">AIAT 운영위원회</div>
+        <div style="margin-top:8px; font-size:14px; font-weight:500; color:#444; letter-spacing:2px;">AI 역량평가원(KAIAT)</div>
       </div>
     </div>
   </div>`;
@@ -130,7 +130,7 @@ function buildExplainHtml(d: CertData): string {
 
     <div style="margin-top:30px; text-align:center;">
       <div style="font-size:16px; font-weight:700; color:#222;">${esc(d.issuedDateKo)}</div>
-      <div style="margin-top:8px; font-size:15px; font-weight:800; color:#1a2a6c;">AIAT 운영위원회 · Crowny AI 자격증</div>
+      <div style="margin-top:8px; font-size:15px; font-weight:800; color:#1a2a6c;">AI 역량평가원(KAIAT)</div>
     </div>
   </div>`;
 }

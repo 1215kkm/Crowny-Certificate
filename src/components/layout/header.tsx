@@ -26,16 +26,15 @@ export function Header() {
   return (
     <header className="bg-white border-b border-border sticky top-0 z-50">
       <div className="max-w-[1400px] mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/" className="flex items-center" aria-label="KAIAT 홈">
           <Image
             src="/logo.png"
-            alt="Crowny AI 자격증"
-            width={36}
-            height={36}
-            className="w-9 h-9"
+            alt="KAIAT (Korea AI Ability Test) 자격증"
+            width={987}
+            height={398}
+            className="h-8 w-auto"
             priority
           />
-          <span className="font-bold text-lg">Crowny AI 자격증</span>
         </Link>
 
         {/* Desktop Nav */}

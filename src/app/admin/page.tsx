@@ -151,7 +151,7 @@ export default function AdminPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">관리자 대시보드</h1>
-          <p className="text-muted-foreground">Crowny AI 자격증 플랫폼 관리</p>
+          <p className="text-muted-foreground">KAIAT 자격증 플랫폼 관리</p>
         </div>
         <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium">ADMIN</span>
       </div>
