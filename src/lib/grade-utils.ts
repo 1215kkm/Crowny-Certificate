@@ -115,6 +115,28 @@ export function gradeRank(grade: string | undefined | null): number {
   return grade && grade in GRADE_ORDER ? GRADE_ORDER[grade] : 99;
 }
 
+// 등급별 학습(강의+예제시험) 페이지 경로.
+// 4개 등급 모두 학습 페이지가 코드로 준비되어 있다.
+export const GRADE_LEARN_HREF: Record<CertificateGrade, string> = {
+  GRADE_3: "/courses/grade-3/learn",
+  GRADE_2: "/courses/grade-2/learn",
+  GRADE_1: "/courses/grade-1/learn",
+  SPECIAL: "/courses/grade-special/learn",
+};
+
+export function gradeLearnHref(grade: CertificateGrade | undefined | null): string | null {
+  return grade && grade in GRADE_LEARN_HREF ? GRADE_LEARN_HREF[grade as CertificateGrade] : null;
+}
+
+// certificateTypes 목록에서 특정 등급의 자격증 유형 id를 찾는다. (샘플 데이터 매핑용)
+export function findTypeIdByGrade(
+  typesMap: Record<string, { grade: CertificateGrade }>,
+  grade: CertificateGrade
+): string {
+  const found = Object.entries(typesMap).find(([, t]) => t.grade === grade);
+  return found ? found[0] : "";
+}
+
 export function formatDuration(minutes: number): string {
   if (minutes < 60) return `${minutes}분`;
   const hours = Math.floor(minutes / 60);

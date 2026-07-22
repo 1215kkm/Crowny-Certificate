@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   getDocument,
+  getDocuments,
   getDocs,
   query,
   orderBy,
@@ -12,9 +13,10 @@ import {
   type CourseDoc,
   type LessonDoc,
   type CertificateTypeDoc,
+  type CertificateGrade,
   Timestamp,
 } from "@/lib/firestore";
-import { getGradeInfo, formatDuration } from "@/lib/grade-utils";
+import { getGradeInfo, formatDuration, gradeLearnHref, findTypeIdByGrade } from "@/lib/grade-utils";
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -30,21 +32,32 @@ export default function CourseDetailPage() {
       try {
         // 샘플 강의 처리
         if (courseId.startsWith("sample-")) {
-          const sampleCourses: Record<string, { title: string; description: string; lessonCount: number; totalDuration: number; }> = {
-            "sample-1": { title: "[샘플] AI 기초 활용 과정 - 3급 대비", description: "AI 도구의 기본 사용법을 배우고 실무에 적용하는 방법을 학습합니다. ChatGPT, Claude 등 주요 AI 서비스 활용법을 다룹니다.", lessonCount: 12, totalDuration: 1800 },
-            "sample-2": { title: "[샘플] AI UI 제작 과정 - 2급 대비", description: "프롬프트 엔지니어링과 AI를 활용한 UI/UX 디자인 및 프론트엔드 구현 능력을 키웁니다.", lessonCount: 24, totalDuration: 3600 },
-            "sample-3": { title: "[샘플] AI 풀스택 개발 과정 - 1급 대비", description: "AI를 활용한 풀스택 웹 애플리케이션 개발. UI/UX부터 백엔드 API 연동까지 전 과정을 학습합니다.", lessonCount: 36, totalDuration: 5400 },
-            "sample-4": { title: "[샘플] AI 문제해결 마스터 과정 - 특급 대비", description: "실제 비즈니스 문제를 AI로 해결하는 고급 솔루션 설계. 해커톤 형식의 실전 프로젝트를 수행합니다.", lessonCount: 48, totalDuration: 7200 },
+          const sampleCourses: Record<string, { title: string; description: string; grade: CertificateGrade }> = {
+            "sample-1": { title: "[샘플] AI 기초 활용 과정 - 3급 대비", description: "AI 도구의 기본 사용법을 배우고 실무에 적용하는 방법을 학습합니다. ChatGPT, Claude 등 주요 AI 서비스 활용법을 다룹니다.", grade: "GRADE_3" },
+            "sample-2": { title: "[샘플] AI UI 제작 과정 - 2급 대비", description: "프롬프트 엔지니어링과 AI를 활용한 UI/UX 디자인 및 프론트엔드 구현 능력을 키웁니다.", grade: "GRADE_2" },
+            "sample-3": { title: "[샘플] AI 풀스택 개발 과정 - 1급 대비", description: "AI를 활용한 풀스택 웹 애플리케이션 개발. UI/UX부터 백엔드 API 연동까지 전 과정을 학습합니다.", grade: "GRADE_1" },
+            "sample-4": { title: "[샘플] AI 문제해결 마스터 과정 - 특급 대비", description: "실제 비즈니스 문제를 AI로 해결하는 고급 솔루션 설계. 해커톤 형식의 실전 프로젝트를 수행합니다.", grade: "SPECIAL" },
           };
           const sample = sampleCourses[courseId];
           if (sample) {
             const now = Timestamp.now();
-            setCourse({ id: courseId, ...sample, thumbnailUrl: null, certificateTypeId: "", isPublished: true, createdAt: now, updatedAt: now });
-            setLessons([
+            // 등급에 맞는 실제 자격증 유형을 찾아 배지·가격을 정확히 노출
+            const typesData = await getDocuments<CertificateTypeDoc>("certificateTypes");
+            const typesMap: Record<string, CertificateTypeDoc & { id: string }> = {};
+            typesData.forEach((t) => { typesMap[t.id] = t; });
+            const typeId = findTypeIdByGrade(typesMap, sample.grade);
+            const matchedType = typeId ? typesMap[typeId] : null;
+
+            // 샘플 커리큘럼 — 총 학습 시간은 이 레슨 합으로 산출되어 항상 일치한다.
+            const sampleLessons: (LessonDoc & { id: string })[] = [
               { id: "s-lesson-1", courseId, title: "강의 소개 및 환경 설정", description: null, videoUrl: null, duration: 15, order: 1, isFree: true, createdAt: now, updatedAt: now },
-              { id: "s-lesson-2", courseId, title: "기본 개념 학습", description: null, videoUrl: null, duration: 30, order: 2, isFree: false, createdAt: now, updatedAt: now },
+              { id: "s-lesson-2", courseId, title: "핵심 개념 학습", description: null, videoUrl: null, duration: 30, order: 2, isFree: false, createdAt: now, updatedAt: now },
               { id: "s-lesson-3", courseId, title: "실습 프로젝트", description: null, videoUrl: null, duration: 45, order: 3, isFree: false, createdAt: now, updatedAt: now },
-            ]);
+            ];
+            const totalDuration = sampleLessons.reduce((s, l) => s + l.duration, 0) * 60;
+            setCourse({ id: courseId, title: sample.title, description: sample.description, thumbnailUrl: null, certificateTypeId: typeId, totalDuration, lessonCount: sampleLessons.length, isPublished: true, createdAt: now, updatedAt: now });
+            setCertType(matchedType);
+            setLessons(sampleLessons);
           }
           setLoading(false);
           return;
@@ -101,7 +114,11 @@ export default function CourseDetailPage() {
 
   const gradeInfo = certType ? getGradeInfo(certType.grade) : null;
   const price = certType?.coursePrice ?? 0;
-  const totalMinutes = Math.round(course.totalDuration / 60);
+  // 총 학습 시간은 커리큘럼(레슨)의 합으로 산출해 커리큘럼과 항상 일치시킨다.
+  // 레슨이 없을 때만 저장된 totalDuration을 폴백으로 사용.
+  const lessonMinutes = lessons.reduce((sum, l) => sum + (l.duration || 0), 0);
+  const totalMinutes = lessonMinutes > 0 ? lessonMinutes : Math.round(course.totalDuration / 60);
+  const learnHref = gradeLearnHref(certType?.grade);
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-12">
@@ -184,10 +201,10 @@ export default function CourseDetailPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            {/* 3급 강의는 학습 페이지가 준비되어 있어 바로 학습 진입 가능 */}
-            {course.id === "sample-1" && (
+            {/* 등급별 학습 페이지가 준비되어 있어 바로 학습 진입 가능 */}
+            {learnHref && (
               <Link
-                href="/courses/grade-3/learn"
+                href={learnHref}
                 className="inline-flex items-center gap-2 bg-gradient-brand text-white px-8 py-3 rounded-lg font-medium hover:opacity-90 transition"
               >
                 학습 시작

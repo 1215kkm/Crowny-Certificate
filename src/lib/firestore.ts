@@ -50,12 +50,13 @@ export interface UserDoc {
   updatedAt: Timestamp;
 }
 
-// 시험별 합격 예시(여러 개). 관리자가 등록, 시험신청 페이지에서 누구나 열람.
+// 시험별 합격 예시(여러 개). 관리자가 등록, 시험신청/합격기준 페이지에서 누구나 열람.
 export interface CertExample {
   title: string;
   url: string; // 작업물 실물을 볼 수 있는 주소
   description?: string;
   imageUrl?: string; // 합격작 캡쳐 이미지
+  htmlContent?: string; // HTML/React 결과물 코드 — 앱 안에서 sandbox iframe으로 미리보기
 }
 
 export interface CertificateTypeDoc {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { signOut } from "@/lib/firebase-auth";
@@ -17,6 +18,11 @@ const NAV_ITEMS = [
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, loading } = useAuth();
+  const pathname = usePathname();
+
+  // 현재 경로가 해당 메뉴(또는 하위 경로)에 속하는지
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
 
   const handleSignOut = async () => {
     await signOut();
@@ -38,16 +44,24 @@ export function Header() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-6">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-sm font-medium text-muted-foreground hover:text-foreground transition"
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav className="hidden md:flex items-center gap-1">
+          {NAV_ITEMS.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                  active
+                    ? "text-primary bg-primary/10 font-semibold"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -131,17 +145,25 @@ export function Header() {
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden border-t border-border bg-white">
-          <nav className="px-4 py-4 space-y-3">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block text-sm font-medium text-muted-foreground hover:text-foreground"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav className="px-4 py-4 space-y-1">
+            {NAV_ITEMS.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`block px-3 py-2 rounded-lg text-sm font-medium transition ${
+                    active
+                      ? "text-primary bg-primary/10 font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
             <hr className="border-border" />
             {user ? (
               <>

@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getDocuments, getDocument, where, type CourseDoc, type CertificateTypeDoc, Timestamp } from "@/lib/firestore";
-import { getGradeInfo, gradeRank, getGradeThumb, getGradeCompetencies, getDefaultPassingCriteria } from "@/lib/grade-utils";
+import { getDocuments, getDocument, where, type CourseDoc, type CertificateTypeDoc, type CertificateGrade, type CertExample, Timestamp } from "@/lib/firestore";
+import { getGradeInfo, gradeRank, getGradeThumb, getGradeCompetencies, getDefaultPassingCriteria, gradeLearnHref, findTypeIdByGrade } from "@/lib/grade-utils";
+import { ExampleDetail, ExampleGrid } from "@/components/example-preview";
+
+type CourseCard = CourseDoc & { id: string; isSample?: boolean; learnHref?: string };
 
 export default function CoursesPage() {
-  const [courses, setCourses] = useState<(CourseDoc & { id: string; isSample?: boolean })[]>([]);
+  const [courses, setCourses] = useState<CourseCard[]>([]);
   const [certTypes, setCertTypes] = useState<Record<string, CertificateTypeDoc & { id: string }>>({});
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<{
@@ -15,7 +18,10 @@ export default function CoursesPage() {
     name: string;
     competencies: string;
     criteria: string;
+    examples: CertExample[];
   } | null>(null);
+  // 합격기준 모달 안에서 선택한 예시(상세/미리보기)
+  const [selectedEx, setSelectedEx] = useState<CertExample | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -30,65 +36,67 @@ export default function CoursesPage() {
 
         // 샘플 데이터 설정 확인
         const settings = await getDocument<{ showSampleData: boolean }>("settings", "site");
-        let allCourses: (CourseDoc & { id: string; isSample?: boolean })[] = coursesData;
+        let allCourses: CourseCard[] = coursesData;
 
         if (settings?.showSampleData && coursesData.length === 0) {
           const now = Timestamp.now();
-          const typeKeys = Object.keys(typesMap);
-          const sampleCourses: (CourseDoc & { id: string; isSample: boolean })[] = [
+          // 등급별로 certificateTypes에서 실제 유형을 찾아 매핑한다.
+          // (typeKeys 인덱스로 매핑하면 등급이 어긋나 배지·가격·링크가 밀리는 문제가 있었음)
+          const sampleDefs: {
+            id: string;
+            grade: CertificateGrade;
+            title: string;
+            description: string;
+            totalDuration: number;
+            lessonCount: number;
+          }[] = [
             {
               id: "sample-1",
+              grade: "GRADE_3",
               title: "[샘플] AI 기초 활용 과정 - 3급 대비",
               description: "AI 도구의 기본 사용법을 배우고 실무에 적용하는 방법을 학습합니다. ChatGPT, Claude 등 주요 AI 서비스 활용법을 다룹니다.",
-              thumbnailUrl: null,
-              certificateTypeId: typeKeys[0] || "",
               totalDuration: 1800,
               lessonCount: 12,
-              isPublished: true,
-              createdAt: now,
-              updatedAt: now,
-              isSample: true,
             },
             {
               id: "sample-2",
+              grade: "GRADE_2",
               title: "[샘플] AI UI 제작 과정 - 2급 대비",
               description: "프롬프트 엔지니어링과 AI를 활용한 UI/UX 디자인 및 프론트엔드 구현 능력을 키웁니다.",
-              thumbnailUrl: null,
-              certificateTypeId: typeKeys[1] || typeKeys[0] || "",
               totalDuration: 3600,
               lessonCount: 24,
-              isPublished: true,
-              createdAt: now,
-              updatedAt: now,
-              isSample: true,
             },
             {
               id: "sample-3",
+              grade: "GRADE_1",
               title: "[샘플] AI 풀스택 개발 과정 - 1급 대비",
               description: "AI를 활용한 풀스택 웹 애플리케이션 개발. UI/UX부터 백엔드 API 연동까지 전 과정을 학습합니다.",
-              thumbnailUrl: null,
-              certificateTypeId: typeKeys[2] || typeKeys[0] || "",
               totalDuration: 5400,
               lessonCount: 36,
-              isPublished: true,
-              createdAt: now,
-              updatedAt: now,
-              isSample: true,
             },
             {
               id: "sample-4",
+              grade: "SPECIAL",
               title: "[샘플] AI 문제해결 마스터 과정 - 특급 대비",
               description: "실제 비즈니스 문제를 AI로 해결하는 고급 솔루션 설계. 해커톤 형식의 실전 프로젝트를 수행합니다.",
-              thumbnailUrl: null,
-              certificateTypeId: typeKeys[3] || typeKeys[0] || "",
               totalDuration: 7200,
               lessonCount: 48,
-              isPublished: true,
-              createdAt: now,
-              updatedAt: now,
-              isSample: true,
             },
           ];
+          const sampleCourses: CourseCard[] = sampleDefs.map((d) => ({
+            id: d.id,
+            title: d.title,
+            description: d.description,
+            thumbnailUrl: null,
+            certificateTypeId: findTypeIdByGrade(typesMap, d.grade),
+            totalDuration: d.totalDuration,
+            lessonCount: d.lessonCount,
+            isPublished: true,
+            createdAt: now,
+            updatedAt: now,
+            isSample: true,
+            learnHref: gradeLearnHref(d.grade) ?? undefined,
+          }));
           allCourses = [...sampleCourses, ...coursesData];
         }
 
@@ -143,6 +151,8 @@ export default function CoursesPage() {
             const gradeInfo = certType ? getGradeInfo(certType.grade) : null;
             const price = certType?.coursePrice ?? 0;
             const thumb = course.thumbnailUrl || (certType ? getGradeThumb(certType.grade) : null);
+            // 등급별 학습 페이지가 있으면 학습 시작 버튼 노출 (샘플·실강 공통)
+            const learnHref = course.learnHref ?? gradeLearnHref(certType?.grade);
 
             return (
               <div
@@ -184,15 +194,17 @@ export default function CoursesPage() {
                     </span>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() =>
+                        onClick={() => {
+                          setSelectedEx(null);
                           setModal({
                             gradeLabel: gradeInfo?.label ?? "",
                             thumb,
                             name: certType?.name ?? course.title,
                             competencies: certType?.competencies?.trim() || getGradeCompetencies(certType?.grade),
                             criteria: certType?.passingCriteria?.trim() || getDefaultPassingCriteria(certType?.grade, certType?.passingScore),
-                          })
-                        }
+                            examples: certType?.examples ?? [],
+                          });
+                        }}
                         className="border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition"
                       >
                         합격기준
@@ -205,10 +217,10 @@ export default function CoursesPage() {
                       </Link>
                     </div>
                   </div>
-                  {/* 3급 강의는 학습 페이지(강의+예제시험)가 준비되어 있어 바로 진입 가능 */}
-                  {course.id === "sample-1" && (
+                  {/* 등급별 학습 페이지(강의+예제시험)가 준비되어 있어 바로 진입 가능 */}
+                  {learnHref && (
                     <Link
-                      href="/courses/grade-3/learn"
+                      href={learnHref}
                       className="mt-3 flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-gradient-brand text-white text-sm font-semibold hover:opacity-90 transition"
                     >
                       학습 시작
@@ -226,7 +238,7 @@ export default function CoursesPage() {
       {modal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setModal(null)}
+          onClick={() => { setModal(null); setSelectedEx(null); }}
         >
           <div
             className="bg-white rounded-2xl max-w-[538px] w-full max-h-[88vh] overflow-y-auto"
@@ -240,7 +252,7 @@ export default function CoursesPage() {
                 <span className="text-gray-400">썸네일</span>
               )}
               <button
-                onClick={() => setModal(null)}
+                onClick={() => { setModal(null); setSelectedEx(null); }}
                 className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center hover:bg-black/60"
                 aria-label="닫기"
               >
@@ -272,8 +284,27 @@ export default function CoursesPage() {
                 <p className="text-[15px] text-foreground whitespace-pre-line leading-relaxed">{modal.criteria}</p>
               </div>
 
+              {/* 관리자가 등록한 합격 예시(이미지/코드/링크) 미리보기 */}
+              {modal.examples.length > 0 && (
+                <div className="mt-6 border-t border-border pt-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    {selectedEx && (
+                      <button onClick={() => setSelectedEx(null)} className="text-sm text-primary hover:underline">
+                        ← 목록
+                      </button>
+                    )}
+                    <h4 className="text-base font-bold text-primary">합격 예시 미리보기 ({modal.examples.length})</h4>
+                  </div>
+                  {selectedEx ? (
+                    <ExampleDetail example={selectedEx} />
+                  ) : (
+                    <ExampleGrid examples={modal.examples} onSelect={setSelectedEx} />
+                  )}
+                </div>
+              )}
+
               <button
-                onClick={() => setModal(null)}
+                onClick={() => { setModal(null); setSelectedEx(null); }}
                 className="mt-7 w-full bg-muted py-3 rounded-lg text-sm font-medium hover:bg-muted/70 transition"
               >
                 닫기

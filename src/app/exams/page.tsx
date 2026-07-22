@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { getDocuments, getDocument, where, type ExamDoc, type CertificateTypeDoc, type CertExample, Timestamp } from "@/lib/firestore";
-import { getGradeInfo, formatTimestamp, gradeRank } from "@/lib/grade-utils";
+import { getDocuments, getDocument, where, type ExamDoc, type CertificateTypeDoc, type CertificateGrade, type CertExample, Timestamp } from "@/lib/firestore";
+import { getGradeInfo, formatTimestamp, gradeRank, findTypeIdByGrade } from "@/lib/grade-utils";
+import { ExampleDetail, ExampleGrid } from "@/components/example-preview";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function ExamsPage() {
@@ -35,73 +36,69 @@ export default function ExamsPage() {
 
         if (settings?.showSampleData && examsData.length === 0) {
           const now = Timestamp.now();
-          const typeKeys = Object.keys(typesMap);
-          const sampleExams: (ExamDoc & { id: string; isSample: boolean })[] = [
+          // 등급으로 실제 자격증 유형을 찾아 매핑 (typeKeys 인덱스 매핑은 등급이 어긋남)
+          const sampleExamDefs: {
+            id: string;
+            grade: CertificateGrade;
+            title: string;
+            description: string;
+            duration: number;
+            questionCount: number;
+            maxAttempts: number;
+          }[] = [
             {
               id: "sample-exam-1",
-              certificateTypeId: typeKeys[0] || "",
+              grade: "GRADE_3",
               title: "[샘플] AI 활용 자격증 3급 정기시험",
               description: "AI 기본 활용 능력을 평가하는 3급 자격시험입니다. 40문항 중 25문항이 랜덤으로 출제됩니다.",
-              scheduledDate: now,
-              registrationStart: now,
-              registrationEnd: now,
               duration: 60,
               questionCount: 25,
               maxAttempts: 3,
-              isActive: true,
-              createdAt: now,
-              updatedAt: now,
-              isSample: true,
             },
             {
               id: "sample-exam-2",
-              certificateTypeId: typeKeys[1] || typeKeys[0] || "",
+              grade: "GRADE_2",
               title: "[샘플] AI UI 제작 자격증 2급 정기시험",
               description: "AI를 활용한 UI 디자인 및 프론트엔드 구현 능력을 평가합니다. 실기 시험(화면 녹화)으로 진행됩니다.",
-              scheduledDate: now,
-              registrationStart: now,
-              registrationEnd: now,
               duration: 120,
               questionCount: 5,
               maxAttempts: 2,
-              isActive: true,
-              createdAt: now,
-              updatedAt: now,
-              isSample: true,
             },
             {
               id: "sample-exam-3",
-              certificateTypeId: typeKeys[2] || typeKeys[0] || "",
+              grade: "GRADE_1",
               title: "[샘플] AI 풀스택 자격증 1급 정기시험",
               description: "UI/UX + 프론트엔드 + 백엔드 API 연동 프로젝트를 제출하고 코드 리뷰를 받습니다.",
-              scheduledDate: now,
-              registrationStart: now,
-              registrationEnd: now,
               duration: 10080,
               questionCount: 3,
               maxAttempts: 1,
-              isActive: true,
-              createdAt: now,
-              updatedAt: now,
-              isSample: true,
             },
             {
               id: "sample-exam-4",
-              certificateTypeId: typeKeys[3] || typeKeys[0] || "",
+              grade: "SPECIAL",
               title: "[샘플] AI 문제해결 특급 해커톤",
               description: "실제 비즈니스 문제를 AI로 해결하는 48시간 해커톤 형식의 특급 시험입니다.",
-              scheduledDate: now,
-              registrationStart: now,
-              registrationEnd: now,
               duration: 2880,
               questionCount: 1,
               maxAttempts: 1,
-              isActive: true,
-              createdAt: now,
-              updatedAt: now,
-              isSample: true,
             },
           ];
+          const sampleExams: (ExamDoc & { id: string; isSample: boolean })[] = sampleExamDefs.map((d) => ({
+            id: d.id,
+            certificateTypeId: findTypeIdByGrade(typesMap, d.grade),
+            title: d.title,
+            description: d.description,
+            scheduledDate: now,
+            registrationStart: now,
+            registrationEnd: now,
+            duration: d.duration,
+            questionCount: d.questionCount,
+            maxAttempts: d.maxAttempts,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+            isSample: true,
+          }));
           allExams = [...sampleExams, ...examsData];
         }
 
@@ -324,52 +321,10 @@ export default function ExamsPage() {
 
             {!selectedEx ? (
               // 캡쳐 이미지 그리드 (클릭 시 상세)
-              <div className="grid grid-cols-2 gap-3">
-                {modal.examples.map((ex, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedEx(ex)}
-                    className="text-left border border-border rounded-lg overflow-hidden hover:border-primary hover:shadow-md transition"
-                  >
-                    <div className="h-32 bg-gray-100 flex items-center justify-center overflow-hidden">
-                      {ex.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={ex.imageUrl} alt={ex.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-gray-400 text-sm">미리보기 없음</span>
-                      )}
-                    </div>
-                    <div className="p-3">
-                      <div className="font-medium text-sm truncate">{ex.title}</div>
-                      {ex.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{ex.description}</p>}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <ExampleGrid examples={modal.examples} onSelect={setSelectedEx} />
             ) : (
-              // 상세: 큰 이미지 + 제목/설명 + 실물 보기 버튼
-              <div>
-                {selectedEx.imageUrl && (
-                  <div className="rounded-xl overflow-hidden border border-border mb-4">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={selectedEx.imageUrl} alt={selectedEx.title} className="w-full object-contain max-h-[50vh]" />
-                  </div>
-                )}
-                <h4 className="text-lg font-bold mb-1">{selectedEx.title}</h4>
-                {selectedEx.description && (
-                  <p className="text-sm text-muted-foreground whitespace-pre-line mb-4">{selectedEx.description}</p>
-                )}
-                {selectedEx.url && (
-                  <a
-                    href={selectedEx.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full bg-primary text-white py-4 rounded-xl font-bold text-lg hover:bg-primary-dark transition"
-                  >
-                    작업물 실물 보러가기 ↗
-                  </a>
-                )}
-              </div>
+              // 상세: 미리보기(이미지/HTML 코드) + 제목/설명 + 실물 보기 버튼
+              <ExampleDetail example={selectedEx} />
             )}
           </div>
         </div>

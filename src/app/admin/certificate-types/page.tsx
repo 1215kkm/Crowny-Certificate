@@ -115,10 +115,12 @@ export default function AdminCertificateTypesPage() {
       return;
     }
 
-    // 빈 예시 행 제거
+    // 빈 예시 행 제거 (제목 + 실물링크/이미지/HTML 중 하나라도 있으면 유지)
     const cleaned = {
       ...formData,
-      examples: formData.examples.filter((ex) => ex.title.trim() && ex.url.trim()),
+      examples: formData.examples.filter(
+        (ex) => ex.title.trim() && (ex.url.trim() || ex.imageUrl?.trim() || ex.htmlContent?.trim())
+      ),
     };
 
     try {
@@ -493,6 +495,47 @@ export default function AdminCertificateTypesPage() {
                         </span>
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadExampleImage(idx, f); }} />
                       </label>
+                    </div>
+
+                    {/* HTML/코드 미리보기용 소스 */}
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-muted-foreground">
+                          HTML 코드 (선택) — 등록 시 앱 안에서 미리보기로 렌더링됩니다
+                        </span>
+                        <label className="text-xs text-primary hover:underline cursor-pointer">
+                          .html 파일 불러오기
+                          <input
+                            type="file"
+                            accept=".html,.htm,text/html"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const f = e.target.files?.[0];
+                              if (!f) return;
+                              const text = await f.text();
+                              const next = [...formData.examples];
+                              next[idx] = { ...next[idx], htmlContent: text };
+                              setFormData({ ...formData, examples: next });
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <textarea
+                        value={ex.htmlContent || ""}
+                        onChange={(e) => {
+                          const next = [...formData.examples];
+                          next[idx] = { ...next[idx], htmlContent: e.target.value };
+                          setFormData({ ...formData, examples: next });
+                        }}
+                        rows={4}
+                        placeholder="<!DOCTYPE html> ... 또는 결과물 HTML 소스를 붙여넣기 (React는 빌드된 HTML로)"
+                        className="w-full px-3 py-2 border border-border rounded-lg text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+                      {ex.htmlContent?.trim() && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          미리보기 소스 {ex.htmlContent.length.toLocaleString()}자 등록됨
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
