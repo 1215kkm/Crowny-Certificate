@@ -53,6 +53,8 @@ export function TypingParagraphs({
   );
   const scrollRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** 단락별 DOM — 방금 나온 단락으로 스크롤하려고 붙잡아 둔다 */
+  const paraRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   /* 단락 세트가 바뀌면 초기화 */
   useEffect(() => {
@@ -111,13 +113,17 @@ export function TypingParagraphs({
     }
   }, [revealed, paragraphs.length, onAllRevealed]);
 
-  /* 열릴 때마다 아래로 따라 내려감.
-     아직 아무것도 안 열었을 때는 맨 위에 있어야 첫 단락부터 보인다. */
+  /* 방금 나온 단락을 화면에 맞춰 스크롤한다.
+     컨테이너 맨 아래(scrollHeight)로 가면 아직 안 열린 연한 단락들 끝으로 튀어서
+     방금 타이핑된 단락이 위로 밀려난다 → 그래서 "지금 활성 단락"만 보이게 한다.
+     아직 아무것도 안 열었을 때는 맨 위 그대로. */
   useEffect(() => {
     if (revealed === 0 && !typing) return;
-    const el = scrollRef.current;
+    // 지금 보여줄 단락 = 타이핑 중이면 그 단락, 아니면 방금 열린 마지막 단락
+    const activeIndex = typing ? typing.index : revealed - 1;
+    const el = paraRefs.current[activeIndex];
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [revealed, typing]);
 
   /* 키보드 아무 키나 → 다음 단락 */
@@ -170,6 +176,9 @@ export function TypingParagraphs({
           return (
             <div
               key={i}
+              ref={(node) => {
+                paraRefs.current[i] = node;
+              }}
               className={
                 isOpen || isTyping
                   ? "transition-opacity duration-300"
