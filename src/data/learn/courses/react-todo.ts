@@ -8,9 +8,12 @@ import type { Course } from "../types";
  */
 
 /* ────────────────────────────────────────────────────────────
- * 학생이 처음 받는 파일 (거의 빈 상태)
+ * 1단계에서 명령어를 실행하면 생기는 파일들.
+ *
+ * 실제로 `npm create vite` 가 만들어 주는 뼈대와 같은 역할이다.
+ * 학생은 이걸 손으로 만들지 않는다 — 도구가 만들어 준다는 걸 몸으로 겪게 한다.
  * ──────────────────────────────────────────────────────────── */
-const STARTER: Record<string, string> = {
+const SCAFFOLD: Record<string, string> = {
   "/index.js": `import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
@@ -20,10 +23,18 @@ const root = createRoot(document.getElementById("root"));
 root.render(<App />);
 `,
   "/App.js": `export default function App() {
-  return <div>여기서 시작해요!</div>;
+  return (
+    <div className="App">
+      <h1>Hello React</h1>
+      <p>Edit App.js and save to reload.</p>
+    </div>
+  );
 }
 `,
-  "/styles.css": `/* 여기에 꾸미기 코드를 넣을 거예요 */
+  "/styles.css": `.App {
+  font-family: sans-serif;
+  text-align: center;
+}
 `,
 };
 
@@ -1107,12 +1118,49 @@ export const reactTodoCourse: Course = {
   /* ── 6단계 따라하기 스텝 13개 ────────────────────────── */
   buildSteps: [
     {
+      id: "s0",
+      title: "1. 프로젝트 만들기 (설치)",
+      goal: "빈 폴더에 React 앱의 뼈대 파일들이 한 번에 생깁니다.",
+      why: "React 앱은 파일을 하나하나 손으로 만들지 않아요. 준비물이 너무 많거든요. 그래서 「뼈대를 만들어 주는 도구」에게 시킵니다. 집을 지을 때 기초 공사를 기계가 하는 것과 같아요.",
+      what: "터미널(명령 프롬프트)에 명령어 네 줄을 칩니다. npm 은 필요한 부품을 인터넷에서 받아다 깔아 주는 프로그램이에요. 그러면 index.js·App.js·styles.css 가 저절로 생깁니다.",
+      where: "오른쪽 「내 차례」 칸의 검은 터미널 상자에 명령어가 있어요. 「명령어 실행하기」를 누르면 실제로 npm 이 한 것과 똑같이 파일이 생깁니다.",
+      next: "도구가 만들어 준 App.js 안에는 연습용 코드(Hello React)가 들어 있어요. 다음 단계에서 그걸 우리 앱 코드로 바꿉니다.",
+      scaffold: {
+        command: `npm create vite@latest my-todo-app -- --template react
+cd my-todo-app
+npm install
+npm run dev`,
+        note: "실제 컴퓨터에서는 이 네 줄을 터미널에 칩니다. 여기서는 버튼을 누르면 같은 결과가 나와요.",
+        runLabel: "명령어 실행하기",
+      },
+      files: [
+        {
+          path: "/index.js",
+          action: "create",
+          code: SCAFFOLD["/index.js"],
+          hint: "앱을 화면에 처음 붙이는 파일. 도구가 만들어 준 거라 당분간 건드릴 일이 없어요.",
+        },
+        {
+          path: "/App.js",
+          action: "create",
+          code: SCAFFOLD["/App.js"],
+          hint: "도구가 넣어 준 연습용 코드예요. 내가 쓴 게 아니고, 다음 단계에서 지우고 우리 코드를 넣습니다.",
+        },
+        {
+          path: "/styles.css",
+          action: "create",
+          code: SCAFFOLD["/styles.css"],
+          hint: "꾸미기 파일. 역시 도구가 기본만 넣어 둔 상태예요.",
+        },
+      ],
+    },
+    {
       id: "s1",
-      title: "1. 첫 화면 띄우기",
+      title: "2. 첫 화면 띄우기",
       goal: "오른쪽 미리보기에 「나의 할 일 앱」이라는 제목이 뜹니다.",
       why: "코딩은 항상 「일단 뭐라도 화면에 뜨게」부터 시작해요. 화면이 뜨면 연결이 잘 됐다는 뜻이고, 그때부터 마음이 편해집니다.",
-      what: "App.js 파일을 열어서, 화면에 제목과 인사말을 띄우는 코드로 바꿉니다.",
-      where: "왼쪽 파일 목록에서 App.js 를 누르고, 안에 있던 내용을 전부 지운 다음 새 코드를 넣으세요.",
+      what: "앞 단계에서 도구가 만들어 준 App.js 를 열어서, 안에 있던 연습용 코드(Hello React)를 지우고 우리 앱 코드로 바꿉니다.",
+      where: "왼쪽 파일 목록에서 App.js 를 누르고, 안에 있던 내용을 전부 지운 다음 새 코드를 넣으세요. 여기서부터가 진짜 「내가 쓰는 코드」예요.",
       next: "다음에는 이 밋밋한 화면에 색을 입힐 거예요.",
       files: [
         {
@@ -1125,7 +1173,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s2",
-      title: "2. 색 입히기",
+      title: "3. 색 입히기",
       goal: "배경이 연보라색이 되고 제목이 보라색으로 바뀝니다.",
       why: "4단계에서 정한 색 규칙을 코드로 옮기는 일이에요. 디자인은 나중에 하는 게 아니라 처음부터 같이 갑니다.",
       what: "styles.css 파일에 배경색, 글꼴, 제목 색을 적습니다. CSS(씨에스에스)는 화면을 꾸미는 언어예요.",
@@ -1142,7 +1190,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s3",
-      title: "3. pages 폴더와 소개 페이지 만들기",
+      title: "4. pages 폴더와 소개 페이지 만들기",
       goal: "AboutPage.js 라는 새 파일이 pages 폴더 안에 생깁니다.",
       why: "화면이 3개니까 파일도 3개예요. 파일이 늘어나면 폴더로 정리해야 나중에 안 헤맵니다. 지금 습관을 들여 둡시다.",
       what: "src 안에 pages 라는 폴더를 만들고, 그 안에 AboutPage.js 파일을 만듭니다.",
@@ -1160,7 +1208,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s4",
-      title: "4. 소개 페이지 불러오기",
+      title: "5. 소개 페이지 불러오기",
       goal: "미리보기에 소개 페이지 내용이 나타납니다.",
       why: "파일을 만들기만 하면 화면에 안 나와요. 「이 부품을 여기다 붙여줘」라고 말해 줘야 합니다. 그게 import(임포트 — 불러오기)예요.",
       what: "App.js 맨 위에 import 한 줄을 넣고, 화면 안에 <AboutPage /> 를 붙입니다.",
@@ -1177,7 +1225,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s5",
-      title: "5. 메뉴 버튼 만들기",
+      title: "6. 메뉴 버튼 만들기",
       goal: "「할 일 / 통계 / 소개」 버튼 3개가 나란히 생깁니다.",
       why: "화면 3개를 오갈 방법이 있어야죠. 메뉴는 여러 화면에서 똑같이 쓰이니까 따로 부품으로 빼 둡니다.",
       what: "components 폴더를 만들고 Nav.js 파일을 만듭니다. Nav 는 navigation(내비게이션 — 길 안내)의 줄임말이에요.",
@@ -1201,7 +1249,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s6",
-      title: "6. 버튼 누르면 화면 바뀌게 하기",
+      title: "7. 버튼 누르면 화면 바뀌게 하기",
       goal: "메뉴를 누르면 눌린 버튼에 보라색이 칠해집니다.",
       why: "여기서 React 의 핵심인 상태(state, 스테이트)를 처음 씁니다. 상태란 「지금 어떤 상황인지 기억하는 메모지」예요.",
       what: "App.js 에서 useState 로 지금 보고 있는 페이지 이름을 기억하게 하고, 그 값을 Nav 에 넘겨줍니다.",
@@ -1218,7 +1266,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s7",
-      title: "7. 할 일 페이지 만들기",
+      title: "8. 할 일 페이지 만들기",
       goal: "「할 일」 버튼을 누르면 「오늘 할 일」이라는 빈 화면이 뜹니다.",
       why: "큰 걸 한 번에 만들면 어디가 틀렸는지 못 찾아요. 껍데기부터 만들고 안을 채웁니다.",
       what: "pages 폴더에 TodoPage.js 를 만들고, App.js 에서 불러옵니다.",
@@ -1241,7 +1289,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s8",
-      title: "8. 입력창 만들기",
+      title: "9. 입력창 만들기",
       goal: "글자를 치면 아래에 친 글자가 그대로 따라 나옵니다.",
       why: "입력창은 「내가 친 글자를 앱이 알고 있어야」 쓸모가 있어요. 그래서 여기도 상태(useState)를 씁니다.",
       what: "TodoPage.js 에 입력창과 추가 버튼을 넣고, 친 글자를 text 라는 상태에 담습니다.",
@@ -1258,7 +1306,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s9",
-      title: "9. 할 일 담기",
+      title: "10. 할 일 담기",
       goal: "추가 버튼을 누르면 「지금까지 N개 담았어요」의 숫자가 올라갑니다.",
       why: "할 일 목록은 통계 화면에서도 써야 해요. 여러 화면이 같이 쓰는 값은 위쪽(App.js)에 두는 게 규칙입니다.",
       what: "App.js 에 todos 라는 목록 상태와 addTodo 함수를 만들고, TodoPage 에 내려 줍니다.",
@@ -1281,7 +1329,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s10",
-      title: "10. 목록 보여주기",
+      title: "11. 목록 보여주기",
       goal: "추가한 할 일들이 줄줄이 목록으로 나타납니다.",
       why: "드디어 앱처럼 보이는 순간이에요. 여기서 map 을 한 번 더 씁니다. 목록을 화면으로 바꾸는 건 항상 map 이에요.",
       what: "TodoPage.js 에서 todos 를 map 으로 돌면서 <li> 를 하나씩 만듭니다.",
@@ -1298,7 +1346,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s11",
-      title: "11. 완료 체크하기",
+      title: "12. 완료 체크하기",
       goal: "체크박스를 누르면 글자에 취소선이 그어집니다.",
       why: "다 한 일에 줄이 쫙 그어지는 그 맛이 할 일 앱의 전부예요. 기능 4개 중 3번째, 「고치기」입니다.",
       what: "App.js 에 toggleTodo 함수를 만들고, TodoPage 에 체크박스를 답니다.",
@@ -1321,7 +1369,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s12",
-      title: "12. 삭제하기",
+      title: "13. 삭제하기",
       goal: "삭제 버튼을 누르면 그 할 일이 사라집니다.",
       why: "기능 4개 중 마지막, 「지우기」예요. 이걸로 CRUD 가 완성됩니다.",
       what: "App.js 에 removeTodo 함수를 만들고, 목록 오른쪽에 삭제 버튼을 답니다.",
@@ -1344,7 +1392,7 @@ export const reactTodoCourse: Course = {
     },
     {
       id: "s13",
-      title: "13. 통계 페이지 만들기 (마지막!)",
+      title: "14. 통계 페이지 만들기 (마지막!)",
       goal: "「통계」 버튼을 누르면 전체·완료·남은 개수와 진행 막대가 나옵니다.",
       why: "같은 데이터를 다른 방식으로 보여주는 연습이에요. 숫자를 세고, 퍼센트를 계산하고, 막대로 그립니다.",
       what: "pages 폴더에 StatsPage.js 를 만들고, App.js 에서 todos 를 넘겨 줍니다.",
@@ -1433,5 +1481,7 @@ git push -u origin main`,
     },
   ],
 
-  starterFiles: STARTER,
+  // 빈 폴더에서 시작한다. 파일은 1단계에서 명령어를 실행해야 생긴다.
+  // (파일이 미리 놓여 있으면 "이건 어디서 온 거지?" 하고 학생이 막힌다)
+  starterFiles: {},
 };

@@ -71,6 +71,20 @@ export function PanePreview() {
         </div>
       </div>
 
+      {/* 아직 프로젝트를 안 만들었으면 실행할 게 없다 — 빈 Sandpack 을 띄우면
+          템플릿 기본 화면이 나와서 "내가 안 만들었는데 왜 뜨지?" 로 헷갈린다 */}
+      {Object.keys(debounced).length === 0 ? (
+        <div className="flex-1 min-h-0 grid place-items-center px-6 text-center">
+          <div>
+            <p className="text-[14px] font-semibold">아직 만든 게 없어요</p>
+            <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed break-keep">
+              「내 차례」 칸에서 명령어를 실행해
+              <br />
+              프로젝트를 먼저 만들어 주세요.
+            </p>
+          </div>
+        </div>
+      ) : (
       <div className="flex-1 min-h-0 bg-muted/40 grid place-items-center overflow-hidden">
         <div
           className={
@@ -86,6 +100,7 @@ export function PanePreview() {
           />
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -16,6 +16,8 @@ import {
   PenLine,
   Hammer,
   Rocket,
+  TerminalSquare,
+  Play,
 } from "lucide-react";
 import { useLearn } from "./learn-store";
 import { PaneFrame, SectionLabel } from "./pane-frame";
@@ -304,7 +306,60 @@ export function PaneStudent() {
       topLeft={<StudentNotes storageKey={noteKey} />}
       topRight={
         <>
-          {step && (expectedFolders.length > 0 || expectedFiles.length > 0) && (
+          {/* 설치 단계 — 명령어를 실행하면 뼈대 파일이 한꺼번에 생긴다.
+              실제로는 npm 이 하는 일을, 여기서는 같은 결과가 나오도록 흉내 낸다. */}
+          {step?.scaffold && (
+            <div className="rounded-lg bg-white border border-primary-200 px-2.5 py-2 mb-1.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary-800 mb-1.5">
+                <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
+                터미널에 칠 명령어
+              </div>
+              <pre className="rounded-md bg-foreground text-white text-[11px] leading-relaxed p-2 overflow-x-auto font-mono m-0">
+                {step.scaffold.command}
+              </pre>
+              <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug break-keep">
+                {step.scaffold.note}
+              </p>
+
+              {(() => {
+                const madeAll = step.files.every((f) => files[f.path] !== undefined);
+                return (
+                  <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                    <button
+                      onClick={() =>
+                        step.files.forEach((f) => writeFile(f.path, f.code))
+                      }
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition ${
+                        madeAll
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-gradient-brand text-white hover:opacity-90"
+                      }`}
+                    >
+                      <Play className="w-3.5 h-3.5" aria-hidden />
+                      {madeAll ? "다시 실행" : step.scaffold!.runLabel}
+                    </button>
+                    <button
+                      onClick={() =>
+                        navigator.clipboard?.writeText(step.scaffold!.command)
+                      }
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-1 py-1"
+                    >
+                      <Copy className="w-3 h-3" aria-hidden />
+                      명령어 복사
+                    </button>
+                    {madeAll && (
+                      <span className="flex items-center gap-1 text-[11px] font-semibold text-success">
+                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden />
+                        파일이 생겼어요
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {step && !step.scaffold && (expectedFolders.length > 0 || expectedFiles.length > 0) && (
             <div className="rounded-lg bg-white border border-primary-200 px-2.5 py-2 mb-1.5">
               <div className="text-[11px] font-bold text-primary-800 mb-1">
                 이번에 만들 것

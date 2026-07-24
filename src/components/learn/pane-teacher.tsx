@@ -102,8 +102,20 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
         topRight={
           <>
             <div className="text-[12px] font-bold text-primary-800 px-1 pb-1.5">
-              이번에 제가 만드는 것
+              {step.scaffold ? "제가 치는 명령어" : "이번에 제가 만드는 것"}
             </div>
+
+            {/* 설치 단계 — 파일을 손으로 만드는 게 아니라 명령어가 만들어 준다 */}
+            {step.scaffold && (
+              <div className="rounded-lg bg-white border border-primary-200 px-2.5 py-2 mb-1.5">
+                <pre className="rounded-md bg-foreground text-white text-[11px] leading-relaxed p-2 overflow-x-auto font-mono m-0">
+                  {step.scaffold.command}
+                </pre>
+                <p className="mt-1.5 text-[11px] text-primary-700 leading-snug break-keep">
+                  ⬇ 이 명령어가 끝나면 아래 파일들이 저절로 생깁니다
+                </p>
+              </div>
+            )}
 
             {step.createFolders?.map((f) => (
               <div
