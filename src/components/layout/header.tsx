@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { ExternalLink } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { signOut } from "@/lib/firebase-auth";
 
@@ -13,6 +14,9 @@ const NAV_ITEMS = [
   { label: "합격작", href: "/showcase" },
   { label: "마이페이지", href: "/mypage" },
 ];
+
+/** 별개 메뉴 — 로그인 없이 쓰는 학습 도구. 새 창으로 띄운다. */
+const LEARN_HREF = "/learn";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -48,6 +52,17 @@ export function Header() {
               {item.label}
             </Link>
           ))}
+
+          <a
+            href={LEARN_HREF}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 bg-gradient-brand text-white px-3 py-1.5 rounded-md text-sm font-semibold hover:opacity-90 transition"
+          >
+            따라하며 코딩 배우기
+            <ExternalLink className="w-3.5 h-3.5" aria-hidden />
+            <span className="sr-only">새 창에서 열림</span>
+          </a>
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
@@ -142,6 +157,18 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
+
+            <a
+              href={LEARN_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 bg-gradient-brand text-white px-4 py-2.5 rounded-md text-sm font-semibold"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              따라하며 코딩 배우기
+              <ExternalLink className="w-3.5 h-3.5" aria-hidden />
+            </a>
+
             <hr className="border-border" />
             {user ? (
               <>
