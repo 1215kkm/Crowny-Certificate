@@ -60,12 +60,29 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
     const step = course.buildSteps[stepIndex];
     if (!step) return null;
 
-    const files = teacherFilesUpTo(course, stepIndex);
+    /** 학생이 지금까지 친 명령어 줄 수 — 선생 칸도 딱 그만큼만 보여준다 */
+    const linesDone = scaffoldLines[step.id] ?? 0;
+
+    /* 명령어 스텝에서는 **친 줄이 만든 파일만** 보여준다.
+       미리 다 펼쳐 두면 "이 줄이 이걸 만들었구나" 가 선생 칸에서 먼저 까발려진다. */
+    const allFiles = teacherFilesUpTo(course, stepIndex);
+    const files = step.scaffold
+      ? Object.fromEntries(
+          step.scaffold.lines
+            .slice(0, linesDone)
+            .flatMap((l) => l.creates ?? [])
+            .filter((p) => allFiles[p] !== undefined)
+            .map((p) => [p, allFiles[p]])
+        )
+      : allFiles;
+
     const folders = teacherFoldersUpTo(course, stepIndex);
     const shownFile =
       answerFile && files[answerFile] !== undefined
         ? answerFile
-        : step.files[0]?.path ?? Object.keys(files)[0];
+        : /* 아직 안 생긴 파일을 열면 빈 편집기가 나온다 — 있는 것 중에서 고른다 */
+          step.files.find((f) => files[f.path] !== undefined)?.path ??
+          Object.keys(files)[0];
     const tree = groupByFolder(Object.keys(files), folders);
     const isDone = doneSteps.includes(step.id);
 
@@ -78,8 +95,6 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
       step.files.map((f) => [f.path, f.action === "create" ? "새로" : "고치기"])
     );
 
-    /** 학생이 지금까지 친 명령어 줄 수 — 선생 칸도 딱 그만큼만 보여준다 */
-    const linesDone = scaffoldLines[step.id] ?? 0;
     const termOpen = !!step.scaffold && showTerminal;
 
     return (
