@@ -149,10 +149,12 @@ function LearnShell() {
           <section className="w-[17%] min-w-[210px] min-h-0">
             <PaneStages />
           </section>
-          <section className="flex-1 min-w-0 min-h-0">
+          {/* 2·3칸은 flex-1 + basis-0 으로 남는 폭을 정확히 반씩 —
+              선생(시연)과 학생(실습)이 같은 뼈대·같은 폭이어야 눈이 좌우를 바로 대조한다 */}
+          <section className="flex-1 basis-0 min-w-[280px] min-h-0">
             <PaneTeacher />
           </section>
-          <section className="w-[26%] min-w-[280px] min-h-0">
+          <section className="flex-1 basis-0 min-w-[280px] min-h-0">
             <PaneStudent />
           </section>
           <section className="w-[21%] min-w-[250px] min-h-0">
