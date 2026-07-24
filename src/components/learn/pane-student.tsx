@@ -62,6 +62,7 @@ export function PaneStudent() {
     markTraced,
     doneDeploy,
     toggleDeployDone,
+    goNextStage,
   } = useLearn();
 
   const [copied, setCopied] = useState(false);
@@ -114,7 +115,7 @@ export function PaneStudent() {
         }
         bottom={
           stageContent?.practiceText ? (
-            <TraceBox practice={practice} />
+            <TraceBox practice={practice} onNext={goNextStage} />
           ) : (
             <div className="h-full grid place-items-center px-6 text-center">
               <p className="text-[13px] text-muted-foreground break-keep">

@@ -32,6 +32,24 @@ export function PaneStages({ onPick }: { onPick?: () => void }) {
 
   const track = TRACKS.find((t) => t.id === trackId);
 
+  /**
+   * 목차 한 줄의 진행률(0~100).
+   * 따라하기·배포는 스텝 수 기준이라 중간값이 나오고,
+   * 1~5단계는 따라 치기를 마쳤는지라 0 또는 100 이다.
+   */
+  function stagePercent(id: StageId): number {
+    if (!course) return 0;
+    if (id === "build") {
+      const total = course.buildSteps.length;
+      return total === 0 ? 0 : Math.round((doneSteps.length / total) * 100);
+    }
+    if (id === "deploy") {
+      const total = course.deploySteps.length;
+      return total === 0 ? 0 : Math.round((doneDeploy.length / total) * 100);
+    }
+    return tracedStages.includes(id) ? 100 : 0;
+  }
+
   function stageDone(id: StageId): boolean {
     if (id === "build") {
       return (
@@ -142,6 +160,7 @@ export function PaneStages({ onPick }: { onPick?: () => void }) {
               if (!s) return null;
               const on = stage === id;
               const finished = stageDone(id);
+              const pct = stagePercent(id);
 
               return (
                 <button
@@ -196,6 +215,16 @@ export function PaneStages({ onPick }: { onPick?: () => void }) {
                         {doneDeploy.length} / {course.deploySteps.length} 스텝
                       </span>
                     )}
+
+                    {/* 목차 한 줄마다 얇은 진행률 — 어디까지 했는지 눈으로 훑게 */}
+                    <span className="block mt-1.5 h-1 rounded-full bg-muted overflow-hidden">
+                      <span
+                        className={`block h-full rounded-full transition-all duration-500 ${
+                          finished ? "bg-success" : "bg-gradient-brand"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </span>
                   </span>
 
                   {on && (

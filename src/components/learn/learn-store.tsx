@@ -56,6 +56,7 @@ interface LearnState extends Persisted {
   markTraced: (s: StageId) => void;
   toggleStepDone: (id: string) => void;
   toggleDeployDone: (id: string) => void;
+  goNextStage: () => void;
   setThemeId: (id: string) => void;
   resetCourse: () => void;
   /** 저장된 진도가 있어 이어서 하는 중인가 */
@@ -253,6 +254,15 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  /** 목차의 다음 단계로. 마지막(배포)이면 그대로 둔다. */
+  const goNextStage = useCallback(() => {
+    setState((prev) => {
+      const i = STAGE_ORDER.indexOf(prev.stage);
+      const next = STAGE_ORDER[i + 1];
+      return next ? { ...prev, stage: next } : prev;
+    });
+  }, []);
+
   const setThemeId = useCallback((id: string) => {
     setState((prev) => ({ ...prev, themeId: id }));
   }, []);
@@ -290,6 +300,7 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     markTraced,
     toggleStepDone,
     toggleDeployDone,
+    goNextStage,
     setThemeId,
     resetCourse,
   };

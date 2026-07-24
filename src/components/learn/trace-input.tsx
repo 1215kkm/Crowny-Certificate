@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ClipboardPaste, RotateCcw, CheckCircle2 } from "lucide-react";
+import { ClipboardPaste, RotateCcw, CheckCircle2, ArrowRight } from "lucide-react";
 
 /**
  * 「따라 치기」 (1~5단계).
@@ -100,7 +100,16 @@ export function TraceTarget({
 }
 
 /** 하단 — 내가 치는 칸 */
-export function TraceBox({ practice }: { practice: Practice }) {
+export function TraceBox({
+  practice,
+  onNext,
+  nextLabel = "다음 진행하기",
+}: {
+  practice: Practice;
+  /** 다 치면 켜지는 다음 단계 버튼 */
+  onNext?: () => void;
+  nextLabel?: string;
+}) {
   const taRef = useRef<HTMLTextAreaElement>(null);
 
   return (
@@ -152,6 +161,23 @@ export function TraceBox({ practice }: { practice: Practice }) {
           <RotateCcw className="w-3.5 h-3.5" aria-hidden />
           다시
         </button>
+
+        {/* 맨 오른쪽 — 다 치면 켜진다.
+            자리를 늘 잡아 두어야 "다 하면 여기로 간다"가 예측된다. */}
+        {onNext && (
+          <button
+            onClick={onNext}
+            disabled={!practice.done}
+            className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-semibold transition ${
+              practice.done
+                ? "bg-gradient-brand text-white hover:opacity-90"
+                : "bg-muted text-muted-foreground cursor-default"
+            }`}
+          >
+            {practice.done ? nextLabel : "다 치면 넘어가요"}
+            <ArrowRight className="w-3.5 h-3.5" aria-hidden />
+          </button>
+        )}
       </div>
     </div>
   );

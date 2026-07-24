@@ -374,7 +374,12 @@ const IMAGE_THEMES: LearnTheme[] = [
 /** 셀렉트에 뜨는 최종 목록 (10종) */
 export const LEARN_THEMES: LearnTheme[] = [...BASE_THEMES, ...IMAGE_THEMES];
 
-export const DEFAULT_THEME_ID = "crown-refine";
+/**
+ * 기본 테마 = 테라코타 스톤.
+ * 배경은 웜 베이지, 작업면은 쿨 그레이 — 1칸과 2·3칸이 명도가 아니라 색 온도로 갈려
+ * "지금 어디서 작업 중인지" 경계가 가장 빨리 잡힌다는 강디 판단.
+ */
+export const DEFAULT_THEME_ID = "terracotta-stone";
 
 export function getTheme(id: string): LearnTheme {
   return LEARN_THEMES.find((t) => t.id === id) ?? LEARN_THEMES[0];
