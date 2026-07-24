@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ClipboardPaste, RotateCcw, CheckCircle2, ArrowRight } from "lucide-react";
 
+/** 이만큼만 맞으면 다음 단계로 넘어갈 수 있다 (0~1) */
+export const PASS_RATIO = 0.7;
+
 /**
  * 「따라 치기」 (1~5단계).
  *
@@ -72,13 +75,18 @@ export function useTracePractice(
       return { ch, state: i <= lastPassedIndex ? ("ok" as const) : ("todo" as const) };
     });
 
-    const done = tm.length > 0 && tm.length === vm.length &&
-      tm.every((t, k) => vm[k].ch === t.ch);
+    // 맞게 친 글자 수 — 이 비율이 곧 화면의 % 이고 통과 기준이다
+    const correct = tm.reduce(
+      (n, t, k) => (vm[k] && vm[k].ch === t.ch ? n + 1 : n),
+      0
+    );
 
     const percent =
-      tm.length === 0
-        ? 100
-        : Math.round((Math.min(vm.length, tm.length) / tm.length) * 100);
+      tm.length === 0 ? 100 : Math.round((correct / tm.length) * 100);
+
+    // 끝까지 정확히 옮겨 적는 게 목적이 아니라 손으로 한 번 따라가 보는 게 목적이라
+    // 70% 만 맞아도 다음으로 넘어갈 수 있게 한다.
+    const done = tm.length === 0 || correct / tm.length >= PASS_RATIO;
 
     return { chars, done, percent };
   }, [target, value]);
@@ -148,16 +156,17 @@ export function TraceBox({
           내가 치는 곳
         </span>
         <span className="text-[11px] text-muted-foreground">
-          띄어쓰기랑 . , ( ) 같은 기호는 달라도 괜찮아요
+          띄어쓰기랑 . , ( ) 같은 기호는 달라도 괜찮아요 · {Math.round(PASS_RATIO * 100)}%만
+          치면 넘어갈 수 있어요
         </span>
         {practice.done ? (
-          <span className="ml-auto flex items-center gap-1 text-[12px] font-semibold text-success">
+          <span className="ml-auto flex items-center gap-1 text-[12px] font-semibold text-success tabular-nums">
             <CheckCircle2 className="w-3.5 h-3.5" aria-hidden />
-            완료!
+            {practice.percent}% 통과!
           </span>
         ) : (
           <span className="ml-auto text-[12px] text-muted-foreground tabular-nums">
-            {practice.percent}%
+            {practice.percent}% / {Math.round(PASS_RATIO * 100)}%
           </span>
         )}
       </div>
@@ -206,7 +215,9 @@ export function TraceBox({
                 : "bg-muted text-muted-foreground cursor-default"
             }`}
           >
-            {practice.done ? nextLabel : "다 치면 넘어가요"}
+            {practice.done
+              ? nextLabel
+              : `${Math.round(PASS_RATIO * 100)}%까지 치면 넘어가요`}
             <ArrowRight className="w-3.5 h-3.5" aria-hidden />
           </button>
         )}
