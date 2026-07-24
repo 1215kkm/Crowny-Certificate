@@ -1,23 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  FilePlus2,
-  FilePenLine,
-  FolderPlus,
   GraduationCap,
   Rocket,
   Target,
+  TerminalSquare,
 } from "lucide-react";
 import { useLearn } from "./learn-store";
 import { TypingParagraphs } from "./typing-paragraphs";
 import { PaneFrame, SectionLabel } from "./pane-frame";
+import { FileTreeBox, OpenFileBar, TargetChips } from "./pane-boxes";
+import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
 import {
   buildStepParagraphs,
-  baseName,
   groupByFolder,
   teacherFilesUpTo,
   teacherFoldersUpTo,
@@ -39,9 +39,17 @@ const CodeEditor = dynamic(() => import("./code-editor"), {
  *   머리줄 / 상단 왼쪽 = 설명 / 상단 오른쪽 = 내가 만드는 것 / 아래 = 내 코드
  */
 export function PaneTeacher({ active = true }: { active?: boolean }) {
-  const { course, stage, stepIndex, setStepIndex, toggleStepDone, doneSteps } =
+  const { course, stage, stepIndex, doneSteps, scaffoldLines, setStepIndex } =
     useLearn();
   const [answerFile, setAnswerFile] = useState<string | null>(null);
+  /** 명령어 스텝에서 아래 큰 칸에 터미널을 보여줄지 (다 치면 코드로 바뀐다) */
+  const [showTerminal, setShowTerminal] = useState(true);
+
+  /* 스텝이 바뀌면 아래 칸은 다시 터미널부터 */
+  useEffect(() => {
+    setShowTerminal(true);
+    setAnswerFile(null);
+  }, [stepIndex]);
 
   if (!course) return null;
 
@@ -60,6 +68,19 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
         : step.files[0]?.path ?? Object.keys(files)[0];
     const tree = groupByFolder(Object.keys(files), folders);
     const isDone = doneSteps.includes(step.id);
+
+    /* 파일 설명은 카드가 아니라 말풍선으로 — 파일 이름 옆 💬 를 누르거나
+       이름에 마우스를 올리면 뜬다. 목록이 짧아져서 「내 폴더」가 학생 칸과 같은 자리에 온다. */
+    const hints = Object.fromEntries(
+      step.files.filter((f) => f.hint).map((f) => [f.path, f.hint!])
+    );
+    const badges = Object.fromEntries(
+      step.files.map((f) => [f.path, f.action === "create" ? "새로" : "고치기"])
+    );
+
+    /** 학생이 지금까지 친 명령어 줄 수 — 선생 칸도 딱 그만큼만 보여준다 */
+    const linesDone = scaffoldLines[step.id] ?? 0;
+    const termOpen = !!step.scaffold && showTerminal;
 
     return (
       <PaneFrame
@@ -97,127 +118,92 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
             paragraphs={buildStepParagraphs(step)}
             active={active}
             resetKey={`${course.id}-${step.id}`}
+            /* 오른쪽에서 명령어를 한 줄 칠 때마다 설명도 한 단락씩 열린다 */
+            advanceSignal={step.scaffold ? linesDone : undefined}
           />
         }
         topRight={
+          /* 학생 칸(3번)과 **같은 순서·같은 크기**로 쌓는다.
+             위 = 이번에 만드는 것 / 아래 = 내 폴더 / 맨 아래 = 이 스텝 상태 */
           <>
-            <div className="text-[12px] font-bold text-primary-800 px-1 pb-1.5">
-              {step.scaffold ? "제가 치는 명령어" : "이번에 제가 만드는 것"}
-            </div>
-
-            {/* 설치 단계 — 파일을 손으로 만드는 게 아니라 명령어가 만들어 준다 */}
-            {step.scaffold && (
-              <div className="rounded-lg bg-white border border-primary-200 px-2.5 py-2 mb-1.5">
-                <pre className="rounded-md bg-foreground text-white text-[11px] leading-relaxed p-2 overflow-x-auto font-mono m-0">
-                  {step.scaffold.command}
-                </pre>
-                <p className="mt-1.5 text-[11px] text-primary-700 leading-snug break-keep">
-                  ⬇ 이 명령어가 끝나면 아래 파일들이 저절로 생깁니다
-                </p>
-              </div>
+            {step.scaffold ? (
+              <CommandList lines={step.scaffold.lines} doneCount={linesDone} />
+            ) : (
+              <TargetChips
+                title="이번에 제가 만드는 것"
+                folders={step.createFolders ?? []}
+                files={step.files.map((f) => f.path)}
+                doneFolders={step.createFolders ?? []}
+                doneFiles={step.files.map((f) => f.path)}
+              />
             )}
 
-            {step.createFolders?.map((f) => (
-              <div
-                key={f}
-                className="flex items-center gap-2 rounded-lg bg-white border border-primary-200 px-2.5 py-2 mb-1.5"
-              >
-                <FolderPlus className="w-4 h-4 text-primary shrink-0" aria-hidden />
-                <span className="text-[13px] font-semibold truncate">
-                  {f.replace(/^\//, "")} 폴더
-                </span>
-                <span className="ml-auto text-[10px] bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded shrink-0">
-                  새 폴더
-                </span>
-              </div>
-            ))}
+            <FileTreeBox
+              tree={tree}
+              current={shownFile}
+              /* 파일을 누르면 터미널을 접고 그 파일의 정답 코드를 아래 칸에 연다 */
+              onPick={(p) => {
+                setAnswerFile(p);
+                setShowTerminal(false);
+              }}
+              hints={hints}
+              badges={badges}
+              emptyText="명령어를 치면 여기에 파일이 생깁니다."
+            />
 
-            {step.files.map((f) => (
-              <button
-                key={f.path}
-                onClick={() => setAnswerFile(f.path)}
-                className={`w-full text-left flex items-start gap-2 rounded-lg border px-2.5 py-2 mb-1.5 transition ${
-                  shownFile === f.path
-                    ? "bg-white border-primary"
-                    : "bg-white border-primary-200 hover:border-primary-400"
-                }`}
-              >
-                {f.action === "create" ? (
-                  <FilePlus2 className="w-4 h-4 text-success shrink-0 mt-0.5" aria-hidden />
-                ) : (
-                  <FilePenLine className="w-4 h-4 text-accent-dark shrink-0 mt-0.5" aria-hidden />
-                )}
-                <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-semibold truncate">
-                    {baseName(f.path)}
-                  </span>
-                  <span className="block text-[11px] text-muted-foreground truncate">
-                    {f.path}
-                  </span>
-                  {f.hint && (
-                    <span className="block mt-1 text-[12px] text-primary-700 leading-snug break-keep">
-                      💡 {f.hint}
-                    </span>
-                  )}
-                </span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
-                    f.action === "create"
-                      ? "bg-success/15 text-success"
-                      : "bg-accent/15 text-accent-dark"
-                  }`}
-                >
-                  {f.action === "create" ? "새로" : "고치기"}
-                </span>
-              </button>
-            ))}
-
-            <button
-              onClick={() => toggleStepDone(step.id)}
-              className={`mt-1 w-full rounded-lg py-2 text-[13px] font-semibold transition ${
+            <div
+              className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold ${
                 isDone
-                  ? "bg-success text-white"
-                  : "bg-white border border-primary-200 text-primary-800 hover:border-primary"
+                  ? "bg-success/10 text-success"
+                  : "bg-white border border-primary-200 text-muted-foreground"
               }`}
             >
-              {isDone ? "✓ 이 스텝 완료" : "이 스텝 다 했어요"}
-            </button>
+              {isDone ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" aria-hidden />이 스텝 완료
+                </>
+              ) : (
+                "따라 한 뒤 오른쪽에서 체크하세요"
+              )}
+            </div>
           </>
         }
         bottom={
-          <>
-            <div className="shrink-0 flex items-center gap-1 px-2 py-1.5 border-b border-border overflow-x-auto">
-              <span className="text-[11px] font-bold text-primary-800 px-1 shrink-0">
-                내 파일
-              </span>
-              {tree.map(({ files: fs }) =>
-                fs.map((p) => (
+          termOpen ? (
+            <ScaffoldTerminal
+              lines={step.scaffold!.lines}
+              doneCount={linesDone}
+              readOnly
+              onFinish={() => setShowTerminal(false)}
+            />
+          ) : (
+            <>
+              <OpenFileBar path={shownFile ?? ""}>
+                {step.scaffold && (
                   <button
-                    key={p}
-                    onClick={() => setAnswerFile(p)}
-                    title={p}
-                    className={`shrink-0 px-2 py-1 rounded text-[12px] transition ${
-                      shownFile === p
-                        ? "bg-primary text-white"
-                        : "text-muted-foreground hover:bg-muted"
-                    }`}
+                    onClick={() => setShowTerminal(true)}
+                    className="shrink-0 flex items-center gap-1 text-[12px] text-muted-foreground px-1.5 py-1 rounded hover:bg-muted transition"
                   >
-                    {baseName(p)}
+                    <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
+                    터미널
                   </button>
-                ))
-              )}
-            </div>
-            <div className="flex-1 min-h-0">
-              {shownFile && (
-                <CodeEditor
-                  key={shownFile}
-                  path={shownFile}
-                  value={files[shownFile] ?? ""}
-                  readOnly
-                />
-              )}
-            </div>
-          </>
+                )}
+                <span className="shrink-0 text-[11px] bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded">
+                  선생님 코드
+                </span>
+              </OpenFileBar>
+              <div className="flex-1 min-h-0">
+                {shownFile && (
+                  <CodeEditor
+                    key={shownFile}
+                    path={shownFile}
+                    value={files[shownFile] ?? ""}
+                    readOnly
+                  />
+                )}
+              </div>
+            </>
+          )
         }
       />
     );

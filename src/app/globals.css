@@ -126,6 +126,60 @@ body {
   background-color: var(--lt-surface, #ffffff);
 }
 
+/* 명령어 한 줄을 치면 그 줄이 만든 파일이 「내 폴더」에 나타난다.
+   그냥 툭 생기면 못 보고 지나치므로 잠깐 초록으로 반짝이며 밀려 들어온다. */
+@keyframes learnFilePop {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px) scale(0.96);
+    background-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+  }
+  45% {
+    opacity: 1;
+    transform: none;
+    background-color: color-mix(in srgb, var(--color-success) 22%, transparent);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    background-color: transparent;
+  }
+}
+.learn-file-pop {
+  animation: learnFilePop 1.6s ease-out;
+}
+
+/* 터미널 출력 한 줄이 뜰 때 */
+@keyframes learnOutIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.learn-out-in {
+  animation: learnOutIn 0.22s ease-out;
+}
+
+/* 터미널 안 「+ 파일 생김」 딱지 */
+@keyframes learnChipIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.learn-chip-in {
+  opacity: 0;
+  animation: learnChipIn 0.32s ease-out forwards;
+}
+
 /* 로고는 짙은 남색 이미지라 다크 테마 배경에 묻힌다 — 밝게 뒤집어 준다 */
 .learn-root[data-dark="true"] img[alt="KAIAT"] {
   filter: brightness(0) invert(1);

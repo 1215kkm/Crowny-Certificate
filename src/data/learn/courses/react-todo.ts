@@ -1122,16 +1122,51 @@ export const reactTodoCourse: Course = {
       title: "1. 프로젝트 만들기 (설치)",
       goal: "빈 폴더에 React 앱의 뼈대 파일들이 한 번에 생깁니다.",
       why: "React 앱은 파일을 하나하나 손으로 만들지 않아요. 준비물이 너무 많거든요. 그래서 「뼈대를 만들어 주는 도구」에게 시킵니다. 집을 지을 때 기초 공사를 기계가 하는 것과 같아요.",
-      what: "터미널(명령 프롬프트)에 명령어 네 줄을 칩니다. npm 은 필요한 부품을 인터넷에서 받아다 깔아 주는 프로그램이에요. 그러면 index.js·App.js·styles.css 가 저절로 생깁니다.",
-      where: "오른쪽 「내 차례」 칸의 검은 터미널 상자에 명령어가 있어요. 「명령어 실행하기」를 누르면 실제로 npm 이 한 것과 똑같이 파일이 생깁니다.",
+      what: "터미널(명령 프롬프트)에 명령어 네 줄을 칩니다. npm 은 필요한 부품을 인터넷에서 받아다 깔아 주는 프로그램이에요. 한 줄을 치고 엔터를 누를 때마다 무엇이 생기는지 눈으로 확인하세요.",
+      where: "오른쪽 「내 차례」 칸의 검은 터미널 상자에 한 줄씩 칩니다. 한 줄을 다 치고 엔터를 누르면 그 줄이 만드는 것이 아래 「내 폴더」에 하나씩 나타납니다.",
       next: "도구가 만들어 준 App.js 안에는 연습용 코드(Hello React)가 들어 있어요. 다음 단계에서 그걸 우리 앱 코드로 바꿉니다.",
       scaffold: {
-        command: `npm create vite@latest my-todo-app -- --template react
-cd my-todo-app
-npm install
-npm run dev`,
-        note: "실제 컴퓨터에서는 이 네 줄을 터미널에 칩니다. 여기서는 버튼을 누르면 같은 결과가 나와요.",
-        runLabel: "명령어 실행하기",
+        note: "실제 컴퓨터에서도 이 네 줄을 위에서부터 차례로 칩니다. 여기서도 똑같이 한 줄씩 쳐 보세요.",
+        lines: [
+          {
+            text: "npm create vite@latest my-todo-app -- --template react",
+            does: "「my-todo-app 이라는 폴더를 만들고, 그 안에 React 앱 뼈대를 깔아 줘」라는 뜻이에요. vite(비트)는 뼈대를 만들어 주는 도구 이름입니다.",
+            output: [
+              "React 뼈대를 만드는 중…",
+              "my-todo-app 폴더를 만들었어요.",
+              "파일 3개를 넣었어요.",
+            ],
+            creates: ["/index.js", "/App.js", "/styles.css"],
+          },
+          {
+            text: "cd my-todo-app",
+            does: "방금 만든 폴더 안으로 들어가는 명령이에요. cd 는 change directory(폴더 바꾸기)의 줄임말입니다. 여기 들어가야 다음 명령이 이 앱에 걸립니다.",
+            output: [
+              "이제 my-todo-app 폴더 안에서 일합니다.",
+              "생기는 파일은 없어요. 자리만 옮긴 거예요.",
+            ],
+          },
+          {
+            text: "npm install",
+            does: "앱이 돌아가려면 남이 만들어 둔 부품이 잔뜩 필요해요. 그 부품들을 인터넷에서 받아다 깔아 주는 명령입니다.",
+            output: [
+              "부품을 내려받는 중…",
+              "부품 214개를 깔았어요.",
+              "node_modules 라는 부품 상자가 생겼어요. 열어 볼 일은 없어요.",
+            ],
+            effect: "install",
+          },
+          {
+            text: "npm run dev",
+            does: "앱에 전원을 켜는 명령이에요. 주소가 뜨면 그 주소로 내 앱을 볼 수 있습니다. 끄기 전까지 계속 켜 둡니다.",
+            output: [
+              "앱을 켜는 중…",
+              "준비 완료 (412ms)",
+              "주소: http://localhost:5173/",
+            ],
+            effect: "serve",
+          },
+        ],
       },
       files: [
         {

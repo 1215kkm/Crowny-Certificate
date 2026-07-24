@@ -38,6 +38,8 @@ interface Persisted {
   doneSteps: string[];
   /** 완료한 배포 스텝 id */
   doneDeploy: string[];
+  /** 스텝 id → 터미널에서 지금까지 친 명령어 줄 수 */
+  scaffoldLines: Record<string, number>;
   /** 화면 테마 id — 상단 셀렉트로 바꾼다 */
   themeId: string;
 }
@@ -54,6 +56,14 @@ interface LearnState extends Persisted {
   createFolder: (path: string) => void;
   deleteFile: (path: string) => void;
   markTraced: (s: StageId) => void;
+  /** 터미널 한 줄을 다 쳤다 — 그 줄이 만드는 파일을 만들고 줄 수를 올린다 */
+  runScaffoldLine: (
+    stepId: string,
+    lineIndex: number,
+    creates: { path: string; code: string }[]
+  ) => void;
+  /** 그 스텝의 터미널을 처음부터 다시 치게 되돌린다 (파일은 그대로 둔다) */
+  resetScaffold: (stepId: string) => void;
   toggleStepDone: (id: string) => void;
   toggleDeployDone: (id: string) => void;
   goNextStage: () => void;
@@ -84,6 +94,7 @@ function initialState(): Persisted {
     tracedStages: [],
     doneSteps: [],
     doneDeploy: [],
+    scaffoldLines: {},
     themeId: DEFAULT_THEME_ID,
   };
 }
@@ -156,6 +167,7 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
         tracedStages: [],
         doneSteps: [],
         doneDeploy: [],
+        scaffoldLines: {},
       };
     });
   }, []);
@@ -175,6 +187,7 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
         tracedStages: [],
         doneSteps: [],
         doneDeploy: [],
+        scaffoldLines: {},
       };
     });
   }, []);
@@ -236,6 +249,44 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  /**
+   * 터미널에서 한 줄을 다 쳤을 때.
+   *
+   * 네 줄을 한꺼번에 실행하지 않고 **친 줄이 만드는 것만** 생기게 한다.
+   * 그래야 "이 명령어가 이걸 만든 거구나" 가 눈에 남는다.
+   */
+  const runScaffoldLine = useCallback(
+    (
+      stepId: string,
+      lineIndex: number,
+      creates: { path: string; code: string }[]
+    ) => {
+      setState((prev) => {
+        const files = { ...prev.files };
+        creates.forEach((f) => {
+          files[f.path] = f.code;
+        });
+        return {
+          ...prev,
+          files,
+          activeFile: creates[0]?.path ?? prev.activeFile,
+          scaffoldLines: {
+            ...prev.scaffoldLines,
+            [stepId]: Math.max(prev.scaffoldLines[stepId] ?? 0, lineIndex + 1),
+          },
+        };
+      });
+    },
+    []
+  );
+
+  const resetScaffold = useCallback((stepId: string) => {
+    setState((prev) => ({
+      ...prev,
+      scaffoldLines: { ...prev.scaffoldLines, [stepId]: 0 },
+    }));
+  }, []);
+
   const toggleStepDone = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
@@ -280,6 +331,7 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
         tracedStages: [],
         doneSteps: [],
         doneDeploy: [],
+        scaffoldLines: {},
       };
     });
   }, []);
@@ -298,6 +350,8 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     createFolder,
     deleteFile,
     markTraced,
+    runScaffoldLine,
+    resetScaffold,
     toggleStepDone,
     toggleDeployDone,
     goNextStage,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   CheckCircle2,
@@ -11,24 +11,18 @@ import {
   ExternalLink,
   FolderPlus,
   FilePlus2,
-  Folder,
-  Trash2,
   PenLine,
   Hammer,
   Rocket,
   TerminalSquare,
-  Play,
 } from "lucide-react";
 import { useLearn } from "./learn-store";
 import { PaneFrame, SectionLabel } from "./pane-frame";
 import { StudentNotes } from "./student-notes";
 import { useTracePractice, TraceTarget, TraceBox } from "./trace-input";
-import {
-  baseName,
-  codeMatches,
-  groupByFolder,
-  teacherFilesUpTo,
-} from "./learn-utils";
+import { FileTreeBox, OpenFileBar, TargetChips } from "./pane-boxes";
+import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
+import { codeMatches, groupByFolder, teacherFilesUpTo } from "./learn-utils";
 import { downloadZip } from "./zip";
 
 const CodeEditor = dynamic(() => import("./code-editor"), {
@@ -62,12 +56,34 @@ export function PaneStudent() {
     createFolder,
     deleteFile,
     markTraced,
+    doneSteps,
+    toggleStepDone,
+    scaffoldLines,
+    runScaffoldLine,
+    resetScaffold,
     doneDeploy,
     toggleDeployDone,
     goNextStage,
   } = useLearn();
 
   const [copied, setCopied] = useState(false);
+  /** 명령어 스텝에서 아래 큰 칸에 터미널을 보여줄지 */
+  const [showTerminal, setShowTerminal] = useState(true);
+  /** 방금 생긴 파일 — 「내 폴더」에서 잠깐 반짝인다 */
+  const [flash, setFlash] = useState<string[]>([]);
+  const flashTimer = useRef<number | null>(null);
+
+  /* 스텝이 바뀌면 아래 칸은 다시 터미널부터 */
+  useEffect(() => {
+    setShowTerminal(true);
+  }, [stepIndex]);
+
+  useEffect(
+    () => () => {
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    },
+    []
+  );
 
   const step = course && stage === "build" ? course.buildSteps[stepIndex] : undefined;
   const answers = useMemo(
@@ -259,6 +275,43 @@ export function PaneStudent() {
   const answer = answers[current];
   const matched = answer !== undefined && codeMatches(files[current] ?? "", answer);
 
+  /* 파일 설명은 말풍선으로 — 이름에 마우스를 올리거나 💬 를 누르면 뜬다 */
+  const hints = Object.fromEntries(
+    (step?.files ?? []).filter((f) => f.hint).map((f) => [f.path, f.hint!])
+  );
+  const badges = Object.fromEntries(
+    (step?.files ?? []).map((f) => [
+      f.path,
+      f.action === "create" ? "새로" : "고치기",
+    ])
+  );
+  const oks = Object.keys(files).filter(
+    (p) => answers[p] !== undefined && codeMatches(files[p] ?? "", answers[p])
+  );
+
+  const linesDone = step ? scaffoldLines[step.id] ?? 0 : 0;
+  const termOpen = !!step?.scaffold && showTerminal;
+  const stepDone = !!step && doneSteps.includes(step.id);
+
+  /**
+   * 명령어 한 줄을 다 쳤을 때 — **그 줄이 만드는 것만** 생긴다.
+   * 파일이 생기면 「내 폴더」에서 잠깐 반짝여서 "이 줄이 이걸 만들었구나"가 보인다.
+   */
+  function runLine(i: number) {
+    if (!step?.scaffold) return;
+    const line = step.scaffold.lines[i];
+    const creates = (line.creates ?? []).map((p) => ({
+      path: p,
+      code: step.files.find((f) => f.path === p)?.code ?? "",
+    }));
+    runScaffoldLine(step.id, i, creates);
+    if (creates.length > 0) {
+      setFlash(creates.map((c) => c.path));
+      if (flashTimer.current) window.clearTimeout(flashTimer.current);
+      flashTimer.current = window.setTimeout(() => setFlash([]), 1800);
+    }
+  }
+
   return (
     <PaneFrame
       header={
@@ -305,199 +358,126 @@ export function PaneStudent() {
       }
       topLeft={<StudentNotes storageKey={noteKey} />}
       topRight={
+        /* 선생 칸(2번)과 **같은 순서·같은 크기**로 쌓는다.
+           위 = 이번에 만들 것 / 아래 = 내 폴더 / 맨 아래 = 이 스텝 완료 */
         <>
-          {/* 설치 단계 — 명령어를 실행하면 뼈대 파일이 한꺼번에 생긴다.
-              실제로는 npm 이 하는 일을, 여기서는 같은 결과가 나오도록 흉내 낸다. */}
-          {step?.scaffold && (
-            <div className="rounded-lg bg-white border border-primary-200 px-2.5 py-2 mb-1.5">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-primary-800 mb-1.5">
-                <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
-                터미널에 칠 명령어
-              </div>
-              <pre className="rounded-md bg-foreground text-white text-[11px] leading-relaxed p-2 overflow-x-auto font-mono m-0">
-                {step.scaffold.command}
-              </pre>
-              <p className="mt-1.5 text-[11px] text-muted-foreground leading-snug break-keep">
-                {step.scaffold.note}
-              </p>
-
-              {(() => {
-                const madeAll = step.files.every((f) => files[f.path] !== undefined);
-                return (
-                  <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                    <button
-                      onClick={() =>
-                        step.files.forEach((f) => writeFile(f.path, f.code))
-                      }
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition ${
-                        madeAll
-                          ? "bg-muted text-muted-foreground"
-                          : "bg-gradient-brand text-white hover:opacity-90"
-                      }`}
-                    >
-                      <Play className="w-3.5 h-3.5" aria-hidden />
-                      {madeAll ? "다시 실행" : step.scaffold!.runLabel}
-                    </button>
-                    <button
-                      onClick={() =>
-                        navigator.clipboard?.writeText(step.scaffold!.command)
-                      }
-                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground px-1 py-1"
-                    >
-                      <Copy className="w-3 h-3" aria-hidden />
-                      명령어 복사
-                    </button>
-                    {madeAll && (
-                      <span className="flex items-center gap-1 text-[11px] font-semibold text-success">
-                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden />
-                        파일이 생겼어요
-                      </span>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+          {step?.scaffold ? (
+            <CommandList lines={step.scaffold.lines} doneCount={linesDone} />
+          ) : (
+            <TargetChips
+              title="이번에 만들 것"
+              folders={expectedFolders}
+              files={expectedFiles}
+              doneFolders={folders}
+              doneFiles={Object.keys(files)}
+              onPickFile={createFile}
+            />
           )}
 
-          {step && !step.scaffold && (expectedFolders.length > 0 || expectedFiles.length > 0) && (
-            <div className="rounded-lg bg-white border border-primary-200 px-2.5 py-2 mb-1.5">
-              <div className="text-[11px] font-bold text-primary-800 mb-1">
-                이번에 만들 것
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {expectedFolders.map((f) => (
-                  <span
-                    key={f}
-                    className={`text-[11px] px-1.5 py-0.5 rounded ${
-                      folders.includes(f)
-                        ? "bg-success/15 text-success line-through"
-                        : "bg-primary-50 text-primary-800 border border-primary-200"
-                    }`}
-                  >
-                    📁 {f.replace(/^\//, "")}
-                  </span>
-                ))}
-                {expectedFiles.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => createFile(p)}
-                    className={`text-[11px] px-1.5 py-0.5 rounded transition ${
-                      files[p] !== undefined
-                        ? "bg-success/15 text-success"
-                        : "bg-primary-50 text-primary-800 border border-primary-200 hover:bg-primary-100"
-                    }`}
-                  >
-                    📄 {baseName(p)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <FileTreeBox
+            tree={tree}
+            current={current}
+            /* 파일을 누르면 터미널을 접고 그 파일을 아래 칸에 연다 */
+            onPick={(p) => {
+              setActiveFile(p);
+              setShowTerminal(false);
+            }}
+            hints={hints}
+            badges={badges}
+            oks={oks}
+            flash={flash}
+            onDelete={deleteFile}
+            emptyText="아직 파일이 없어요. 아래 터미널에 명령어를 한 줄씩 쳐 보세요."
+          />
 
-          <div className="rounded-lg bg-white border border-primary-200 px-1.5 py-1.5">
-            <div className="text-[11px] font-bold text-primary-800 px-1 pb-1">
-              내 폴더
-            </div>
-            {tree.map(({ folder, files: fs }) => (
-              <div key={folder || "root"} className="mb-1">
-                <div className="flex items-center gap-1 px-1.5 py-1 text-[12px] font-semibold text-muted-foreground">
-                  <Folder className="w-3.5 h-3.5" aria-hidden />
-                  {folder ? folder.replace(/^\//, "") : "src"}
-                </div>
-                {fs.map((p) => (
-                  <div
-                    key={p}
-                    className={`group flex items-center gap-1 rounded px-2 py-1 ml-3 cursor-pointer transition ${
-                      current === p ? "bg-primary text-white" : "hover:bg-muted"
-                    }`}
-                    onClick={() => setActiveFile(p)}
-                  >
-                    <span className="text-[13px] truncate flex-1">
-                      {baseName(p)}
-                    </span>
-                    {answers[p] !== undefined &&
-                      codeMatches(files[p] ?? "", answers[p]) && (
-                        <CheckCircle2
-                          className={`w-3.5 h-3.5 shrink-0 ${
-                            current === p ? "text-white" : "text-success"
-                          }`}
-                          aria-hidden
-                        />
-                      )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (window.confirm(`${baseName(p)} 파일을 지울까요?`))
-                          deleteFile(p);
-                      }}
-                      className="opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0"
-                      aria-label={`${baseName(p)} 삭제`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" aria-hidden />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
+          <button
+            onClick={() => step && toggleStepDone(step.id)}
+            className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold transition ${
+              stepDone
+                ? "bg-success text-white"
+                : "bg-white border border-primary-200 text-primary-800 hover:border-primary"
+            }`}
+          >
+            {stepDone ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" aria-hidden />이 스텝 완료
+              </>
+            ) : (
+              "이 스텝 다 했어요"
+            )}
+          </button>
         </>
       }
       bottom={
-        <>
-          <div className="shrink-0 flex items-center gap-1.5 px-2 py-1.5 border-b border-border">
-            <span
-              className="text-[12px] font-semibold truncate flex-1"
-              title={current}
-            >
-              {current || "파일을 골라 주세요"}
-            </span>
+        termOpen ? (
+          <ScaffoldTerminal
+            lines={step!.scaffold!.lines}
+            doneCount={linesDone}
+            note={step!.scaffold!.note}
+            onRun={runLine}
+            onReset={() => resetScaffold(step!.id)}
+            onFinish={() => setShowTerminal(false)}
+          />
+        ) : (
+          <>
+            <OpenFileBar path={current}>
+              {step?.scaffold && (
+                <button
+                  onClick={() => setShowTerminal(true)}
+                  className="shrink-0 flex items-center gap-1 text-[12px] text-muted-foreground px-1.5 py-1 rounded hover:bg-muted transition"
+                >
+                  <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
+                  터미널
+                </button>
+              )}
 
-            {matched && (
-              <span className="flex items-center gap-1 text-[11px] font-bold text-success shrink-0">
-                <CheckCircle2 className="w-3.5 h-3.5" aria-hidden />
-                정답과 같아요
-              </span>
-            )}
+              {matched && (
+                <span className="flex items-center gap-1 text-[11px] font-bold text-success shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5" aria-hidden />
+                  정답과 같아요
+                </span>
+              )}
 
-            {answer !== undefined && (
+              {answer !== undefined && (
+                <button
+                  onClick={() => writeFile(current, answer)}
+                  className="shrink-0 flex items-center gap-1 text-[12px] bg-muted px-2 py-1 rounded hover:bg-border transition"
+                  title="이번 스텝의 정답 코드를 그대로 넣어요"
+                >
+                  <ClipboardPaste className="w-3.5 h-3.5" aria-hidden />
+                  붙여넣기
+                </button>
+              )}
+
               <button
-                onClick={() => writeFile(current, answer)}
-                className="shrink-0 flex items-center gap-1 text-[12px] bg-muted px-2 py-1 rounded hover:bg-border transition"
-                title="이번 스텝의 정답 코드를 그대로 넣어요"
+                onClick={() => {
+                  navigator.clipboard?.writeText(files[current] ?? "");
+                  setCopied(true);
+                  window.setTimeout(() => setCopied(false), 1200);
+                }}
+                className="shrink-0 flex items-center gap-1 text-[12px] text-muted-foreground px-1.5 py-1 rounded hover:bg-muted transition"
               >
-                <ClipboardPaste className="w-3.5 h-3.5" aria-hidden />
-                붙여넣기
+                <Copy className="w-3.5 h-3.5" aria-hidden />
+                {copied ? "복사됨" : "복사"}
               </button>
-            )}
+            </OpenFileBar>
 
-            <button
-              onClick={() => {
-                navigator.clipboard?.writeText(files[current] ?? "");
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 1200);
-              }}
-              className="shrink-0 flex items-center gap-1 text-[12px] text-muted-foreground px-1.5 py-1 rounded hover:bg-muted transition"
-            >
-              <Copy className="w-3.5 h-3.5" aria-hidden />
-              {copied ? "복사됨" : "복사"}
-            </button>
-          </div>
-
-          <div className="flex-1 min-h-0">
-            {current ? (
-              <CodeEditor
-                key={current}
-                path={current}
-                value={files[current] ?? ""}
-                onChange={(next) => writeFile(current, next)}
-              />
-            ) : (
-              <div className="h-full grid place-items-center text-[13px] text-muted-foreground">
-                위에서 파일을 만들거나 골라 주세요.
-              </div>
-            )}
-          </div>
-        </>
+            <div className="flex-1 min-h-0">
+              {current ? (
+                <CodeEditor
+                  key={current}
+                  path={current}
+                  value={files[current] ?? ""}
+                  onChange={(next) => writeFile(current, next)}
+                />
+              ) : (
+                <div className="h-full grid place-items-center text-[13px] text-muted-foreground">
+                  위에서 파일을 만들거나 골라 주세요.
+                </div>
+              )}
+            </div>
+          </>
+        )
       }
     />
   );

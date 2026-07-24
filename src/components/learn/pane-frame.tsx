@@ -36,7 +36,9 @@ export function PaneFrame({
         <div className="flex-1 min-h-0 m-1.5 lg:mr-0 rounded-lg bg-white overflow-hidden flex flex-col">
           {topLeft}
         </div>
-        <div className="lg:w-[40%] shrink-0 min-h-0 overflow-y-auto px-1.5 py-1.5">
+        {/* 세로 flex + gap — 2·3번칸이 같은 순서로 상자를 쌓으면
+            「내 폴더」가 좌·우 같은 자리·같은 크기로 온다 */}
+        <div className="lg:w-[40%] shrink-0 min-h-0 overflow-y-auto px-1.5 py-1.5 flex flex-col gap-1.5">
           {topRight}
         </div>
       </div>

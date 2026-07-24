@@ -40,11 +40,19 @@ export function TypingParagraphs({
   active = true,
   /** 단락 키가 바뀌면 처음부터 다시 */
   resetKey,
+  advanceSignal,
   onAllRevealed,
 }: {
   paragraphs: Paragraph[];
   active?: boolean;
   resetKey?: string;
+  /**
+   * 바깥에서 NEXT 를 대신 눌러 주는 숫자.
+   * 1 늘어날 때마다 단락 하나가 열린다. (오른쪽 칸에서 명령어를 한 줄 치면
+   * 왼쪽 설명도 한 줄 따라 나오게 하려고 쓴다)
+   * 값이 처음 들어올 때 · 단락 세트가 바뀔 때는 기준만 잡고 열지는 않는다.
+   */
+  advanceSignal?: number;
   onAllRevealed?: () => void;
 }) {
   const [revealed, setRevealed] = useState(0); // 완전히 열린 단락 수
@@ -55,11 +63,17 @@ export function TypingParagraphs({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   /** 단락별 DOM — 방금 나온 단락으로 스크롤하려고 붙잡아 둔다 */
   const paraRefs = useRef<(HTMLDivElement | null)[]>([]);
+  /** 바깥 신호의 직전 값 — undefined 면 "아직 기준을 못 잡음" */
+  const signalRef = useRef<number | undefined>(undefined);
+  /** 아직 열어 주지 못한 단락 수 (바깥 신호가 앞질러 왔을 때) */
+  const [pending, setPending] = useState(0);
 
   /* 단락 세트가 바뀌면 초기화 */
   useEffect(() => {
     setRevealed(0);
     setTyping(null);
+    setPending(0);
+    signalRef.current = undefined;
     if (timerRef.current) clearInterval(timerRef.current);
     scrollRef.current?.scrollTo({ top: 0 });
   }, [resetKey]);
@@ -98,6 +112,35 @@ export function TypingParagraphs({
       });
     }, TYPE_SPEED_MS);
   }, [typing, revealed, paragraphs, finishTyping]);
+
+  /**
+   * 바깥에서 NEXT 를 눌러 주는 신호 — 오른쪽 칸에서 명령어 한 줄을 쳤을 때.
+   *
+   * 바로 advance() 를 부르지 않고 「빚」으로 쌓아 둔다. 앞 단락이 아직 타이핑 중일 때
+   * advance() 를 부르면 그 단락을 마무리해 버려서 한 단락이 그냥 사라지기 때문.
+   */
+  useEffect(() => {
+    if (advanceSignal === undefined) return;
+    if (signalRef.current === undefined) {
+      // 저장된 진도를 불러온 첫 값. 기준만 잡고 열지는 않는다.
+      signalRef.current = advanceSignal;
+      return;
+    }
+    const diff = advanceSignal - signalRef.current;
+    signalRef.current = advanceSignal;
+    if (diff > 0) setPending((p) => p + diff);
+  }, [advanceSignal]);
+
+  /* 쌓인 빚을 한 단락씩 갚는다 — 타이핑이 끝날 때마다 다음 단락이 열린다 */
+  useEffect(() => {
+    if (pending <= 0 || typing) return;
+    if (revealed >= paragraphs.length) {
+      setPending(0);
+      return;
+    }
+    setPending((p) => p - 1);
+    advance();
+  }, [pending, typing, revealed, paragraphs.length, advance]);
 
   /* 언마운트 정리 */
   useEffect(() => {
@@ -232,6 +275,7 @@ export function TypingParagraphs({
             if (timerRef.current) clearInterval(timerRef.current);
             timerRef.current = null;
             setTyping(null);
+            setPending(0);
             setRevealed(paragraphs.length);
           }}
           disabled={allDone}
