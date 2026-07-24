@@ -58,28 +58,77 @@ export function useTracePractice(
     const tm = meaningful(target);
     const vm = meaningful(value);
 
-    /** target 의 뜻글자 위치 → 상태 */
+    /**
+     * 위치로 1:1 비교하면 글자 하나만 더 치거나 빠뜨려도 그 뒤가 통째로 밀려
+     * 전부 틀린 것으로 잡힌다. (예: "서버:" 를 "서버는" 이라고 치면 뒤가 다 어긋남)
+     * 그래서 **순서만 맞으면 인정하는 방식**(최장 공통 부분수열, LCS)으로 맞춘다.
+     * 중간을 건너뛰거나 군더더기를 더 쳐도, 옮겨 적은 글자는 옮겨 적은 것으로 센다.
+     * 대소문자도 구분하지 않는다 (VERCEL 과 Vercel 은 같은 것).
+     */
+    const t = tm.map((c) => c.ch.toLowerCase());
+    const v = vm.map((c) => c.ch.toLowerCase());
+    const n = t.length;
+    const m = v.length;
+
+    // dp[i][j] = t[i..] 와 v[j..] 의 최장 공통 부분수열 길이
+    const dp: Uint16Array[] = Array.from(
+      { length: n + 1 },
+      () => new Uint16Array(m + 1)
+    );
+    for (let i = n - 1; i >= 0; i--) {
+      for (let j = m - 1; j >= 0; j--) {
+        dp[i][j] =
+          t[i] === v[j]
+            ? dp[i + 1][j + 1] + 1
+            : Math.max(dp[i + 1][j], dp[i][j + 1]);
+      }
+    }
+
+    // 되짚어 가며 "학생이 실제로 옮겨 적은" target 글자를 표시
+    const matched = new Array<boolean>(n).fill(false);
+    let i = 0;
+    let j = 0;
+    while (i < n && j < m) {
+      if (t[i] === v[j]) {
+        matched[i] = true;
+        i++;
+        j++;
+      } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+        i++;
+      } else {
+        j++;
+      }
+    }
+
+    const correct = dp[0][0];
+    /** 학생이 훑고 지나간 마지막 지점 — 그 앞은 빨갛게, 뒤는 아직 안 온 것으로 */
+    let lastMatchedK = -1;
+    for (let k = n - 1; k >= 0; k--) {
+      if (matched[k]) {
+        lastMatchedK = k;
+        break;
+      }
+    }
+
     const stateAt = new Map<number, "ok" | "bad" | "todo">();
-    tm.forEach((t, k) => {
-      const typed = vm[k];
-      stateAt.set(t.i, !typed ? "todo" : typed.ch === t.ch ? "ok" : "bad");
+    tm.forEach((c, k) => {
+      stateAt.set(
+        c.i,
+        matched[k] ? "ok" : k < lastMatchedK ? "bad" : "todo"
+      );
     });
 
     // 띄어쓰기·기호는 "여기까지 왔으면" 통과 처리 — 지나온 자리는 진하게 보인다
-    const lastPassedIndex =
-      vm.length === 0 ? -1 : tm[Math.min(vm.length, tm.length) - 1]?.i ?? -1;
+    const lastPassedIndex = lastMatchedK < 0 ? -1 : tm[lastMatchedK].i;
 
-    const chars = Array.from(target).map((ch, i) => {
-      const s = stateAt.get(i);
+    const chars = Array.from(target).map((ch, idx) => {
+      const s = stateAt.get(idx);
       if (s) return { ch, state: s };
-      return { ch, state: i <= lastPassedIndex ? ("ok" as const) : ("todo" as const) };
+      return {
+        ch,
+        state: idx <= lastPassedIndex ? ("ok" as const) : ("todo" as const),
+      };
     });
-
-    // 맞게 친 글자 수 — 이 비율이 곧 화면의 % 이고 통과 기준이다
-    const correct = tm.reduce(
-      (n, t, k) => (vm[k] && vm[k].ch === t.ch ? n + 1 : n),
-      0
-    );
 
     const percent =
       tm.length === 0 ? 100 : Math.round((correct / tm.length) * 100);
