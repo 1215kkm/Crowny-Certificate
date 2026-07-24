@@ -36,7 +36,52 @@ export function useTracePractice(
     }
   }, [value, key]);
 
-  const done = value.trim() === target.trim();
+  /**
+   * 글자별 상태 + 완료 판정.
+   *
+   * 띄어쓰기와 특수문자(마침표·쉼표·괄호·따옴표 등)는 **틀려도 넘어간다**.
+   * 초등학생이 「.」 하나, 띄어쓰기 한 칸 때문에 빨간 줄을 보고 막히면 안 되기 때문.
+   * 그래서 양쪽에서 그런 글자를 걷어낸 「뜻이 있는 글자」끼리만 맞춰 본다.
+   */
+  const { chars, done, percent } = useMemo(() => {
+    const skippable = (ch: string) => /[\s\p{P}\p{S}]/u.test(ch);
+
+    /** 뜻이 있는 글자만 뽑되, 원래 위치를 기억해 둔다 */
+    const meaningful = (s: string) =>
+      Array.from(s)
+        .map((ch, i) => ({ ch, i }))
+        .filter((c) => !skippable(c.ch));
+
+    const tm = meaningful(target);
+    const vm = meaningful(value);
+
+    /** target 의 뜻글자 위치 → 상태 */
+    const stateAt = new Map<number, "ok" | "bad" | "todo">();
+    tm.forEach((t, k) => {
+      const typed = vm[k];
+      stateAt.set(t.i, !typed ? "todo" : typed.ch === t.ch ? "ok" : "bad");
+    });
+
+    // 띄어쓰기·기호는 "여기까지 왔으면" 통과 처리 — 지나온 자리는 진하게 보인다
+    const lastPassedIndex =
+      vm.length === 0 ? -1 : tm[Math.min(vm.length, tm.length) - 1]?.i ?? -1;
+
+    const chars = Array.from(target).map((ch, i) => {
+      const s = stateAt.get(i);
+      if (s) return { ch, state: s };
+      return { ch, state: i <= lastPassedIndex ? ("ok" as const) : ("todo" as const) };
+    });
+
+    const done = tm.length > 0 && tm.length === vm.length &&
+      tm.every((t, k) => vm[k].ch === t.ch);
+
+    const percent =
+      tm.length === 0
+        ? 100
+        : Math.round((Math.min(vm.length, tm.length) / tm.length) * 100);
+
+    return { chars, done, percent };
+  }, [target, value]);
 
   useEffect(() => {
     if (done && !completedRef.current) {
@@ -44,22 +89,6 @@ export function useTracePractice(
       onComplete?.();
     }
   }, [done, onComplete]);
-
-  /* 글자별 상태 — 맞으면 진하게, 틀리면 빨갛게, 아직이면 흐리게 */
-  const chars = useMemo(
-    () =>
-      Array.from(target).map((ch, i) => {
-        const typed = value[i];
-        if (typed === undefined) return { ch, state: "todo" as const };
-        if (typed === ch) return { ch, state: "ok" as const };
-        return { ch, state: "bad" as const };
-      }),
-    [target, value]
-  );
-
-  const typedCount = Math.min(value.length, target.length);
-  const percent =
-    target.length === 0 ? 100 : Math.round((typedCount / target.length) * 100);
 
   return { value, setValue, chars, done, percent, target };
 }
@@ -114,9 +143,12 @@ export function TraceBox({
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="shrink-0 px-3 pt-2 pb-1 flex items-center gap-2">
+      <div className="shrink-0 px-3 pt-2 pb-1 flex items-center gap-2 flex-wrap">
         <span className="text-[12px] font-bold text-primary-800">
           내가 치는 곳
+        </span>
+        <span className="text-[11px] text-muted-foreground">
+          띄어쓰기랑 . , ( ) 같은 기호는 달라도 괜찮아요
         </span>
         {practice.done ? (
           <span className="ml-auto flex items-center gap-1 text-[12px] font-semibold text-success">
