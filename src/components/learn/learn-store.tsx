@@ -17,6 +17,7 @@ import {
   type StageId,
   type TrackId,
 } from "@/data/learn";
+import { DEFAULT_THEME_ID } from "@/data/learn/themes";
 
 const STORAGE_KEY = "kaiat-learn-v1";
 /** 새 창 미리보기와 파일을 주고받는 채널 */
@@ -37,6 +38,8 @@ interface Persisted {
   doneSteps: string[];
   /** 완료한 배포 스텝 id */
   doneDeploy: string[];
+  /** 화면 테마 id — 상단 셀렉트로 바꾼다 */
+  themeId: string;
 }
 
 interface LearnState extends Persisted {
@@ -53,6 +56,7 @@ interface LearnState extends Persisted {
   markTraced: (s: StageId) => void;
   toggleStepDone: (id: string) => void;
   toggleDeployDone: (id: string) => void;
+  setThemeId: (id: string) => void;
   resetCourse: () => void;
   /** 저장된 진도가 있어 이어서 하는 중인가 */
   hydrated: boolean;
@@ -79,6 +83,7 @@ function initialState(): Persisted {
     tracedStages: [],
     doneSteps: [],
     doneDeploy: [],
+    themeId: DEFAULT_THEME_ID,
   };
 }
 
@@ -248,6 +253,10 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const setThemeId = useCallback((id: string) => {
+    setState((prev) => ({ ...prev, themeId: id }));
+  }, []);
+
   const resetCourse = useCallback(() => {
     setState((prev) => {
       const c = findCourse(prev.trackId, prev.courseId);
@@ -281,6 +290,7 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     markTraced,
     toggleStepDone,
     toggleDeployDone,
+    setThemeId,
     resetCourse,
   };
 

@@ -6,6 +6,9 @@ import { javascript } from "@codemirror/lang-javascript";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
 import { EditorView } from "@codemirror/view";
+import { oneDark } from "@codemirror/theme-one-dark";
+import { getTheme } from "@/data/learn/themes";
+import { useLearn } from "./learn-store";
 
 /** 파일 확장자로 문법 강조 언어를 고른다 */
 function extensionsFor(path: string) {
@@ -40,9 +43,18 @@ export default function CodeEditor({
   onChange?: (next: string) => void;
   readOnly?: boolean;
 }) {
+  const { themeId } = useLearn();
+  const isDark = getTheme(themeId).dark;
+
   const extensions = useMemo(
-    () => [...extensionsFor(path), BIG_TEXT, EditorView.lineWrapping],
-    [path]
+    () => [
+      ...extensionsFor(path),
+      BIG_TEXT,
+      EditorView.lineWrapping,
+      // 다크 테마에서는 문법 색까지 어두운 배경용으로 바꿔야 글자가 읽힌다
+      ...(isDark ? [oneDark] : []),
+    ],
+    [path, isDark]
   );
 
   return (

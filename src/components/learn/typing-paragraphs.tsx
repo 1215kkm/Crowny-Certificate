@@ -142,6 +142,16 @@ export function TypingParagraphs({
         ) {
           return;
         }
+        // 버튼·링크·셀렉트에 포커스가 있을 때는 그쪽이 키를 써야 한다.
+        // (예: 테마 셀렉트에 Tab 으로 가서 Enter → 설명이 넘어가 버리면 안 됨)
+        if (
+          tag === "BUTTON" ||
+          tag === "A" ||
+          tag === "SELECT" ||
+          target.closest('[data-keeps-keys="true"]')
+        ) {
+          return;
+        }
       }
       // 조합키·탭은 화면 조작용이므로 통과
       if (e.metaKey || e.ctrlKey || e.altKey || e.key === "Tab") return;

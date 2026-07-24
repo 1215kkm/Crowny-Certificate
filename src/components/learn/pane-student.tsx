@@ -274,7 +274,7 @@ export function PaneStudent() {
                 if (name?.trim())
                   createFolder(`/${name.trim().replace(/^\/+/, "")}`);
               }}
-              className="flex items-center gap-1 text-[12px] bg-white/70 px-2 py-1 rounded hover:bg-white transition"
+              className="flex items-center gap-1 text-[12px] bg-muted text-foreground px-2 py-1 rounded hover:bg-border transition"
             >
               <FolderPlus className="w-3.5 h-3.5" aria-hidden />
               폴더
@@ -292,7 +292,7 @@ export function PaneStudent() {
                   createFile(path);
                 }
               }}
-              className="flex items-center gap-1 text-[12px] bg-white/70 px-2 py-1 rounded hover:bg-white transition"
+              className="flex items-center gap-1 text-[12px] bg-muted text-foreground px-2 py-1 rounded hover:bg-border transition"
             >
               <FilePlus2 className="w-3.5 h-3.5" aria-hidden />
               파일

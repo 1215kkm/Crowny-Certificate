@@ -5,7 +5,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { ListChecks, GraduationCap, Code2, Play, Home } from "lucide-react";
 import { TRACKS } from "@/data/learn";
+import { getTheme, themeToCssVars } from "@/data/learn/themes";
 import { LearnProvider, useLearn, useProgress } from "@/components/learn/learn-store";
+import { ThemeSelect } from "@/components/learn/theme-select";
 import { PaneStages } from "@/components/learn/pane-stages";
 import { PaneTeacher } from "@/components/learn/pane-teacher";
 import { PaneStudent } from "@/components/learn/pane-student";
@@ -42,13 +44,25 @@ export default function LearnPage() {
 }
 
 function LearnShell() {
-  const { trackId, setTrack, course } = useLearn();
+  const { trackId, setTrack, course, themeId } = useLearn();
   const { percent } = useProgress();
   const wide = useIsWide();
   const [tab, setTab] = useState<MobileTab>("stages");
 
+  const theme = getTheme(themeId);
+
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-muted/50">
+    // learn-root + 인라인 CSS 변수 = /learn 안에서만 테마가 갈린다.
+    // Tailwind v4 유틸리티가 이 변수들을 참조하므로 className 수정 없이 색이 따라온다.
+    <div
+      // text-foreground 를 여기서 다시 잡는 이유:
+      // body 의 text-foreground 는 전역 토큰으로 이미 계산돼 버려서, 명시적 색이 없는 글자는
+      // 그 진회색을 상속한다 → 다크 테마에서 어두운 배경 위 어두운 글자가 된다.
+      // 이 div 는 --color-foreground 를 덮어쓰므로 여기서 color 를 다시 걸면 하위가 테마색을 상속한다.
+      className="learn-root h-screen w-screen flex flex-col overflow-hidden bg-background text-foreground"
+      data-dark={theme.dark ? "true" : "false"}
+      style={themeToCssVars(theme) as React.CSSProperties}
+    >
       {/* ── 상단: 언어 선택 ─────────────────────────── */}
       <header className="shrink-0 bg-white border-b border-border">
         <div className="flex items-center gap-3 px-3 h-12">
@@ -72,6 +86,7 @@ function LearnShell() {
           </span>
 
           <div className="ml-auto flex items-center gap-2 shrink-0">
+            <ThemeSelect />
             {course && (
               <span className="hidden sm:flex items-center gap-2">
                 <span className="w-24 h-1.5 rounded-full bg-primary-100 overflow-hidden">
