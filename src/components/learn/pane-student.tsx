@@ -90,11 +90,16 @@ export function PaneStudent() {
   const [bubblePos, setBubblePos] = useState<{ top: number; left: number } | null>(
     null
   );
+  /** 방금 만든/고른 폴더 — 「내 폴더」에서 선택 표시로 강조 (파일 만들 곳이 헷갈리지 않게) */
+  const [selectedFolder, setSelectedFolder] = useState<string | undefined>(
+    undefined
+  );
 
-  /* 스텝이 바뀌면 아래 칸은 다시 터미널부터, 말풍선도 지운다 */
+  /* 스텝이 바뀌면 아래 칸은 다시 터미널부터, 말풍선·폴더 선택도 지운다 */
   useEffect(() => {
     setShowTerminal(true);
     setBubble(null);
+    setSelectedFolder(undefined);
   }, [stepIndex]);
 
   useEffect(
@@ -337,6 +342,7 @@ export function PaneStudent() {
     if (!name?.trim()) return;
     const clean = name.trim().replace(/^\/+/, "");
     createFile(`${folder}/${clean}`.replace(/\/{2,}/g, "/"));
+    setSelectedFolder(folder);
   };
   const current =
     files[activeFile] !== undefined ? activeFile : Object.keys(files)[0] ?? "";
@@ -419,8 +425,11 @@ export function PaneStudent() {
                   "만들 폴더 이름을 적어 주세요 (예: pages)",
                   expectedFolders[0]?.replace(/^\//, "") ?? ""
                 );
-                if (name?.trim())
-                  createFolder(`/${name.trim().replace(/^\/+/, "")}`);
+                if (name?.trim()) {
+                  const path = `/${name.trim().replace(/^\/+/, "")}`;
+                  createFolder(path);
+                  setSelectedFolder(path); // 방금 만든 폴더를 선택 표시로
+                }
               }}
               className="flex items-center gap-1 text-[12px] bg-muted text-foreground px-2 py-1 rounded hover:bg-border transition"
             >
@@ -482,6 +491,7 @@ export function PaneStudent() {
               flash={flash}
               onDelete={deleteFile}
               onAddFileToFolder={addFileToFolder}
+              selectedFolder={selectedFolder}
               emptyText="아직 파일이 없어요. 아래 터미널에 명령어를 한 줄씩 쳐 보세요."
             />
           </div>
