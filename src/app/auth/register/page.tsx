@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Eye, EyeOff } from "lucide-react";
 import { loginWithEmail } from "@/lib/firebase-auth";
 
 export default function RegisterPage() {
@@ -17,6 +18,8 @@ export default function RegisterPage() {
   });
   const [rrnFront, setRrnFront] = useState(""); // 주민번호 앞 6자리
   const [rrnBack, setRrnBack] = useState(""); // 뒤 1자리
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -202,17 +205,32 @@ export default function RegisterPage() {
             >
               비밀번호 <span className="text-red-500">*</span>
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              minLength={8}
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="8자 이상"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
+                onChange={handleChange}
+                required
+                minLength={8}
+                className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="8자 이상"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "비밀번호 숨기기" : "비밀번호 보기"}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition"
+              >
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" aria-hidden />
+                ) : (
+                  <Eye className="w-5 h-5" aria-hidden />
+                )}
+              </button>
+            </div>
           </div>
 
           <div>
@@ -222,16 +240,31 @@ export default function RegisterPage() {
             >
               비밀번호 확인 <span className="text-red-500">*</span>
             </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="비밀번호 재입력"
-            />
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type={showConfirm ? "text" : "password"}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="w-full px-4 py-3 pr-12 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                placeholder="비밀번호 재입력"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                aria-label={showConfirm ? "비밀번호 숨기기" : "비밀번호 보기"}
+                aria-pressed={showConfirm}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition"
+              >
+                {showConfirm ? (
+                  <EyeOff className="w-5 h-5" aria-hidden />
+                ) : (
+                  <Eye className="w-5 h-5" aria-hidden />
+                )}
+              </button>
+            </div>
           </div>
 
           <button
