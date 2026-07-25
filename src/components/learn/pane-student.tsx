@@ -279,7 +279,6 @@ export function PaneStudent() {
   const current =
     files[activeFile] !== undefined ? activeFile : Object.keys(files)[0] ?? "";
   const answer = answers[current];
-  const matched = answer !== undefined && codeMatches(files[current] ?? "", answer);
 
   /* 파일 설명은 말풍선으로 — 이름에 마우스를 올리거나 💬 를 누르면 뜬다 */
   const hints = Object.fromEntries(
@@ -402,7 +401,8 @@ export function PaneStudent() {
 
           <FileTreeBox
             tree={tree}
-            current={current}
+            /* 터미널이 열려 있을 땐 아래 칸에 파일이 열린 게 아니므로 아무것도 선택 표시하지 않는다 */
+            current={termOpen ? "" : current}
             /* 파일을 누르면 터미널을 접고 그 파일을 아래 칸에 연다 */
             onPick={(p) => {
               setActiveFile(p);
@@ -434,46 +434,40 @@ export function PaneStudent() {
         </>
       }
       bottom={
-        termOpen ? (
-          <ScaffoldTerminal
-            lines={step!.scaffold!.lines}
-            doneCount={linesDone}
-            note={step!.scaffold!.note}
-            onRun={runLine}
-            onReset={() => resetScaffold(step!.id)}
-            onFinish={() => setShowTerminal(false)}
-          />
-        ) : (
-          <>
-            <OpenFileBar path={current}>
-              {step?.scaffold && (
-                <button
-                  onClick={() => setShowTerminal(true)}
-                  className="shrink-0 flex items-center gap-1 text-[12px] text-muted-foreground px-1.5 py-1 rounded hover:bg-muted transition"
-                >
-                  <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
-                  터미널
-                </button>
-              )}
+        /* 상단 바(터미널 버튼 포함)를 터미널 위에도 계속 보여 준다.
+           파일명은 파일을 골랐을 때만, 터미널 버튼·「학생 코드」 배지는 언제나. */
+        <>
+          <OpenFileBar path={termOpen ? "" : current}>
+            {step?.scaffold && (
+              <button
+                onClick={() => setShowTerminal(true)}
+                className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded bg-[#1b1725] transition ${
+                  termOpen ? "text-white" : "text-white/50 hover:text-white/80"
+                }`}
+              >
+                <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
+                터미널
+              </button>
+            )}
 
-              {matched && (
-                <span className="flex items-center gap-1 text-[11px] font-bold text-success shrink-0">
-                  <CheckCircle2 className="w-3.5 h-3.5" aria-hidden />
-                  정답과 같아요
-                </span>
-              )}
+            {/* 선생 칸의 「선생님 코드」와 대칭 */}
+            <span className="shrink-0 text-[11px] bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded">
+              학생 코드
+            </span>
 
-              {answer !== undefined && (
-                <button
-                  onClick={() => writeFile(current, answer)}
-                  className="shrink-0 flex items-center gap-1 text-[12px] bg-muted px-2 py-1 rounded hover:bg-border transition"
-                  title="이번 스텝의 정답 코드를 그대로 넣어요"
-                >
-                  <ClipboardPaste className="w-3.5 h-3.5" aria-hidden />
-                  붙여넣기
-                </button>
-              )}
+            {/* 붙여넣기·복사는 코드를 직접 치는 스텝에서만 — 설치 스텝(1/14)엔 불필요 */}
+            {!step?.scaffold && answer !== undefined && (
+              <button
+                onClick={() => writeFile(current, answer)}
+                className="shrink-0 flex items-center gap-1 text-[12px] bg-muted px-2 py-1 rounded hover:bg-border transition"
+                title="이번 스텝의 정답 코드를 그대로 넣어요"
+              >
+                <ClipboardPaste className="w-3.5 h-3.5" aria-hidden />
+                붙여넣기
+              </button>
+            )}
 
+            {!step?.scaffold && (
               <button
                 onClick={() => {
                   navigator.clipboard?.writeText(files[current] ?? "");
@@ -485,24 +479,33 @@ export function PaneStudent() {
                 <Copy className="w-3.5 h-3.5" aria-hidden />
                 {copied ? "복사됨" : "복사"}
               </button>
-            </OpenFileBar>
+            )}
+          </OpenFileBar>
 
-            <div className="flex-1 min-h-0">
-              {current ? (
-                <CodeEditor
-                  key={current}
-                  path={current}
-                  value={files[current] ?? ""}
-                  onChange={(next) => writeFile(current, next)}
-                />
-              ) : (
-                <div className="h-full grid place-items-center text-[13px] text-muted-foreground">
-                  위에서 파일을 만들거나 골라 주세요.
-                </div>
-              )}
-            </div>
-          </>
-        )
+          <div className="flex-1 min-h-0">
+            {termOpen ? (
+              <ScaffoldTerminal
+                lines={step!.scaffold!.lines}
+                doneCount={linesDone}
+                note={step!.scaffold!.note}
+                onRun={runLine}
+                onReset={() => resetScaffold(step!.id)}
+                onFinish={() => setShowTerminal(false)}
+              />
+            ) : current ? (
+              <CodeEditor
+                key={current}
+                path={current}
+                value={files[current] ?? ""}
+                onChange={(next) => writeFile(current, next)}
+              />
+            ) : (
+              <div className="h-full grid place-items-center text-[13px] text-muted-foreground">
+                위에서 파일을 만들거나 골라 주세요.
+              </div>
+            )}
+          </div>
+        </>
       }
     />
   );
