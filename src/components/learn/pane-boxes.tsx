@@ -66,6 +66,7 @@ export function FileTreeBox({
   flash = [],
   onDelete,
   onAddFileToFolder,
+  selectedFolder,
   emptyText = "아직 파일이 없어요.",
   right,
   /** 두 칸에서 같은 크기가 되도록 기본값을 박아 둔다 */
@@ -87,6 +88,8 @@ export function FileTreeBox({
   onDelete?: (path: string) => void;
   /** 학생 칸에서만 — 이 폴더 안에 파일 만들기 (folder="" 는 루트) */
   onAddFileToFolder?: (folder: string) => void;
+  /** 방금 만든/고른 폴더 — 헤더를 선택 표시로 강조 (folder="" 는 src) */
+  selectedFolder?: string;
   emptyText?: string;
   /** 제목줄 오른쪽에 붙일 것 (파일 개수 등) */
   right?: React.ReactNode;
@@ -118,6 +121,105 @@ export function FileTreeBox({
   }, [tip]);
 
   const isEmpty = tree.every((t) => t.files.length === 0);
+  const root = tree.find((t) => t.folder === "");
+  const subFolders = tree.filter((t) => t.folder !== "");
+
+  /** 파일 한 줄 — 루트·하위 폴더에서 같은 모양으로 쓴다 (indent 만 다름) */
+  const fileRow = (p: string, indent: string) => {
+    const hint = hints[p];
+    const on = current === p;
+    return (
+      <div
+        key={p}
+        className={`group flex items-center gap-1 rounded px-2 py-1 ${indent} cursor-pointer transition ${
+          on ? "bg-primary text-white" : "hover:bg-muted"
+        } ${flash.includes(p) ? "learn-file-pop" : ""}`}
+        onClick={() => onPick(p)}
+      >
+        <span
+          className="text-[13px] truncate flex-1"
+          onMouseEnter={(e) =>
+            hint && show(e.currentTarget.parentElement!, p, hint)
+          }
+          onMouseLeave={() => {
+            if (pinned !== p) setTip(null);
+          }}
+        >
+          {baseName(p)}
+        </span>
+
+        {hint && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (pinned === p) {
+                setPinned(null);
+                setTip(null);
+              } else {
+                setPinned(p);
+                show(e.currentTarget.parentElement as HTMLElement, p, hint);
+              }
+            }}
+            className={`shrink-0 transition ${
+              on
+                ? "text-white/90"
+                : pinned === p
+                  ? "text-primary"
+                  : "text-primary-400 hover:text-primary"
+            }`}
+            aria-label={`${baseName(p)} 설명 보기`}
+            title="설명 보기"
+          >
+            <MessageSquare className="w-3.5 h-3.5" aria-hidden />
+          </button>
+        )}
+
+        {oks.includes(p) && (
+          <CheckCircle2
+            className={`w-3.5 h-3.5 shrink-0 ${on ? "text-white" : "text-success"}`}
+            aria-hidden
+          />
+        )}
+
+        {onDelete && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm(`${baseName(p)} 파일을 지울까요?`)) onDelete(p);
+            }}
+            className="opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0"
+            aria-label={`${baseName(p)} 삭제`}
+          >
+            <Trash2 className="w-3.5 h-3.5" aria-hidden />
+          </button>
+        )}
+      </div>
+    );
+  };
+
+  /** 폴더 헤더 한 줄 — 방금 만든/고른 폴더면 선택 표시로 강조 */
+  const folderHeader = (folder: string, label: string, indent: string) => (
+    <div
+      className={`flex items-center gap-1 px-1.5 py-1 ${indent} text-[12px] font-semibold rounded ${
+        selectedFolder === folder
+          ? "bg-primary-50 text-primary-800 ring-1 ring-primary-200"
+          : "text-muted-foreground"
+      }`}
+    >
+      <Folder className="w-3.5 h-3.5" aria-hidden />
+      {label}
+      {onAddFileToFolder && (
+        <button
+          onClick={() => onAddFileToFolder(folder)}
+          className="ml-auto flex items-center gap-0.5 text-[11px] font-medium text-primary hover:text-primary-dark px-1.5 py-0.5 rounded hover:bg-primary-100 transition"
+          title="이 폴더 안에 파일 만들기"
+        >
+          <FilePlus2 className="w-3 h-3" aria-hidden />
+          파일
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div
@@ -134,103 +236,17 @@ export function FileTreeBox({
             {emptyText}
           </p>
         ) : (
-          tree.map(({ folder, files: fs }) => (
-            <div key={folder || "root"} className="mb-1">
-              <div className="flex items-center gap-1 px-1.5 py-1 text-[12px] font-semibold text-muted-foreground">
-                <Folder className="w-3.5 h-3.5" aria-hidden />
-                {folder ? folder.replace(/^\//, "") : "src"}
-                {onAddFileToFolder && (
-                  <button
-                    onClick={() => onAddFileToFolder(folder)}
-                    className="ml-auto flex items-center gap-0.5 text-[11px] font-medium text-primary hover:text-primary-dark px-1.5 py-0.5 rounded hover:bg-primary-50 transition"
-                    title="이 폴더 안에 파일 만들기"
-                  >
-                    <FilePlus2 className="w-3 h-3" aria-hidden />
-                    파일
-                  </button>
-                )}
+          <div className="mb-1">
+            {/* 루트 = src. 나머지 폴더는 src 안으로 들여써서 실제 구조(src/components)를 그대로 보여준다 */}
+            {folderHeader("", "src", "")}
+            {root?.files.map((p) => fileRow(p, "ml-4"))}
+            {subFolders.map(({ folder, files: fs }) => (
+              <div key={folder}>
+                {folderHeader(folder, folder.replace(/^\//, ""), "ml-4")}
+                {fs.map((p) => fileRow(p, "ml-8"))}
               </div>
-
-              {fs.map((p) => {
-                const hint = hints[p];
-                const on = current === p;
-                return (
-                  <div
-                    key={p}
-                    className={`group flex items-center gap-1 rounded px-2 py-1 ml-3 cursor-pointer transition ${
-                      on ? "bg-primary text-white" : "hover:bg-muted"
-                    } ${flash.includes(p) ? "learn-file-pop" : ""}`}
-                    onClick={() => onPick(p)}
-                  >
-                    <span
-                      className="text-[13px] truncate flex-1"
-                      onMouseEnter={(e) =>
-                        hint && show(e.currentTarget.parentElement!, p, hint)
-                      }
-                      onMouseLeave={() => {
-                        if (pinned !== p) setTip(null);
-                      }}
-                    >
-                      {baseName(p)}
-                    </span>
-
-                    {hint && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (pinned === p) {
-                            setPinned(null);
-                            setTip(null);
-                          } else {
-                            setPinned(p);
-                            show(
-                              e.currentTarget.parentElement as HTMLElement,
-                              p,
-                              hint
-                            );
-                          }
-                        }}
-                        className={`shrink-0 transition ${
-                          on
-                            ? "text-white/90"
-                            : pinned === p
-                              ? "text-primary"
-                              : "text-primary-400 hover:text-primary"
-                        }`}
-                        aria-label={`${baseName(p)} 설명 보기`}
-                        title="설명 보기"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" aria-hidden />
-                      </button>
-                    )}
-
-                    {oks.includes(p) && (
-                      <CheckCircle2
-                        className={`w-3.5 h-3.5 shrink-0 ${
-                          on ? "text-white" : "text-success"
-                        }`}
-                        aria-hidden
-                      />
-                    )}
-
-                    {onDelete && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`${baseName(p)} 파일을 지울까요?`))
-                            onDelete(p);
-                        }}
-                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0"
-                        aria-label={`${baseName(p)} 삭제`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" aria-hidden />
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
 
