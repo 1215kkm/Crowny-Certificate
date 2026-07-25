@@ -154,11 +154,11 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
               {/* 다 한 스텝에서만 — 「여기 눌러 다음으로」 를 깜빡여 짚어 준다 */}
               {nudgeNext && (
                 <span
-                  className="learn-nudge absolute top-full right-0 mt-2 z-20 whitespace-nowrap rounded-lg bg-primary text-white text-[12px] font-bold px-2.5 py-1.5 shadow-lg"
+                  className="learn-nudge absolute top-full right-0 mt-2 z-20 whitespace-nowrap rounded-lg bg-success text-white text-[12px] font-bold px-2.5 py-1.5 shadow-lg"
                   role="status"
                 >
                   <span
-                    className="absolute -top-[5px] right-3 w-[9px] h-[9px] rotate-45 bg-primary"
+                    className="absolute -top-[5px] right-3 w-[9px] h-[9px] rotate-45 bg-success"
                     aria-hidden
                   />
                   다음 스텝 눌러요 👆
