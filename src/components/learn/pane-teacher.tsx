@@ -18,6 +18,7 @@ import { FileTreeBox, OpenFileBar, PrereqCard, TargetChips } from "./pane-boxes"
 import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
 import {
   buildStepParagraphs,
+  codeMatches,
   groupByFolder,
   teacherFilesUpTo,
   teacherFoldersUpTo,
@@ -47,6 +48,8 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
     scaffoldLines,
     setStepIndex,
     toggleStepDone,
+    goNextStage,
+    files: studentFiles,
   } = useLearn();
   const [answerFile, setAnswerFile] = useState<string | null>(null);
   /** 명령어 스텝에서 아래 큰 칸에 터미널을 보여줄지 (다 치면 코드로 바뀐다) */
@@ -101,20 +104,30 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
 
     const termOpen = !!step.scaffold && showTerminal;
 
-    /* 명령어 스텝은 네 줄을 다 치면 끝난 것, 코드 스텝은 체크했을 때 끝난 것 */
+    /* 스텝이 끝났나 — 명령어 스텝은 네 줄을 다 치면, 코드 스텝은 학생 코드가 정답과 같아지면 */
     const scaffoldAllDone = step.scaffold
       ? linesDone >= step.scaffold.lines.length
       : false;
-    const stepReady = step.scaffold ? scaffoldAllDone : isDone;
+    const codeReady =
+      !step.scaffold &&
+      step.files.length > 0 &&
+      step.files.every((f) => {
+        const ans = allFiles[f.path];
+        return ans !== undefined && codeMatches(studentFiles[f.path] ?? "", ans);
+      });
+    const stepReady = step.scaffold ? scaffoldAllDone : codeReady;
+
+    const isLastStep = stepIndex >= course.buildSteps.length - 1;
 
     /* 스텝을 끝냈고 다음 스텝이 남아 있으면, 「다음」 화살표를 눌러야 넘어간다.
        그걸 모르고 멈추는 사람이 많아서 화살표를 깜빡이고 말풍선으로 짚어 준다. */
-    const nudgeNext = stepReady && stepIndex < course.buildSteps.length - 1;
+    const nudgeNext = stepReady && !isLastStep;
 
-    /* 「다 했어요 다음 진행하기」 — 이 스텝을 완료로 표시하고 다음 스텝으로 */
+    /* 「다 했어요 다음 진행하기」 — 완료 표시 + 다음 스텝(마지막이면 배포 단계)으로 */
     const finishStep = () => {
       if (!isDone) toggleStepDone(step.id);
-      if (stepIndex < course.buildSteps.length - 1) setStepIndex(stepIndex + 1);
+      if (!isLastStep) setStepIndex(stepIndex + 1);
+      else goNextStage();
     };
 
     return (
@@ -209,22 +222,22 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
               emptyText="명령어를 치면 여기에 파일이 생깁니다."
             />
 
-            {/* 명령어 스텝은 아래 터미널의 「다 했어요 다음 진행하기」로 넘어가므로
-                여기 완료 안내는 코드 스텝에서만 보여 준다 */}
+            {/* 완료 안내(선생 칸은 표시만) — 코드가 정답과 같아지면 초록으로.
+                실제 「다 했어요 다음 진행하기」 버튼은 오른쪽 학생 칸에 있다 */}
             {!step.scaffold && (
               <div
                 className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold ${
-                  isDone
+                  stepReady
                     ? "bg-success/10 text-success"
                     : "bg-white border border-primary-200 text-muted-foreground"
                 }`}
               >
-                {isDone ? (
+                {stepReady ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4" aria-hidden />이 스텝 완료
+                    <CheckCircle2 className="w-4 h-4" aria-hidden />코드 완성 — 오른쪽에서 다음으로
                   </>
                 ) : (
-                  "따라 한 뒤 오른쪽에서 체크하세요"
+                  "오른쪽 「내 차례」 칸에서 코드를 따라 치세요"
                 )}
               </div>
             )}

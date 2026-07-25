@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import {
   CheckCircle2,
   ClipboardPaste,
+  ChevronRight,
   Circle,
   Copy,
   Download,
@@ -331,12 +332,15 @@ export function PaneStudent() {
   const termOpen = !!step?.scaffold && showTerminal;
   const stepDone = !!step && doneSteps.includes(step.id);
 
-  /* 「다 했어요 다음 진행하기」 — 이 스텝을 완료로 표시하고 다음 스텝으로 */
+  /* 「다 했어요 다음 진행하기」 — 완료 표시 + 다음 스텝(마지막이면 배포 단계)으로 */
+  const isLastStep = !!step && stepIndex >= course.buildSteps.length - 1;
   const finishStep = () => {
     if (!step) return;
     if (!stepDone) toggleStepDone(step.id);
-    if (stepIndex < course.buildSteps.length - 1) setStepIndex(stepIndex + 1);
+    if (!isLastStep) setStepIndex(stepIndex + 1);
+    else goNextStage();
   };
+  const finishLabel = isLastStep ? "다 했어요! 배포로 가기" : "다 했어요 다음 진행하기";
 
   /**
    * 명령어 한 줄을 다 쳤을 때 — **그 줄이 만드는 것만** 생긴다.
@@ -479,24 +483,15 @@ export function PaneStudent() {
             </div>
           )}
 
-          {/* 명령어 스텝은 아래 터미널의 「다 했어요 다음 진행하기」로 넘어가므로
-              이 완료 버튼은 코드 스텝에서만 보여 준다 */}
+          {/* 코드 스텝은 이 버튼으로 완료 + 다음 스텝으로. (설치 스텝은 아래 터미널에서)
+              모든 스텝을 같은 방식으로 넘겨서 헷갈리지 않게 한다. */}
           {!step?.scaffold && (
             <button
-              onClick={() => step && toggleStepDone(step.id)}
-              className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold transition ${
-                stepDone
-                  ? "bg-success text-white"
-                  : "bg-white border border-primary-200 text-primary-800 hover:border-primary"
-              }`}
+              onClick={finishStep}
+              className="shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold bg-gradient-brand text-white hover:opacity-90 transition"
             >
-              {stepDone ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4" aria-hidden />이 스텝 완료
-                </>
-              ) : (
-                "이 스텝 다 했어요"
-              )}
+              {finishLabel}
+              <ChevronRight className="w-4 h-4" aria-hidden />
             </button>
           )}
         </>
@@ -569,7 +564,7 @@ export function PaneStudent() {
                 onRun={runLine}
                 onReset={() => resetScaffold(step!.id)}
                 onFinish={finishStep}
-                finishLabel="다 했어요 다음 진행하기"
+                finishLabel={finishLabel}
               />
             ) : current ? (
               <CodeEditor
