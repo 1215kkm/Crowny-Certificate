@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import {
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   GraduationCap,
@@ -129,6 +128,11 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
       if (!isLastStep) setStepIndex(stepIndex + 1);
       else goNextStage();
     };
+    const finishLabel = isLastStep
+      ? "다 했어요! 배포로 가기"
+      : "다 했어요 다음 진행하기";
+    /* 버튼은 늘 아래 칸 맨 아래 같은 자리 — 설치 스텝은 다 쳤을 때, 코드 스텝은 언제나 */
+    const finishVisible = step.scaffold ? scaffoldAllDone : true;
 
     return (
       <PaneFrame
@@ -221,26 +225,6 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
               hints={hints}
               emptyText="명령어를 치면 여기에 파일이 생깁니다."
             />
-
-            {/* 완료 안내(선생 칸은 표시만) — 코드가 정답과 같아지면 초록으로.
-                실제 「다 했어요 다음 진행하기」 버튼은 오른쪽 학생 칸에 있다 */}
-            {!step.scaffold && (
-              <div
-                className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold ${
-                  stepReady
-                    ? "bg-success/10 text-success"
-                    : "bg-white border border-primary-200 text-muted-foreground"
-                }`}
-              >
-                {stepReady ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" aria-hidden />코드 완성 — 오른쪽에서 다음으로
-                  </>
-                ) : (
-                  "오른쪽 「내 차례」 칸에서 코드를 따라 치세요"
-                )}
-              </div>
-            )}
           </>
         }
         bottom={
@@ -278,8 +262,6 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
                   lines={step.scaffold!.lines}
                   doneCount={linesDone}
                   readOnly
-                  onFinish={finishStep}
-                  finishLabel="다 했어요 다음 진행하기"
                 />
               ) : shownFile ? (
                 <CodeEditor
@@ -290,6 +272,19 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
                 />
               ) : null}
             </div>
+
+            {/* 다음 진행 버튼 — 학생 칸과 같은 자리(아래 칸 맨 아래) */}
+            {finishVisible && (
+              <div className="shrink-0 border-t border-border px-2 py-2 flex justify-end bg-white">
+                <button
+                  onClick={finishStep}
+                  className="flex items-center gap-1.5 bg-gradient-brand text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition"
+                >
+                  {finishLabel}
+                  <ChevronRight className="w-4 h-4" aria-hidden />
+                </button>
+              </div>
+            )}
           </>
         }
       />

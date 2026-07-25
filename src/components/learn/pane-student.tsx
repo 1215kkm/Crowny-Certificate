@@ -341,6 +341,11 @@ export function PaneStudent() {
     else goNextStage();
   };
   const finishLabel = isLastStep ? "다 했어요! 배포로 가기" : "다 했어요 다음 진행하기";
+  /* 이 버튼은 늘 아래 칸 맨 아래 같은 자리에 둔다(1/14 첫 화면 위치).
+     설치 스텝은 네 줄을 다 쳤을 때, 코드 스텝은 언제나 보인다. */
+  const scaffoldAllDone =
+    !!step?.scaffold && linesDone >= step.scaffold.lines.length;
+  const finishVisible = !!step && (step.scaffold ? scaffoldAllDone : true);
 
   /**
    * 명령어 한 줄을 다 쳤을 때 — **그 줄이 만드는 것만** 생긴다.
@@ -483,17 +488,6 @@ export function PaneStudent() {
             </div>
           )}
 
-          {/* 코드 스텝은 이 버튼으로 완료 + 다음 스텝으로. (설치 스텝은 아래 터미널에서)
-              모든 스텝을 같은 방식으로 넘겨서 헷갈리지 않게 한다. */}
-          {!step?.scaffold && (
-            <button
-              onClick={finishStep}
-              className="shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold bg-gradient-brand text-white hover:opacity-90 transition"
-            >
-              {finishLabel}
-              <ChevronRight className="w-4 h-4" aria-hidden />
-            </button>
-          )}
         </>
       }
       bottom={
@@ -563,8 +557,6 @@ export function PaneStudent() {
                 note={step!.scaffold!.note}
                 onRun={runLine}
                 onReset={() => resetScaffold(step!.id)}
-                onFinish={finishStep}
-                finishLabel={finishLabel}
               />
             ) : current ? (
               <CodeEditor
@@ -579,6 +571,19 @@ export function PaneStudent() {
               </div>
             )}
           </div>
+
+          {/* 다음 진행 버튼 — 모든 스텝에서 아래 칸 맨 아래 같은 자리 */}
+          {finishVisible && (
+            <div className="shrink-0 border-t border-border px-2 py-2 flex justify-end bg-white">
+              <button
+                onClick={finishStep}
+                className="flex items-center gap-1.5 bg-gradient-brand text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition"
+              >
+                {finishLabel}
+                <ChevronRight className="w-4 h-4" aria-hidden />
+              </button>
+            </div>
+          )}
         </>
       }
     />
