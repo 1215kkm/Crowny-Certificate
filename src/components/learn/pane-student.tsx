@@ -21,7 +21,7 @@ import { useLearn } from "./learn-store";
 import { PaneFrame, SectionLabel } from "./pane-frame";
 import { StudentNotes } from "./student-notes";
 import { useTracePractice, TraceTarget, TraceBox } from "./trace-input";
-import { FileTreeBox, OpenFileBar, TargetChips } from "./pane-boxes";
+import { FileTreeBox, OpenFileBar, PrereqCard, TargetChips } from "./pane-boxes";
 import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
 import { codeMatches, groupByFolder, teacherFilesUpTo } from "./learn-utils";
 import { downloadZip } from "./zip";
@@ -367,6 +367,9 @@ export function PaneStudent() {
         /* 선생 칸(2번)과 **같은 순서·같은 크기**로 쌓는다.
            위 = 이번에 만들 것 / 아래 = 내 폴더 / 맨 아래 = 이 스텝 완료 */
         <>
+          {/* 설치 스텝 맨 앞 — "설치 없이 브라우저에서 연습" 안심 + 접이식 실제 방법 */}
+          {step?.scaffold && step.prereq && <PrereqCard prereq={step.prereq} />}
+
           {step?.scaffold ? (
             <CommandList lines={step.scaffold.lines} doneCount={linesDone} />
           ) : (
