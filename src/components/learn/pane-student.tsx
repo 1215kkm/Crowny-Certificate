@@ -577,7 +577,7 @@ export function PaneStudent() {
             <div className="shrink-0 border-t border-border px-2 py-2 flex justify-end bg-white">
               <button
                 onClick={finishStep}
-                className="flex items-center gap-1.5 bg-gradient-brand text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition"
+                className="flex items-center gap-1.5 bg-success text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition"
               >
                 {finishLabel}
                 <ChevronRight className="w-4 h-4" aria-hidden />
