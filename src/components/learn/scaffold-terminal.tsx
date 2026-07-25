@@ -241,7 +241,7 @@ export function ScaffoldTerminal({
               <span className="break-all">
                 {readOnly ? (
                   <>
-                    <span className="text-white/45">{line.text}</span>
+                    <span className="text-[#d2b48c]">{line.text}</span>
                     <span className="inline-block w-[7px] h-[13px] align-[-2px] ml-0.5 bg-white/60 animate-pulse" />
                   </>
                 ) : (
@@ -253,7 +253,7 @@ export function ScaffoldTerminal({
                           ? "text-white"
                           : c.state === "bad"
                             ? "bg-danger/40 text-white rounded-[2px]"
-                            : "text-white/25"
+                            : "text-[#d2b48c]"
                       }
                     >
                       {c.ch}
@@ -304,7 +304,7 @@ export function ScaffoldTerminal({
                 disabled={!!run}
                 spellCheck={false}
                 autoComplete="off"
-                placeholder="위 검은 화면의 흐린 글자를 그대로 쳐 보세요"
+                placeholder="위 검은화면(터미널창)의 연한갈색글자를 그대로 쳐보세요"
                 className="flex-1 min-w-0 bg-transparent outline-none font-mono text-[12px]"
               />
               <button
