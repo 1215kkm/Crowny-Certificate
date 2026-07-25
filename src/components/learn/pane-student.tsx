@@ -10,6 +10,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  GitCompare,
   FolderPlus,
   FilePlus2,
   PenLine,
@@ -33,6 +34,7 @@ import {
   teacherFilesUpTo,
 } from "./learn-utils";
 import { downloadZip } from "./zip";
+import CodeDiff from "./code-diff";
 
 const CodeEditor = dynamic(() => import("./code-editor"), {
   ssr: false,
@@ -94,12 +96,15 @@ export function PaneStudent() {
   const [selectedFolder, setSelectedFolder] = useState<string | undefined>(
     undefined
   );
+  /** 비교 모드 — 켜면 편집창 대신 선생님 코드와의 차이(diff)를 보여준다 */
+  const [compare, setCompare] = useState(false);
 
-  /* 스텝이 바뀌면 아래 칸은 다시 터미널부터, 말풍선·폴더 선택도 지운다 */
+  /* 스텝이 바뀌면 아래 칸은 다시 터미널부터, 말풍선·폴더 선택·비교도 초기화 */
   useEffect(() => {
     setShowTerminal(true);
     setBubble(null);
     setSelectedFolder(undefined);
+    setCompare(false);
   }, [stepIndex]);
 
   useEffect(
@@ -384,6 +389,19 @@ export function PaneStudent() {
     );
   const stepReady = !!step && (step.scaffold ? scaffoldAllDone : codeReady);
 
+  /* 아직 정답과 다른 파일들 — 여러 파일 스텝에서 "어느 파일이 안 됐는지" 짚어 준다.
+     (styles.css 처럼 한 파일만 빼먹으면 버튼이 안 켜지던 문제 안내) */
+  const unfinishedFiles =
+    step && !step.scaffold
+      ? step.files
+          .map((f) => f.path)
+          .filter(
+            (p) =>
+              answers[p] === undefined ||
+              !codeMatches(files[p] ?? "", answers[p])
+          )
+      : [];
+
   /**
    * 명령어 한 줄을 다 쳤을 때 — **그 줄이 만드는 것만** 생긴다.
    * 파일이 생기면 「내 폴더」에서 잠깐 반짝여서 "이 줄이 이걸 만들었구나"가 보인다.
@@ -552,11 +570,33 @@ export function PaneStudent() {
               </button>
             )}
 
-            {/* 선생 칸의 「선생님 코드」와 대칭 — 파일을 보고 있을 때 켜진다 */}
+            {/* 비교 — 학생 코드 왼쪽 옆. 켜면 선생님 코드와 다른/빠진 줄을 색으로 */}
+            {!step?.scaffold && answer !== undefined && (
+              <button
+                onClick={() => {
+                  setShowTerminal(false);
+                  setCompare((c) => !c);
+                }}
+                className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded transition ${
+                  compare && !termOpen
+                    ? "bg-accent text-white"
+                    : "bg-muted text-muted-foreground hover:bg-border"
+                }`}
+                title="선생님 코드와 뭐가 다른지 비교해요"
+              >
+                <GitCompare className="w-3.5 h-3.5" aria-hidden />
+                비교
+              </button>
+            )}
+
+            {/* 선생 칸의 「선생님 코드」와 대칭 — 파일을 편집할 때 켜진다 */}
             <button
-              onClick={() => setShowTerminal(false)}
+              onClick={() => {
+                setShowTerminal(false);
+                setCompare(false);
+              }}
               className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded transition ${
-                !termOpen
+                !termOpen && !compare
                   ? "bg-primary text-white"
                   : "bg-muted text-muted-foreground hover:bg-border"
               }`}
@@ -564,8 +604,8 @@ export function PaneStudent() {
               학생 코드
             </button>
 
-            {/* 붙여넣기·복사는 코드를 직접 치는 스텝에서만 — 설치 스텝(1/14)엔 불필요 */}
-            {!step?.scaffold && answer !== undefined && (
+            {/* 붙여넣기·복사는 편집 모드(비교 아닐 때)에서만 */}
+            {!step?.scaffold && !compare && answer !== undefined && (
               <button
                 onClick={() => writeFile(current, answer)}
                 className="shrink-0 flex items-center gap-1 text-[12px] bg-muted px-2 py-1 rounded hover:bg-border transition"
@@ -576,7 +616,7 @@ export function PaneStudent() {
               </button>
             )}
 
-            {!step?.scaffold && (
+            {!step?.scaffold && !compare && (
               <button
                 onClick={() => {
                   navigator.clipboard?.writeText(files[current] ?? "");
@@ -600,6 +640,11 @@ export function PaneStudent() {
                 onRun={runLine}
                 onReset={() => resetScaffold(step!.id)}
               />
+            ) : compare && current ? (
+              <CodeDiff
+                mine={files[current] ?? ""}
+                answer={answers[current] ?? ""}
+              />
             ) : current ? (
               <CodeEditor
                 key={current}
@@ -615,13 +660,35 @@ export function PaneStudent() {
           </div>
 
           {/* 다음 진행 버튼 — 모든 스텝에서 아래 칸 맨 아래 같은 자리.
-              다 따라하기 전엔 연하게, 다 하면 진한 초록으로 켜진다. */}
+              다 따라하기 전엔 연하게, 다 하면 진한 초록으로 켜진다.
+              왼쪽엔 아직 정답과 다른 파일을 짚어 준다(여러 파일 스텝에서 하나 빼먹으면 안 켜지므로). */}
           {step && (
-            <div className="shrink-0 border-t border-border px-2 py-2 flex justify-end bg-white">
+            <div className="shrink-0 border-t border-border px-2 py-2 flex items-center gap-2 bg-white">
+              {!stepReady && !step.scaffold && unfinishedFiles.length > 0 && (
+                <div className="flex-1 min-w-0 flex items-center gap-1 text-[11px] overflow-x-auto">
+                  <span className="shrink-0 text-muted-foreground">
+                    아직 정답과 달라요:
+                  </span>
+                  {unfinishedFiles.map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => {
+                        setActiveFile(p);
+                        setShowTerminal(false);
+                        setCompare(false);
+                      }}
+                      className="shrink-0 px-1.5 py-0.5 rounded bg-danger/10 text-danger font-medium hover:bg-danger/20 transition"
+                      title="이 파일을 열어 고치기"
+                    >
+                      {baseName(p)}
+                    </button>
+                  ))}
+                </div>
+              )}
               <button
                 onClick={finishStep}
                 disabled={!stepReady}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold transition ${
+                className={`ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold transition ${
                   stepReady
                     ? "bg-success text-white hover:opacity-90"
                     : "bg-success/25 text-white/80 cursor-default"
