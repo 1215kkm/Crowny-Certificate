@@ -49,6 +49,7 @@ export function PaneStudent() {
     course,
     stage,
     stepIndex,
+    setStepIndex,
     files,
     folders,
     activeFile,
@@ -320,6 +321,13 @@ export function PaneStudent() {
   const termOpen = !!step?.scaffold && showTerminal;
   const stepDone = !!step && doneSteps.includes(step.id);
 
+  /* 「다 했어요 다음 진행하기」 — 이 스텝을 완료로 표시하고 다음 스텝으로 */
+  const finishStep = () => {
+    if (!step) return;
+    if (!stepDone) toggleStepDone(step.id);
+    if (stepIndex < course.buildSteps.length - 1) setStepIndex(stepIndex + 1);
+  };
+
   /**
    * 명령어 한 줄을 다 쳤을 때 — **그 줄이 만드는 것만** 생긴다.
    * 파일이 생기면 「내 폴더」에서 잠깐 반짝여서 "이 줄이 이걸 만들었구나"가 보인다.
@@ -347,6 +355,7 @@ export function PaneStudent() {
 
   return (
     <PaneFrame
+      bottomBias
       header={
         <>
           <Hammer className="w-4 h-4 text-primary-800 shrink-0" aria-hidden />
@@ -460,22 +469,26 @@ export function PaneStudent() {
             </div>
           )}
 
-          <button
-            onClick={() => step && toggleStepDone(step.id)}
-            className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold transition ${
-              stepDone
-                ? "bg-success text-white"
-                : "bg-white border border-primary-200 text-primary-800 hover:border-primary"
-            }`}
-          >
-            {stepDone ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" aria-hidden />이 스텝 완료
-              </>
-            ) : (
-              "이 스텝 다 했어요"
-            )}
-          </button>
+          {/* 명령어 스텝은 아래 터미널의 「다 했어요 다음 진행하기」로 넘어가므로
+              이 완료 버튼은 코드 스텝에서만 보여 준다 */}
+          {!step?.scaffold && (
+            <button
+              onClick={() => step && toggleStepDone(step.id)}
+              className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold transition ${
+                stepDone
+                  ? "bg-success text-white"
+                  : "bg-white border border-primary-200 text-primary-800 hover:border-primary"
+              }`}
+            >
+              {stepDone ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" aria-hidden />이 스텝 완료
+                </>
+              ) : (
+                "이 스텝 다 했어요"
+              )}
+            </button>
+          )}
         </>
       }
       bottom={
@@ -545,7 +558,8 @@ export function PaneStudent() {
                 note={step!.scaffold!.note}
                 onRun={runLine}
                 onReset={() => resetScaffold(step!.id)}
-                onFinish={() => setShowTerminal(false)}
+                onFinish={finishStep}
+                finishLabel="다 했어요 다음 진행하기"
               />
             ) : current ? (
               <CodeEditor

@@ -20,11 +20,14 @@ export function PaneFrame({
   topLeft,
   topRight,
   bottom,
+  /** 아래 큰 칸(터미널·에디터)을 더 키운다 — 따라하기 스텝처럼 아래가 주인공일 때 */
+  bottomBias = false,
 }: {
   header: React.ReactNode;
   topLeft: React.ReactNode;
   topRight: React.ReactNode;
   bottom: React.ReactNode;
+  bottomBias?: boolean;
 }) {
   return (
     <div className="flex flex-col h-full min-h-0 bg-primary-100">
@@ -32,7 +35,11 @@ export function PaneFrame({
         {header}
       </div>
 
-      <div className="flex-[1.45] min-h-0 flex flex-col lg:flex-row">
+      <div
+        className={`${
+          bottomBias ? "flex-1" : "flex-[1.45]"
+        } min-h-0 flex flex-col lg:flex-row`}
+      >
         <div className="flex-1 min-h-0 m-1.5 lg:mr-0 rounded-lg bg-white overflow-hidden flex flex-col">
           {topLeft}
         </div>
@@ -43,7 +50,11 @@ export function PaneFrame({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 mx-1.5 mb-1.5 rounded-lg bg-white overflow-hidden flex flex-col">
+      <div
+        className={`${
+          bottomBias ? "flex-[1.55]" : "flex-1"
+        } min-h-0 mx-1.5 mb-1.5 rounded-lg bg-white overflow-hidden flex flex-col`}
+      >
         {bottom}
       </div>
     </div>
