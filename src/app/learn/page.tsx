@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ListChecks, GraduationCap, Code2, Play, Home } from "lucide-react";
+import { ListChecks, GraduationCap, Code2, Play } from "lucide-react";
 import { TRACKS } from "@/data/learn";
 import { getTheme, themeToCssVars } from "@/data/learn/themes";
-import { LearnProvider, useLearn, useProgress } from "@/components/learn/learn-store";
+import { LearnProvider, useLearn } from "@/components/learn/learn-store";
 import { ThemeSelect } from "@/components/learn/theme-select";
 import { PaneStages } from "@/components/learn/pane-stages";
 import { PaneTeacher } from "@/components/learn/pane-teacher";
@@ -44,8 +44,7 @@ export default function LearnPage() {
 }
 
 function LearnShell() {
-  const { trackId, setTrack, course, themeId } = useLearn();
-  const { percent } = useProgress();
+  const { trackId, setTrack, themeId } = useLearn();
   const wide = useIsWide();
   const [tab, setTab] = useState<MobileTab>("stages");
 
@@ -63,7 +62,7 @@ function LearnShell() {
       data-dark={theme.dark ? "true" : "false"}
       style={themeToCssVars(theme) as React.CSSProperties}
     >
-      {/* ── 상단: 언어 선택 ─────────────────────────── */}
+      {/* ── 상단: 로고 + (가운데) 언어 선택 — 한 줄로 붙여 아래 4칸을 더 키운다 ── */}
       <header className="shrink-0 bg-white border-b border-border">
         <div className="flex items-center gap-3 px-3 h-12">
           <Link href="/" className="flex items-center shrink-0" aria-label="KAIAT 홈">
@@ -77,65 +76,37 @@ function LearnShell() {
             />
           </Link>
 
-          <span className="hidden sm:inline text-[14px] font-bold text-foreground shrink-0">
-            따라하며 코딩 배우기
-          </span>
-
-          <span className="hidden md:inline text-[12px] text-muted-foreground shrink-0">
-            로그인 없이 바로 시작
-          </span>
-
-          <div className="ml-auto flex items-center gap-2 shrink-0">
-            <ThemeSelect />
-            {course && (
-              <span className="hidden sm:flex items-center gap-2">
-                <span className="w-24 h-1.5 rounded-full bg-primary-100 overflow-hidden">
-                  <span
-                    className="block h-full bg-gradient-brand transition-all duration-500"
-                    style={{ width: `${percent}%` }}
-                  />
-                </span>
-                <span className="text-[12px] font-semibold text-primary tabular-nums">
-                  {percent}%
-                </span>
-              </span>
-            )}
-            <Link
-              href="/"
-              className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground px-2 py-1.5 rounded transition"
-            >
-              <Home className="w-3.5 h-3.5" aria-hidden />
-              <span className="hidden sm:inline">KAIAT 홈</span>
-            </Link>
+          {/* 로고 오른쪽 빈 가운데 자리에 「무엇을 배울까요?」 + 언어 탭 */}
+          <div className="flex-1 min-w-0 flex items-center gap-1.5 overflow-x-auto">
+            <span className="text-[12px] font-bold text-muted-foreground shrink-0 pr-1">
+              무엇을 배울까요?
+            </span>
+            {TRACKS.map((t) => {
+              const on = t.id === trackId;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTrack(t.id)}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[13px] font-semibold transition ${
+                    on
+                      ? "bg-primary text-white border-primary"
+                      : t.ready
+                        ? "bg-white border-border text-foreground hover:border-primary-300"
+                        : "bg-white border-dashed border-border text-muted-foreground"
+                  }`}
+                >
+                  {t.label}
+                  {!t.ready && (
+                    <span className="text-[10px] opacity-70">준비 중</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        </div>
 
-        {/* 언어 탭 */}
-        <div className="flex items-center gap-1.5 px-3 pb-2 overflow-x-auto">
-          <span className="text-[12px] font-bold text-muted-foreground shrink-0 pr-1">
-            무엇을 배울까요?
-          </span>
-          {TRACKS.map((t) => {
-            const on = t.id === trackId;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setTrack(t.id)}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[13px] font-semibold transition ${
-                  on
-                    ? "bg-primary text-white border-primary"
-                    : t.ready
-                      ? "bg-white border-border text-foreground hover:border-primary-300"
-                      : "bg-white border-dashed border-border text-muted-foreground"
-                }`}
-              >
-                {t.label}
-                {!t.ready && (
-                  <span className="text-[10px] opacity-70">준비 중</span>
-                )}
-              </button>
-            );
-          })}
+          <div className="shrink-0">
+            <ThemeSelect />
+          </div>
         </div>
       </header>
 

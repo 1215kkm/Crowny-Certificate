@@ -91,11 +91,13 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
     const hints = Object.fromEntries(
       step.files.filter((f) => f.hint).map((f) => [f.path, f.hint!])
     );
-    const badges = Object.fromEntries(
-      step.files.map((f) => [f.path, f.action === "create" ? "새로" : "고치기"])
-    );
 
     const termOpen = !!step.scaffold && showTerminal;
+
+    /* 이 스텝을 끝냈고 다음 스텝이 남아 있으면, 「다음」 화살표를 눌러야 넘어간다.
+       그걸 모르고 멈추는 사람이 많아서 화살표를 깜빡이고 말풍선으로 짚어 준다. */
+    const nudgeNext =
+      isDone && stepIndex < course.buildSteps.length - 1;
 
     return (
       <PaneFrame
@@ -105,7 +107,7 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
             <span className="text-[14px] font-bold text-primary-900 truncate">
               {step.title}
             </span>
-            <span className="ml-auto flex items-center gap-1 shrink-0">
+            <span className="relative ml-auto flex items-center gap-1 shrink-0">
               <button
                 onClick={() => setStepIndex(stepIndex - 1)}
                 disabled={stepIndex === 0}
@@ -120,11 +122,29 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
               <button
                 onClick={() => setStepIndex(stepIndex + 1)}
                 disabled={stepIndex >= course.buildSteps.length - 1}
-                className="p-1.5 rounded-md hover:bg-white/70 disabled:opacity-30 disabled:cursor-default"
+                className={`p-1.5 rounded-md hover:bg-white/70 disabled:opacity-30 disabled:cursor-default ${
+                  nudgeNext
+                    ? "bg-primary text-white animate-pulse ring-2 ring-primary/40"
+                    : ""
+                }`}
                 aria-label="다음 스텝"
               >
                 <ChevronRight className="w-4 h-4" aria-hidden />
               </button>
+
+              {/* 다 한 스텝에서만 — 「여기 눌러 다음으로」 를 깜빡여 짚어 준다 */}
+              {nudgeNext && (
+                <span
+                  className="learn-nudge absolute top-full right-0 mt-2 z-20 whitespace-nowrap rounded-lg bg-primary text-white text-[12px] font-bold px-2.5 py-1.5 shadow-lg"
+                  role="status"
+                >
+                  <span
+                    className="absolute -top-[5px] right-3 w-[9px] h-[9px] rotate-45 bg-primary"
+                    aria-hidden
+                  />
+                  다음 스텝 눌러요 👆
+                </span>
+              )}
             </span>
           </>
         }
@@ -162,7 +182,6 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
                 setShowTerminal(false);
               }}
               hints={hints}
-              badges={badges}
               emptyText="명령어를 치면 여기에 파일이 생깁니다."
             />
 
