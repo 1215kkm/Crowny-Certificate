@@ -129,12 +129,15 @@ export function PaneStudent() {
   const stageContent = course?.stages.find((s) => s.id === stage);
   const isTraceStage = stage !== "build" && stage !== "deploy";
 
-  /* 따라치기 상태는 훅으로 빼서 상단 오른쪽 / 아래 칸에 나눠 쓴다 */
+  /* 따라치기 상태는 훅으로 빼서 상단 오른쪽 / 아래 칸에 나눠 쓴다.
+     진행률은 「다음 진행하기」를 눌러야 채워진다(아래 onNext). 타이핑 70% 만으로
+     자동으로 차면 "아직 안 눌렀는데 왜 다 찼지?" 로 헷갈린다. */
   const practice = useTracePractice(
     isTraceStage ? stageContent?.practiceText ?? "" : "",
     `${course?.id ?? "x"}-${stage}`,
     () => {
-      if (isTraceStage) markTraced(stage);
+      // 따라 칠 문장이 없는 읽기 전용 단계만 방문 즉시 완료로 친다
+      if (isTraceStage && !stageContent?.practiceText) markTraced(stage);
     }
   );
 
@@ -168,7 +171,14 @@ export function PaneStudent() {
         }
         bottom={
           stageContent?.practiceText ? (
-            <TraceBox practice={practice} onNext={goNextStage} />
+            <TraceBox
+              practice={practice}
+              /* 여기서 완료 표시 — 버튼을 눌러야 진행률이 찬다 */
+              onNext={() => {
+                markTraced(stage);
+                goNextStage();
+              }}
+            />
           ) : (
             <div className="h-full grid place-items-center px-6 text-center">
               <p className="text-[13px] text-muted-foreground break-keep">
