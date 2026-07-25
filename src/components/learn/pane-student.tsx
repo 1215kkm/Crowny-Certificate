@@ -74,9 +74,14 @@ export function PaneStudent() {
   /** 방금 생긴 파일 — 「내 폴더」에서 잠깐 반짝인다 */
   const [flash, setFlash] = useState<string[]>([]);
   const flashTimer = useRef<number | null>(null);
-  /** 명령어 한 줄을 칠 때마다 「내 폴더」 위에 뜨는 설명 말풍선 */
+  /** 명령어 한 줄을 칠 때마다 「내 폴더」 옆에 뜨는 설명 말풍선 */
   const [bubble, setBubble] = useState<string | null>(null);
   const bubbleTimer = useRef<number | null>(null);
+  /** 「내 폴더」 상자 — 말풍선을 그 왼쪽에 fixed 로 붙이려고 위치를 잰다 */
+  const folderWrapRef = useRef<HTMLDivElement>(null);
+  const [bubblePos, setBubblePos] = useState<{ top: number; left: number } | null>(
+    null
+  );
 
   /* 스텝이 바뀌면 아래 칸은 다시 터미널부터, 말풍선도 지운다 */
   useEffect(() => {
@@ -91,6 +96,28 @@ export function PaneStudent() {
     },
     []
   );
+
+  /* 말풍선을 「내 폴더」 왼쪽에 두려고 폴더 상자의 화면 위치를 잰다.
+     topRight 은 overflow 상자라 안에 그리면 잘려서, fixed 로 바깥에 그린다. */
+  useEffect(() => {
+    if (!bubble) {
+      setBubblePos(null);
+      return;
+    }
+    const measure = () => {
+      const el = folderWrapRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setBubblePos({ top: r.top + 6, left: r.left });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    window.addEventListener("scroll", measure, true);
+    return () => {
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("scroll", measure, true);
+    };
+  }, [bubble]);
 
   const step = course && stage === "build" ? course.buildSteps[stepIndex] : undefined;
   const answers = useMemo(
@@ -380,9 +407,8 @@ export function PaneStudent() {
             />
           )}
 
-          {/* 「내 폴더」 + 그 위에 겹쳐 뜨는 설명 말풍선.
-              말풍선은 absolute 라 떴다 사라져도 아래 목록 위치가 흔들리지 않는다. */}
-          <div className="relative flex-1 min-h-0 flex flex-col">
+          {/* 「내 폴더」 — 말풍선은 이 상자를 재서 왼쪽에 fixed 로 띄운다(파일을 안 가리게) */}
+          <div ref={folderWrapRef} className="flex-1 min-h-0 flex flex-col">
             <FileTreeBox
               tree={tree}
               /* 터미널이 열려 있을 땐 아래 칸에 파일이 열린 게 아니므로 아무것도 선택 표시하지 않는다 */
@@ -398,29 +424,41 @@ export function PaneStudent() {
               onDelete={deleteFile}
               emptyText="아직 파일이 없어요. 아래 터미널에 명령어를 한 줄씩 쳐 보세요."
             />
-
-            {bubble && (
-              <div className="learn-nudge absolute inset-x-1 top-1 z-30 rounded-xl bg-primary text-white pl-3 pr-8 py-2 shadow-lg">
-                <div className="flex items-start gap-1.5">
-                  <Sparkles className="w-4 h-4 shrink-0 mt-[1px]" aria-hidden />
-                  <p className="text-[12px] font-semibold leading-snug break-keep">
-                    {bubble}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setBubble(null);
-                    if (bubbleTimer.current)
-                      window.clearTimeout(bubbleTimer.current);
-                  }}
-                  className="absolute top-1 right-1 p-0.5 rounded hover:bg-white/25 transition"
-                  aria-label="말풍선 닫기"
-                >
-                  <X className="w-3.5 h-3.5" aria-hidden />
-                </button>
-              </div>
-            )}
           </div>
+
+          {/* 방금 친 명령어 설명 — 「내 폴더」 왼쪽에서 오른쪽 뾰족 꼬리로 폴더를 가리킨다 */}
+          {bubble && bubblePos && (
+            <div
+              className="learn-nudge fixed z-50 w-[220px] max-w-[70vw] rounded-xl bg-primary text-white pl-3 pr-7 py-2 shadow-xl"
+              style={{
+                top: bubblePos.top,
+                left: Math.max(8, bubblePos.left - 230),
+              }}
+            >
+              <div className="flex items-start gap-1.5">
+                <Sparkles className="w-4 h-4 shrink-0 mt-[1px]" aria-hidden />
+                <p className="text-[12px] font-semibold leading-snug break-keep">
+                  {bubble}
+                </p>
+              </div>
+              {/* 오른쪽 뾰족 꼬리 — 「내 폴더」를 가리킨다 */}
+              <span
+                className="absolute top-4 -right-[6px] w-[12px] h-[12px] rotate-45 bg-primary"
+                aria-hidden
+              />
+              <button
+                onClick={() => {
+                  setBubble(null);
+                  if (bubbleTimer.current)
+                    window.clearTimeout(bubbleTimer.current);
+                }}
+                className="absolute top-1 right-1 p-0.5 rounded hover:bg-white/25 transition"
+                aria-label="말풍선 닫기"
+              >
+                <X className="w-3.5 h-3.5" aria-hidden />
+              </button>
+            </div>
+          )}
 
           <button
             onClick={() => step && toggleStepDone(step.id)}
