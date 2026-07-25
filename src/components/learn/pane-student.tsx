@@ -341,11 +341,20 @@ export function PaneStudent() {
     else goNextStage();
   };
   const finishLabel = isLastStep ? "다 했어요! 배포로 가기" : "다 했어요 다음 진행하기";
-  /* 이 버튼은 늘 아래 칸 맨 아래 같은 자리에 둔다(1/14 첫 화면 위치).
-     설치 스텝은 네 줄을 다 쳤을 때, 코드 스텝은 언제나 보인다. */
+  /* 버튼은 늘 같은 자리에 보이되, 스텝을 다 따라했을 때만 진하게(활성) 켜진다.
+     설치 스텝은 네 줄을 다 치면, 코드 스텝은 학생 코드가 정답과 같아지면. */
   const scaffoldAllDone =
     !!step?.scaffold && linesDone >= step.scaffold.lines.length;
-  const finishVisible = !!step && (step.scaffold ? scaffoldAllDone : true);
+  const codeReady =
+    !!step &&
+    !step.scaffold &&
+    step.files.length > 0 &&
+    step.files.every(
+      (f) =>
+        answers[f.path] !== undefined &&
+        codeMatches(files[f.path] ?? "", answers[f.path])
+    );
+  const stepReady = !!step && (step.scaffold ? scaffoldAllDone : codeReady);
 
   /**
    * 명령어 한 줄을 다 쳤을 때 — **그 줄이 만드는 것만** 생긴다.
@@ -572,12 +581,18 @@ export function PaneStudent() {
             )}
           </div>
 
-          {/* 다음 진행 버튼 — 모든 스텝에서 아래 칸 맨 아래 같은 자리 */}
-          {finishVisible && (
+          {/* 다음 진행 버튼 — 모든 스텝에서 아래 칸 맨 아래 같은 자리.
+              다 따라하기 전엔 연하게, 다 하면 진한 초록으로 켜진다. */}
+          {step && (
             <div className="shrink-0 border-t border-border px-2 py-2 flex justify-end bg-white">
               <button
                 onClick={finishStep}
-                className="flex items-center gap-1.5 bg-success text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition"
+                disabled={!stepReady}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold transition ${
+                  stepReady
+                    ? "bg-success text-white hover:opacity-90"
+                    : "bg-success/25 text-white/80 cursor-default"
+                }`}
               >
                 {finishLabel}
                 <ChevronRight className="w-4 h-4" aria-hidden />

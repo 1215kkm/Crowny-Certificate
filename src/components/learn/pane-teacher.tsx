@@ -43,11 +43,8 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
     course,
     stage,
     stepIndex,
-    doneSteps,
     scaffoldLines,
     setStepIndex,
-    toggleStepDone,
-    goNextStage,
     files: studentFiles,
   } = useLearn();
   const [answerFile, setAnswerFile] = useState<string | null>(null);
@@ -93,7 +90,6 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
           step.files.find((f) => files[f.path] !== undefined)?.path ??
           Object.keys(files)[0];
     const tree = groupByFolder(Object.keys(files), folders);
-    const isDone = doneSteps.includes(step.id);
 
     /* 파일 설명은 카드가 아니라 말풍선으로 — 파일 이름 옆 💬 를 누르거나
        이름에 마우스를 올리면 뜬다. 목록이 짧아져서 「내 폴더」가 학생 칸과 같은 자리에 온다. */
@@ -121,18 +117,6 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
     /* 스텝을 끝냈고 다음 스텝이 남아 있으면, 「다음」 화살표를 눌러야 넘어간다.
        그걸 모르고 멈추는 사람이 많아서 화살표를 깜빡이고 말풍선으로 짚어 준다. */
     const nudgeNext = stepReady && !isLastStep;
-
-    /* 「다 했어요 다음 진행하기」 — 완료 표시 + 다음 스텝(마지막이면 배포 단계)으로 */
-    const finishStep = () => {
-      if (!isDone) toggleStepDone(step.id);
-      if (!isLastStep) setStepIndex(stepIndex + 1);
-      else goNextStage();
-    };
-    const finishLabel = isLastStep
-      ? "다 했어요! 배포로 가기"
-      : "다 했어요 다음 진행하기";
-    /* 버튼은 늘 아래 칸 맨 아래 같은 자리 — 설치 스텝은 다 쳤을 때, 코드 스텝은 언제나 */
-    const finishVisible = step.scaffold ? scaffoldAllDone : true;
 
     return (
       <PaneFrame
@@ -272,19 +256,6 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
                 />
               ) : null}
             </div>
-
-            {/* 다음 진행 버튼 — 학생 칸과 같은 자리(아래 칸 맨 아래) */}
-            {finishVisible && (
-              <div className="shrink-0 border-t border-border px-2 py-2 flex justify-end bg-white">
-                <button
-                  onClick={finishStep}
-                  className="flex items-center gap-1.5 bg-success text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition"
-                >
-                  {finishLabel}
-                  <ChevronRight className="w-4 h-4" aria-hidden />
-                </button>
-              </div>
-            )}
           </>
         }
       />
