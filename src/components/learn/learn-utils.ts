@@ -27,13 +27,17 @@ export function teacherFoldersUpTo(course: Course, stepIndex: number): string[] 
   return [...folders];
 }
 
-/** 따라하기 스텝의 설명 5줄을 타이핑용 단락으로 바꾼다 */
+/** 따라하기 스텝의 설명을 타이핑용 단락으로 바꾼다 */
 export function buildStepParagraphs(step: BuildStep): Paragraph[] {
   return [
     { kind: "goal", text: step.goal },
     { kind: "why", text: step.why },
     { kind: "what", text: step.what },
     { kind: "where", text: step.where },
+    // 결과 — 이 스텝으로 우리가 뭘 한 건지 (있을 때만)
+    ...(step.result
+      ? [{ kind: "result" as const, text: step.result }]
+      : []),
     { kind: "next", text: step.next },
   ];
 }
@@ -68,16 +72,18 @@ export function groupByFolder(
 }
 
 /**
- * 학생 파일이 선생 정답과 같은지 (공백·줄바꿈 차이는 봐준다).
- * 초등학생 대상이라 들여쓰기 하나 틀렸다고 X 를 주면 의욕이 꺾인다.
+ * 학생 파일이 선생 정답과 같은지.
+ *
+ * "옮겨 적었나"만 본다 — 들여쓰기·줄 안쪽 공백, 따옴표 종류(' " `),
+ * 세미콜론 유무는 전부 봐준다. 예: `<AboutPage />` 와 `<AboutPage/>`,
+ * `'app'` 과 `"app"` 는 같은 것으로 친다. 사소한 차이로 다음 버튼이 안 켜지면
+ * 다 해놓고도 막힌 것처럼 느껴지기 때문.
  */
 export function codeMatches(mine: string, answer: string): boolean {
   const norm = (s: string) =>
     s
-      .replace(/\r\n/g, "\n")
-      .split("\n")
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0)
-      .join("\n");
+      .replace(/['`]/g, '"') // 따옴표 종류 통일
+      .replace(/;/g, "") // 세미콜론 무시
+      .replace(/\s+/g, ""); // 모든 공백·줄바꿈 무시
   return norm(mine) === norm(answer);
 }

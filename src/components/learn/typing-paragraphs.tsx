@@ -7,6 +7,7 @@ import {
   ListChecks,
   MapPin,
   ArrowRightCircle,
+  CheckCircle2,
   Lightbulb,
   ChevronRight,
   FastForward,
@@ -21,6 +22,7 @@ const KIND_META: Record<
   why: { icon: HelpCircle, label: "왜", color: "text-secondary" },
   what: { icon: ListChecks, label: "할 일", color: "text-primary-700" },
   where: { icon: MapPin, label: "어디에", color: "text-accent-dark" },
+  result: { icon: CheckCircle2, label: "결과", color: "text-success" },
   next: { icon: ArrowRightCircle, label: "다음", color: "text-info" },
   tip: { icon: Lightbulb, label: "꿀팁", color: "text-accent-dark" },
 };

@@ -1124,6 +1124,7 @@ export const reactTodoCourse: Course = {
       why: "React 앱은 파일을 하나하나 손으로 만들지 않아요. 준비물이 너무 많거든요. 그래서 「뼈대를 만들어 주는 도구」에게 시킵니다. 집을 지을 때 기초 공사를 기계가 하는 것과 같아요.",
       what: "터미널(명령 프롬프트)에 명령어 네 줄을 칩니다. npm 은 필요한 부품을 인터넷에서 받아다 깔아 주는 프로그램이에요. 한 줄을 치고 엔터를 누를 때마다 무엇이 생기는지 눈으로 확인하세요.",
       where: "오른쪽 「내 차례」 칸의 검은 터미널 상자에 한 줄씩 칩니다. 한 줄을 다 치고 엔터를 누르면 그 줄이 만드는 것이 아래 「내 폴더」에 하나씩 나타납니다.",
+      result: "명령어 네 줄로 React 앱의 뼈대 파일(index.js·App.js·styles.css)과 부품들을 자동으로 깔고 앱까지 켰어요. 손으로 파일 하나 안 만들었는데 시작 준비가 끝났습니다.",
       next: "도구가 만들어 준 App.js 안에는 연습용 코드(Hello React)가 들어 있어요. 다음 단계에서 그걸 우리 앱 코드로 바꿉니다.",
       prereq: {
         reassure:
@@ -1223,6 +1224,7 @@ export const reactTodoCourse: Course = {
       why: "코딩은 항상 「일단 뭐라도 화면에 뜨게」부터 시작해요. 화면이 뜨면 연결이 잘 됐다는 뜻이고, 그때부터 마음이 편해집니다.",
       what: "앞 단계에서 도구가 만들어 준 App.js 를 열어서, 안에 있던 연습용 코드(Hello React)를 지우고 우리 앱 코드로 바꿉니다.",
       where: "오른쪽 「내 폴더」의 파일 목록에서 App.js 를 누르고, 안에 있던 내용을 전부 지운 다음 새 코드를 넣으세요. 여기서부터가 진짜 「내가 쓰는 코드」예요.",
+      result: "App.js 의 연습용 코드를 지우고 우리 코드로 바꿔서, 화면에 「나의 할 일 앱」 제목이 떴어요. 여기서부터가 진짜 내가 쓴 코드입니다.",
       next: "다음에는 이 밋밋한 화면에 색을 입힐 거예요.",
       files: [
         {
@@ -1240,6 +1242,7 @@ export const reactTodoCourse: Course = {
       why: "4단계에서 정한 색 규칙을 코드로 옮기는 일이에요. 디자인은 나중에 하는 게 아니라 처음부터 같이 갑니다.",
       what: "styles.css 파일에 배경색, 글꼴, 제목 색을 적습니다. CSS(씨에스에스)는 화면을 꾸미는 언어예요.",
       where: "오른쪽 「내 폴더」의 파일 목록에서 styles.css 를 누르고, 아래 코드를 전부 넣으세요.",
+      result: "styles.css 에 색과 글꼴을 적어서, 밋밋하던 화면이 우리 앱의 색(연보라 배경·보라 제목)으로 바뀌었어요.",
       next: "다음에는 첫 번째 페이지인 「소개」 화면을 만들 거예요.",
       files: [
         {
@@ -1257,6 +1260,7 @@ export const reactTodoCourse: Course = {
       why: "화면이 3개니까 파일도 3개예요. 파일이 늘어나면 폴더로 정리해야 나중에 안 헤맵니다. 지금 습관을 들여 둡시다.",
       what: "src 안에 pages 라는 폴더를 만들고, 그 안에 AboutPage.js 파일을 만듭니다.",
       where: "오른쪽 「내 폴더」 영역에서 폴더 추가 버튼을 눌러 pages 를 만들고, 그 안에 AboutPage.js 파일을 추가한 뒤 코드를 넣으세요.",
+      result: "pages 폴더를 만들고 그 안에 소개 페이지 파일(AboutPage.js)을 만들었어요. 화면이 늘어날 때 폴더로 정리하는 습관의 시작입니다.",
       next: "다음에는 방금 만든 소개 페이지를 App.js 에서 불러올 거예요.",
       createFolders: ["/pages"],
       files: [
@@ -1275,6 +1279,7 @@ export const reactTodoCourse: Course = {
       why: "파일을 만들기만 하면 화면에 안 나와요. 「이 부품을 여기다 붙여줘」라고 말해 줘야 합니다. 그게 import(임포트 — 불러오기)예요.",
       what: "App.js 맨 위에 import 한 줄을 넣고, 화면 안에 <AboutPage /> 를 붙입니다.",
       where: "App.js 파일 맨 첫 줄에 import 를 넣고, <h1> 아래에 <AboutPage /> 를 넣으세요.",
+      result: "App.js 에서 import 로 소개 페이지를 불러와 화면에 붙였어요. 파일은 만들기만 하면 안 나오고, 불러와야 보인다는 걸 확인했습니다.",
       next: "다음에는 페이지를 갈아 끼울 수 있게 위쪽 메뉴 버튼을 만들 거예요.",
       files: [
         {
@@ -1292,6 +1297,7 @@ export const reactTodoCourse: Course = {
       why: "화면 3개를 오갈 방법이 있어야죠. 메뉴는 여러 화면에서 똑같이 쓰이니까 따로 부품으로 빼 둡니다.",
       what: "components 폴더를 만들고 Nav.js 파일을 만듭니다. Nav 는 navigation(내비게이션 — 길 안내)의 줄임말이에요.",
       where: "src 안에 components 폴더를 만들고, 그 안에 Nav.js 를 추가한 뒤 코드를 넣으세요. CSS 도 함께 채웁니다.",
+      result: "components 폴더에 Nav 부품을 만들어 「할 일 / 통계 / 소개」 버튼 3개가 나란히 생겼어요. 여러 화면에서 다시 쓸 메뉴를 부품으로 빼 뒀습니다.",
       next: "다음에는 이 버튼을 눌렀을 때 실제로 화면이 바뀌게 만들 거예요.",
       createFolders: ["/components"],
       files: [
@@ -1316,6 +1322,7 @@ export const reactTodoCourse: Course = {
       why: "여기서 React 의 핵심인 상태(state, 스테이트)를 처음 씁니다. 상태란 「지금 어떤 상황인지 기억하는 메모지」예요.",
       what: "App.js 에서 useState 로 지금 보고 있는 페이지 이름을 기억하게 하고, 그 값을 Nav 에 넘겨줍니다.",
       where: "App.js 맨 위에 import { useState } 를 넣고, 함수 안 첫 줄에 useState 를 씁니다.",
+      result: "useState 로 지금 보는 페이지를 기억하게 하고 Nav 에 넘겨줘서, 버튼을 누르면 그 버튼에 색이 칠해져요. React 의 핵심인 상태(state)를 처음 써 봤습니다.",
       next: "다음에는 진짜 주인공인 「할 일」 페이지를 만들 거예요.",
       files: [
         {
@@ -1333,6 +1340,7 @@ export const reactTodoCourse: Course = {
       why: "큰 걸 한 번에 만들면 어디가 틀렸는지 못 찾아요. 껍데기부터 만들고 안을 채웁니다.",
       what: "pages 폴더에 TodoPage.js 를 만들고, App.js 에서 불러옵니다.",
       where: "pages 폴더 안에 TodoPage.js 를 추가하고, App.js 의 import 와 화면 부분을 고치세요.",
+      result: "TodoPage 껍데기를 만들고 App 에서 불러와서, 「할 일」 버튼을 누르면 「오늘 할 일」 화면이 떠요. 큰 기능을 껍데기부터 만드는 방식을 익혔습니다.",
       next: "다음에는 이 빈 화면에 글자를 적는 입력창을 넣을 거예요.",
       files: [
         {
@@ -1356,6 +1364,7 @@ export const reactTodoCourse: Course = {
       why: "입력창은 「내가 친 글자를 앱이 알고 있어야」 쓸모가 있어요. 그래서 여기도 상태(useState)를 씁니다.",
       what: "TodoPage.js 에 입력창과 추가 버튼을 넣고, 친 글자를 text 라는 상태에 담습니다.",
       where: "TodoPage.js 를 통째로 아래 코드로 바꾸세요.",
+      result: "입력창을 넣고 친 글자를 text 상태에 담아, 타이핑하는 대로 아래에 글자가 따라 나와요. 입력을 앱이 기억하게 만들었습니다.",
       next: "다음에는 추가 버튼을 눌렀을 때 그 글자가 목록에 쌓이게 만들 거예요.",
       files: [
         {
@@ -1373,6 +1382,7 @@ export const reactTodoCourse: Course = {
       why: "할 일 목록은 통계 화면에서도 써야 해요. 여러 화면이 같이 쓰는 값은 위쪽(App.js)에 두는 게 규칙입니다.",
       what: "App.js 에 todos 라는 목록 상태와 addTodo 함수를 만들고, TodoPage 에 내려 줍니다.",
       where: "App.js 를 먼저 고치고, 그 다음 TodoPage.js 를 고치세요. 순서가 중요합니다.",
+      result: "App 에 todos 목록과 addTodo 함수를 만들어 TodoPage 에 내려주고, 추가를 누르면 담은 개수가 올라가요. 여러 화면이 함께 쓸 값을 위쪽에 두는 규칙을 적용했습니다.",
       next: "다음에는 담긴 할 일들을 화면에 목록으로 보여줄 거예요.",
       files: [
         {
@@ -1396,6 +1406,7 @@ export const reactTodoCourse: Course = {
       why: "드디어 앱처럼 보이는 순간이에요. 여기서 map 을 한 번 더 씁니다. 목록을 화면으로 바꾸는 건 항상 map 이에요.",
       what: "TodoPage.js 에서 todos 를 map 으로 돌면서 <li> 를 하나씩 만듭니다.",
       where: "TodoPage.js 를 통째로 아래 코드로 바꾸세요.",
+      result: "todos 를 map 으로 돌려 목록으로 그려서, 추가한 할 일이 줄줄이 나타나요. 드디어 할 일 앱처럼 보이기 시작했습니다.",
       next: "다음에는 다 한 일에 체크할 수 있게 만들 거예요.",
       files: [
         {
@@ -1413,6 +1424,7 @@ export const reactTodoCourse: Course = {
       why: "다 한 일에 줄이 쫙 그어지는 그 맛이 할 일 앱의 전부예요. 기능 4개 중 3번째, 「고치기」입니다.",
       what: "App.js 에 toggleTodo 함수를 만들고, TodoPage 에 체크박스를 답니다.",
       where: "App.js 먼저, 그 다음 TodoPage.js 순서로 고치세요.",
+      result: "toggleTodo 로 완료 상태를 뒤집고 체크박스를 달아서, 체크하면 글자에 취소선이 그어져요. CRUD 의 '고치기(Update)'를 완성했습니다.",
       next: "다음에는 필요 없어진 할 일을 지우는 삭제 버튼을 만들 거예요.",
       files: [
         {
@@ -1436,6 +1448,7 @@ export const reactTodoCourse: Course = {
       why: "기능 4개 중 마지막, 「지우기」예요. 이걸로 CRUD 가 완성됩니다.",
       what: "App.js 에 removeTodo 함수를 만들고, 목록 오른쪽에 삭제 버튼을 답니다.",
       where: "App.js 먼저, 그 다음 TodoPage.js 순서로 고치세요.",
+      result: "removeTodo 로 그 할 일만 걸러내는 삭제 버튼을 달아서, 누르면 사라져요. 이걸로 만들기·보기·고치기·지우기(CRUD)가 다 됐습니다.",
       next: "다음이 마지막입니다. 세 번째 페이지인 「통계」를 만들 거예요.",
       files: [
         {
@@ -1459,6 +1472,7 @@ export const reactTodoCourse: Course = {
       why: "같은 데이터를 다른 방식으로 보여주는 연습이에요. 숫자를 세고, 퍼센트를 계산하고, 막대로 그립니다.",
       what: "pages 폴더에 StatsPage.js 를 만들고, App.js 에서 todos 를 넘겨 줍니다.",
       where: "StatsPage.js 를 새로 만들고, App.js 의 import 와 화면 부분을 마지막으로 고치세요.",
+      result: "todos 로 전체·완료·남은 개수를 세고 퍼센트를 막대로 그려서 「통계」 화면이 완성됐어요. 같은 데이터를 다른 방식으로 보여주는 3페이지 앱이 다 만들어졌습니다!",
       next: "완성! 7단계로 넘어가서 인터넷에 올려 봅시다.",
       files: [
         {
