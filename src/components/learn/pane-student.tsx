@@ -438,7 +438,7 @@ export function PaneStudent() {
           {/* 방금 친 명령어 설명 — 「내 폴더」 왼쪽에서 오른쪽 뾰족 꼬리로 폴더를 가리킨다 */}
           {bubble && bubblePos && (
             <div
-              className="learn-nudge fixed z-50 w-[220px] max-w-[70vw] rounded-xl bg-primary text-white pl-3 pr-7 py-2 shadow-xl"
+              className="learn-nudge fixed z-50 w-[220px] max-w-[70vw] rounded-xl bg-success text-white pl-3 pr-7 py-2 shadow-xl"
               style={{
                 top: bubblePos.top,
                 left: Math.max(8, bubblePos.left - 230),
@@ -452,7 +452,7 @@ export function PaneStudent() {
               </div>
               {/* 오른쪽 뾰족 꼬리 — 「내 폴더」를 가리킨다 */}
               <span
-                className="absolute top-4 -right-[6px] w-[12px] h-[12px] rotate-45 bg-primary"
+                className="absolute top-4 -right-[6px] w-[12px] h-[12px] rotate-45 bg-success"
                 aria-hidden
               />
               <button
