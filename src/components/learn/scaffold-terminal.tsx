@@ -128,8 +128,10 @@ export function ScaffoldTerminal({
   onReset,
   /** 선생 칸은 학생이 친 만큼 따라 보여주기만 한다 */
   readOnly = false,
-  /** 다 친 뒤 「파일 열어 보기」로 넘어가기 */
+  /** 다 친 뒤 넘어가기 버튼을 눌렀을 때 */
   onFinish,
+  /** 그 버튼에 쓸 글자 (없으면 기본값) */
+  finishLabel,
 }: {
   lines: ScaffoldLine[];
   doneCount: number;
@@ -139,6 +141,7 @@ export function ScaffoldTerminal({
   onReset?: () => void;
   readOnly?: boolean;
   onFinish?: () => void;
+  finishLabel?: string;
 }) {
   const [typed, setTyped] = useState("");
   /** 실행 중인 줄과 지금까지 뜬 출력 줄 수 */
@@ -367,7 +370,8 @@ export function ScaffoldTerminal({
                 onClick={onFinish}
                 className="shrink-0 flex items-center gap-1.5 bg-gradient-brand text-white px-3 py-1.5 rounded-md text-[12px] font-semibold hover:opacity-90 transition"
               >
-                {readOnly ? "선생님 코드 보기" : "생긴 파일 열어 보기"}
+                {finishLabel ??
+                  (readOnly ? "선생님 코드 보기" : "생긴 파일 열어 보기")}
                 <ChevronRight className="w-3.5 h-3.5" aria-hidden />
               </button>
             )}

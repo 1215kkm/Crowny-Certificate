@@ -39,8 +39,15 @@ const CodeEditor = dynamic(() => import("./code-editor"), {
  *   머리줄 / 상단 왼쪽 = 설명 / 상단 오른쪽 = 내가 만드는 것 / 아래 = 내 코드
  */
 export function PaneTeacher({ active = true }: { active?: boolean }) {
-  const { course, stage, stepIndex, doneSteps, scaffoldLines, setStepIndex } =
-    useLearn();
+  const {
+    course,
+    stage,
+    stepIndex,
+    doneSteps,
+    scaffoldLines,
+    setStepIndex,
+    toggleStepDone,
+  } = useLearn();
   const [answerFile, setAnswerFile] = useState<string | null>(null);
   /** 명령어 스텝에서 아래 큰 칸에 터미널을 보여줄지 (다 치면 코드로 바뀐다) */
   const [showTerminal, setShowTerminal] = useState(true);
@@ -94,13 +101,25 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
 
     const termOpen = !!step.scaffold && showTerminal;
 
-    /* 이 스텝을 끝냈고 다음 스텝이 남아 있으면, 「다음」 화살표를 눌러야 넘어간다.
+    /* 명령어 스텝은 네 줄을 다 치면 끝난 것, 코드 스텝은 체크했을 때 끝난 것 */
+    const scaffoldAllDone = step.scaffold
+      ? linesDone >= step.scaffold.lines.length
+      : false;
+    const stepReady = step.scaffold ? scaffoldAllDone : isDone;
+
+    /* 스텝을 끝냈고 다음 스텝이 남아 있으면, 「다음」 화살표를 눌러야 넘어간다.
        그걸 모르고 멈추는 사람이 많아서 화살표를 깜빡이고 말풍선으로 짚어 준다. */
-    const nudgeNext =
-      isDone && stepIndex < course.buildSteps.length - 1;
+    const nudgeNext = stepReady && stepIndex < course.buildSteps.length - 1;
+
+    /* 「다 했어요 다음 진행하기」 — 이 스텝을 완료로 표시하고 다음 스텝으로 */
+    const finishStep = () => {
+      if (!isDone) toggleStepDone(step.id);
+      if (stepIndex < course.buildSteps.length - 1) setStepIndex(stepIndex + 1);
+    };
 
     return (
       <PaneFrame
+        bottomBias
         header={
           <>
             <GraduationCap className="w-4 h-4 text-primary-800 shrink-0" aria-hidden />
@@ -190,21 +209,25 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
               emptyText="명령어를 치면 여기에 파일이 생깁니다."
             />
 
-            <div
-              className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold ${
-                isDone
-                  ? "bg-success/10 text-success"
-                  : "bg-white border border-primary-200 text-muted-foreground"
-              }`}
-            >
-              {isDone ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4" aria-hidden />이 스텝 완료
-                </>
-              ) : (
-                "따라 한 뒤 오른쪽에서 체크하세요"
-              )}
-            </div>
+            {/* 명령어 스텝은 아래 터미널의 「다 했어요 다음 진행하기」로 넘어가므로
+                여기 완료 안내는 코드 스텝에서만 보여 준다 */}
+            {!step.scaffold && (
+              <div
+                className={`shrink-0 h-9 rounded-lg flex items-center justify-center gap-1.5 text-[12px] font-semibold ${
+                  isDone
+                    ? "bg-success/10 text-success"
+                    : "bg-white border border-primary-200 text-muted-foreground"
+                }`}
+              >
+                {isDone ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" aria-hidden />이 스텝 완료
+                  </>
+                ) : (
+                  "따라 한 뒤 오른쪽에서 체크하세요"
+                )}
+              </div>
+            )}
           </>
         }
         bottom={
@@ -242,7 +265,8 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
                   lines={step.scaffold!.lines}
                   doneCount={linesDone}
                   readOnly
-                  onFinish={() => setShowTerminal(false)}
+                  onFinish={finishStep}
+                  finishLabel="다 했어요 다음 진행하기"
                 />
               ) : shownFile ? (
                 <CodeEditor

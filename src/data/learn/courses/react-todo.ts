@@ -1157,7 +1157,7 @@ export const reactTodoCourse: Course = {
             ],
             creates: ["/index.js", "/App.js", "/styles.css"],
             bubble:
-              "방금 그 명령어로 파일 3개가 생겼어요! 아래 「내 폴더」에 index.js · App.js · styles.css 가 보이죠?",
+              "방금 그 명령어로 파일 3개가 생겼어요! 「내 폴더」에 index.js · App.js · styles.css 가 보이죠? 생성된 파일을 클릭하면 소스코드를 확인할 수 있어요.",
           },
           {
             text: "cd my-todo-app",
