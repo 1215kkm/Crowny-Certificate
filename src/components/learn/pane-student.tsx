@@ -16,6 +16,7 @@ import {
   Rocket,
   Sparkles,
   TerminalSquare,
+  X,
 } from "lucide-react";
 import { useLearn } from "./learn-store";
 import { PaneFrame, SectionLabel } from "./pane-frame";
@@ -382,38 +383,47 @@ export function PaneStudent() {
             />
           )}
 
-          {/* 방금 친 명령어가 무슨 일을 했는지 — 「내 폴더」 바로 위에서 콕 짚어 준다 */}
-          {bubble && (
-            <div className="learn-nudge shrink-0 relative rounded-xl bg-primary text-white px-3 py-2 shadow-md">
-              <div className="flex items-start gap-1.5">
-                <Sparkles className="w-4 h-4 shrink-0 mt-[1px]" aria-hidden />
-                <p className="text-[12px] font-semibold leading-snug break-keep">
-                  {bubble}
-                </p>
-              </div>
-              {/* 아래 「내 폴더」를 가리키는 꼬리 */}
-              <span
-                className="absolute -bottom-[5px] left-6 w-[10px] h-[10px] rotate-45 bg-primary"
-                aria-hidden
-              />
-            </div>
-          )}
+          {/* 「내 폴더」 + 그 위에 겹쳐 뜨는 설명 말풍선.
+              말풍선은 absolute 라 떴다 사라져도 아래 목록 위치가 흔들리지 않는다. */}
+          <div className="relative flex-1 min-h-0 flex flex-col">
+            <FileTreeBox
+              tree={tree}
+              /* 터미널이 열려 있을 땐 아래 칸에 파일이 열린 게 아니므로 아무것도 선택 표시하지 않는다 */
+              current={termOpen ? "" : current}
+              /* 파일을 누르면 터미널을 접고 그 파일을 아래 칸에 연다 */
+              onPick={(p) => {
+                setActiveFile(p);
+                setShowTerminal(false);
+              }}
+              hints={hints}
+              oks={oks}
+              flash={flash}
+              onDelete={deleteFile}
+              emptyText="아직 파일이 없어요. 아래 터미널에 명령어를 한 줄씩 쳐 보세요."
+            />
 
-          <FileTreeBox
-            tree={tree}
-            /* 터미널이 열려 있을 땐 아래 칸에 파일이 열린 게 아니므로 아무것도 선택 표시하지 않는다 */
-            current={termOpen ? "" : current}
-            /* 파일을 누르면 터미널을 접고 그 파일을 아래 칸에 연다 */
-            onPick={(p) => {
-              setActiveFile(p);
-              setShowTerminal(false);
-            }}
-            hints={hints}
-            oks={oks}
-            flash={flash}
-            onDelete={deleteFile}
-            emptyText="아직 파일이 없어요. 아래 터미널에 명령어를 한 줄씩 쳐 보세요."
-          />
+            {bubble && (
+              <div className="learn-nudge absolute inset-x-1 top-1 z-30 rounded-xl bg-primary text-white pl-3 pr-8 py-2 shadow-lg">
+                <div className="flex items-start gap-1.5">
+                  <Sparkles className="w-4 h-4 shrink-0 mt-[1px]" aria-hidden />
+                  <p className="text-[12px] font-semibold leading-snug break-keep">
+                    {bubble}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setBubble(null);
+                    if (bubbleTimer.current)
+                      window.clearTimeout(bubbleTimer.current);
+                  }}
+                  className="absolute top-1 right-1 p-0.5 rounded hover:bg-white/25 transition"
+                  aria-label="말풍선 닫기"
+                >
+                  <X className="w-3.5 h-3.5" aria-hidden />
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
             onClick={() => step && toggleStepDone(step.id)}
