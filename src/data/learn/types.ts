@@ -119,6 +119,11 @@ export interface ScaffoldLine {
   creates?: string[];
   /** 진행 애니메이션 종류 — 설치는 진행 막대, 실행은 초록 불 */
   effect?: "install" | "serve";
+  /**
+   * 이 줄을 다 치면 「내 폴더」 위에 잠깐 떠서 "방금 무슨 일이 일어났는지"를
+   * 짚어 주는 말풍선. 읽기 전용이라 →·· 같은 기호를 써도 된다.
+   */
+  bubble?: string;
 }
 
 /**

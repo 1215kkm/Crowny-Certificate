@@ -1137,6 +1137,8 @@ export const reactTodoCourse: Course = {
               "파일 3개를 넣었어요.",
             ],
             creates: ["/index.js", "/App.js", "/styles.css"],
+            bubble:
+              "방금 그 명령어로 파일 3개가 생겼어요! 아래 「내 폴더」에 index.js · App.js · styles.css 가 보이죠?",
           },
           {
             text: "cd my-todo-app",
@@ -1145,6 +1147,8 @@ export const reactTodoCourse: Course = {
               "이제 my-todo-app 폴더 안에서 일합니다.",
               "생기는 파일은 없어요. 자리만 옮긴 거예요.",
             ],
+            bubble:
+              "방금은 폴더 안으로 들어온 것뿐이에요. 새로 생긴 파일은 없어요 — 작업할 자리만 옮긴 거예요.",
           },
           {
             text: "npm install",
@@ -1155,6 +1159,8 @@ export const reactTodoCourse: Course = {
               "node_modules 라는 부품 상자가 생겼어요. 열어 볼 일은 없어요.",
             ],
             effect: "install",
+            bubble:
+              "리액트 개발에 필요한 부품 파일 214개를 받아왔어요! node_modules 라는 상자에 담겨서 「내 폴더」 목록엔 안 보이지만, 앱은 이 부품들로 돌아가요.",
           },
           {
             text: "npm run dev",
@@ -1165,6 +1171,8 @@ export const reactTodoCourse: Course = {
               "주소: http://localhost:5173/",
             ],
             effect: "serve",
+            bubble:
+              "앱에 전원이 켜졌어요! 이제 오른쪽 「미리보기」 화면이 시작돼요 → 코드를 고칠 때마다 저기가 같이 바뀝니다.",
           },
         ],
       },

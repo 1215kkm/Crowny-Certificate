@@ -14,6 +14,7 @@ import {
   PenLine,
   Hammer,
   Rocket,
+  Sparkles,
   TerminalSquare,
 } from "lucide-react";
 import { useLearn } from "./learn-store";
@@ -72,15 +73,20 @@ export function PaneStudent() {
   /** 방금 생긴 파일 — 「내 폴더」에서 잠깐 반짝인다 */
   const [flash, setFlash] = useState<string[]>([]);
   const flashTimer = useRef<number | null>(null);
+  /** 명령어 한 줄을 칠 때마다 「내 폴더」 위에 뜨는 설명 말풍선 */
+  const [bubble, setBubble] = useState<string | null>(null);
+  const bubbleTimer = useRef<number | null>(null);
 
-  /* 스텝이 바뀌면 아래 칸은 다시 터미널부터 */
+  /* 스텝이 바뀌면 아래 칸은 다시 터미널부터, 말풍선도 지운다 */
   useEffect(() => {
     setShowTerminal(true);
+    setBubble(null);
   }, [stepIndex]);
 
   useEffect(
     () => () => {
       if (flashTimer.current) window.clearTimeout(flashTimer.current);
+      if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
     },
     []
   );
@@ -304,6 +310,12 @@ export function PaneStudent() {
       if (flashTimer.current) window.clearTimeout(flashTimer.current);
       flashTimer.current = window.setTimeout(() => setFlash([]), 1800);
     }
+    /* 이 줄이 무슨 일을 했는지 「내 폴더」 위에 말풍선으로 짚어 준다 */
+    if (line.bubble) {
+      setBubble(line.bubble);
+      if (bubbleTimer.current) window.clearTimeout(bubbleTimer.current);
+      bubbleTimer.current = window.setTimeout(() => setBubble(null), 6000);
+    }
   }
 
   return (
@@ -366,6 +378,23 @@ export function PaneStudent() {
               doneFiles={Object.keys(files)}
               onPickFile={createFile}
             />
+          )}
+
+          {/* 방금 친 명령어가 무슨 일을 했는지 — 「내 폴더」 바로 위에서 콕 짚어 준다 */}
+          {bubble && (
+            <div className="learn-nudge shrink-0 relative rounded-xl bg-primary text-white px-3 py-2 shadow-md">
+              <div className="flex items-start gap-1.5">
+                <Sparkles className="w-4 h-4 shrink-0 mt-[1px]" aria-hidden />
+                <p className="text-[12px] font-semibold leading-snug break-keep">
+                  {bubble}
+                </p>
+              </div>
+              {/* 아래 「내 폴더」를 가리키는 꼬리 */}
+              <span
+                className="absolute -bottom-[5px] left-6 w-[10px] h-[10px] rotate-45 bg-primary"
+                aria-hidden
+              />
+            </div>
           )}
 
           <FileTreeBox
