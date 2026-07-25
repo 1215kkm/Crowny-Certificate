@@ -53,7 +53,6 @@ export function FileTreeBox({
   current,
   onPick,
   hints = {},
-  badges = {},
   oks = [],
   flash = [],
   onDelete,
@@ -70,8 +69,6 @@ export function FileTreeBox({
   onPick: (path: string) => void;
   /** 파일별 말풍선 설명 — 파일 이름에 마우스를 올리면 뜬다 */
   hints?: Record<string, string>;
-  /** 파일별 뱃지 (새로 / 고치기) */
-  badges?: Record<string, string>;
   /** 정답과 같아진 파일 */
   oks?: string[];
   /** 방금 생긴 파일 — 잠깐 초록으로 반짝인다 */
@@ -183,20 +180,6 @@ export function FileTreeBox({
                       >
                         <MessageSquare className="w-3.5 h-3.5" aria-hidden />
                       </button>
-                    )}
-
-                    {badges[p] && (
-                      <span
-                        className={`shrink-0 text-[10px] px-1 py-0.5 rounded ${
-                          on
-                            ? "bg-white/25 text-white"
-                            : badges[p] === "새로"
-                              ? "bg-success/15 text-success"
-                              : "bg-accent/15 text-accent-dark"
-                        }`}
-                      >
-                        {badges[p]}
-                      </span>
                     )}
 
                     {oks.includes(p) && (

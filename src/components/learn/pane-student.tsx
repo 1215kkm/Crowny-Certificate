@@ -279,12 +279,6 @@ export function PaneStudent() {
   const hints = Object.fromEntries(
     (step?.files ?? []).filter((f) => f.hint).map((f) => [f.path, f.hint!])
   );
-  const badges = Object.fromEntries(
-    (step?.files ?? []).map((f) => [
-      f.path,
-      f.action === "create" ? "새로" : "고치기",
-    ])
-  );
   const oks = Object.keys(files).filter(
     (p) => answers[p] !== undefined && codeMatches(files[p] ?? "", answers[p])
   );
@@ -383,7 +377,6 @@ export function PaneStudent() {
               setShowTerminal(false);
             }}
             hints={hints}
-            badges={badges}
             oks={oks}
             flash={flash}
             onDelete={deleteFile}

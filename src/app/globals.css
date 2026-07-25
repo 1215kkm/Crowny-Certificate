@@ -180,6 +180,22 @@ body {
   animation: learnChipIn 0.32s ease-out forwards;
 }
 
+/* 「다음 스텝 눌러요」 말풍선 — 위아래로 까딱이며 눈에 띈다 */
+@keyframes learnNudge {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-4px);
+    opacity: 0.75;
+  }
+}
+.learn-nudge {
+  animation: learnNudge 0.9s ease-in-out infinite;
+}
+
 /* 로고는 짙은 남색 이미지라 다크 테마 배경에 묻힌다 — 밝게 뒤집어 준다 */
 .learn-root[data-dark="true"] img[alt="KAIAT"] {
   filter: brightness(0) invert(1);
