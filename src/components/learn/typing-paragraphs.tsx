@@ -42,6 +42,8 @@ export function TypingParagraphs({
   resetKey,
   advanceSignal,
   onAllRevealed,
+  /** 설명 문단들 맨 끝에 붙일 것 (예: 준비물 안내 카드) */
+  trailing,
 }: {
   paragraphs: Paragraph[];
   active?: boolean;
@@ -54,6 +56,7 @@ export function TypingParagraphs({
    */
   advanceSignal?: number;
   onAllRevealed?: () => void;
+  trailing?: React.ReactNode;
 }) {
   const [revealed, setRevealed] = useState(0); // 완전히 열린 단락 수
   const [typing, setTyping] = useState<{ index: number; chars: number } | null>(
@@ -258,6 +261,9 @@ export function TypingParagraphs({
             </div>
           );
         })}
+
+        {/* 설명 맨 끝에 붙는 것 — 준비물 안내 등 */}
+        {trailing}
       </div>
 
       <div className="shrink-0 border-t border-border bg-muted/40 px-3 py-2 flex items-center gap-2">

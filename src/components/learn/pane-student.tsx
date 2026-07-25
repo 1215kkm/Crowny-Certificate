@@ -22,7 +22,7 @@ import { useLearn } from "./learn-store";
 import { PaneFrame, SectionLabel } from "./pane-frame";
 import { StudentNotes } from "./student-notes";
 import { useTracePractice, TraceTarget, TraceBox } from "./trace-input";
-import { FileTreeBox, OpenFileBar, PrereqCard, TargetChips } from "./pane-boxes";
+import { FileTreeBox, OpenFileBar, TargetChips } from "./pane-boxes";
 import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
 import { codeMatches, groupByFolder, teacherFilesUpTo } from "./learn-utils";
 import { downloadZip } from "./zip";
@@ -367,9 +367,6 @@ export function PaneStudent() {
         /* 선생 칸(2번)과 **같은 순서·같은 크기**로 쌓는다.
            위 = 이번에 만들 것 / 아래 = 내 폴더 / 맨 아래 = 이 스텝 완료 */
         <>
-          {/* 설치 스텝 맨 앞 — "설치 없이 브라우저에서 연습" 안심 + 접이식 실제 방법 */}
-          {step?.scaffold && step.prereq && <PrereqCard prereq={step.prereq} />}
-
           {step?.scaffold ? (
             <CommandList lines={step.scaffold.lines} doneCount={linesDone} />
           ) : (
@@ -448,11 +445,14 @@ export function PaneStudent() {
            파일명은 파일을 골랐을 때만, 터미널 버튼·「학생 코드」 배지는 언제나. */
         <>
           <OpenFileBar path={termOpen ? "" : current}>
+            {/* 터미널 ↔ 학생 코드 를 탭처럼 — 지금 보고 있는 쪽이 켜진 색, 다른 쪽은 연한 회색 */}
             {step?.scaffold && (
               <button
                 onClick={() => setShowTerminal(true)}
-                className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded bg-[#1b1725] transition ${
-                  termOpen ? "text-white" : "text-white/50 hover:text-white/80"
+                className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded transition ${
+                  termOpen
+                    ? "bg-[#1b1725] text-white"
+                    : "bg-muted text-muted-foreground hover:bg-border"
                 }`}
               >
                 <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
@@ -460,10 +460,17 @@ export function PaneStudent() {
               </button>
             )}
 
-            {/* 선생 칸의 「선생님 코드」와 대칭 */}
-            <span className="shrink-0 text-[11px] bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded">
+            {/* 선생 칸의 「선생님 코드」와 대칭 — 파일을 보고 있을 때 켜진다 */}
+            <button
+              onClick={() => setShowTerminal(false)}
+              className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded transition ${
+                !termOpen
+                  ? "bg-primary text-white"
+                  : "bg-muted text-muted-foreground hover:bg-border"
+              }`}
+            >
               학생 코드
-            </span>
+            </button>
 
             {/* 붙여넣기·복사는 코드를 직접 치는 스텝에서만 — 설치 스텝(1/14)엔 불필요 */}
             {!step?.scaffold && answer !== undefined && (
