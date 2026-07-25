@@ -14,7 +14,7 @@ import {
 import { useLearn } from "./learn-store";
 import { TypingParagraphs } from "./typing-paragraphs";
 import { PaneFrame, SectionLabel } from "./pane-frame";
-import { FileTreeBox, OpenFileBar, TargetChips } from "./pane-boxes";
+import { FileTreeBox, OpenFileBar, PrereqCard, TargetChips } from "./pane-boxes";
 import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
 import {
   buildStepParagraphs,
@@ -155,6 +155,10 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
             resetKey={`${course.id}-${step.id}`}
             /* 오른쪽에서 명령어를 한 줄 칠 때마다 설명도 한 단락씩 열린다 */
             advanceSignal={step.scaffold ? linesDone : undefined}
+            /* 설치 스텝이면 설명 맨 끝에 「준비물」 안내를 붙인다 */
+            trailing={
+              step.prereq ? <PrereqCard prereq={step.prereq} /> : undefined
+            }
           />
         }
         topRight={
@@ -207,20 +211,30 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
           /* 상단 바(터미널 버튼 포함)를 터미널 위에도 계속 보여 준다 — 학생 칸과 같은 뼈대 */
           <>
             <OpenFileBar path={termOpen ? "" : (shownFile ?? "")}>
+              {/* 터미널 ↔ 선생님 코드 를 탭처럼 — 지금 보고 있는 쪽이 켜진 색 */}
               {step.scaffold && (
                 <button
                   onClick={() => setShowTerminal(true)}
-                  className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded bg-[#1b1725] transition ${
-                    termOpen ? "text-white" : "text-white/50 hover:text-white/80"
+                  className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded transition ${
+                    termOpen
+                      ? "bg-[#1b1725] text-white"
+                      : "bg-muted text-muted-foreground hover:bg-border"
                   }`}
                 >
                   <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
                   터미널
                 </button>
               )}
-              <span className="shrink-0 text-[11px] bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded">
+              <button
+                onClick={() => setShowTerminal(false)}
+                className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded transition ${
+                  !termOpen
+                    ? "bg-primary text-white"
+                    : "bg-muted text-muted-foreground hover:bg-border"
+                }`}
+              >
                 선생님 코드
-              </span>
+              </button>
             </OpenFileBar>
             <div className="flex-1 min-h-0">
               {termOpen ? (
