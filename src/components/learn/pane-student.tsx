@@ -25,7 +25,13 @@ import { StudentNotes } from "./student-notes";
 import { useTracePractice, TraceTarget, TraceBox } from "./trace-input";
 import { FileTreeBox, OpenFileBar, TargetChips } from "./pane-boxes";
 import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
-import { codeMatches, groupByFolder, teacherFilesUpTo } from "./learn-utils";
+import {
+  baseName,
+  codeMatches,
+  dirName,
+  groupByFolder,
+  teacherFilesUpTo,
+} from "./learn-utils";
 import { downloadZip } from "./zip";
 
 const CodeEditor = dynamic(() => import("./code-editor"), {
@@ -316,6 +322,22 @@ export function PaneStudent() {
   const expectedFiles = step?.files.map((f) => f.path) ?? [];
   const expectedFolders = step?.createFolders ?? [];
   const tree = groupByFolder(Object.keys(files), folders);
+
+  /** 「내 폴더」의 폴더 줄 ＋파일 버튼 — 그 폴더 안에 바로 파일을 만든다.
+     전체 경로를 손으로 치지 않아도 돼서 "이 파일이 어디 들어가지?" 헷갈림이 없다. */
+  const addFileToFolder = (folder: string) => {
+    const suggested = expectedFiles.find(
+      (p) => dirName(p) === folder && files[p] === undefined
+    );
+    const label = folder ? folder.replace(/^\//, "") : "src";
+    const name = window.prompt(
+      `「${label}」 폴더 안에 만들 파일 이름을 적어 주세요 (예: AboutPage.js)`,
+      suggested ? baseName(suggested) : ""
+    );
+    if (!name?.trim()) return;
+    const clean = name.trim().replace(/^\/+/, "");
+    createFile(`${folder}/${clean}`.replace(/\/{2,}/g, "/"));
+  };
   const current =
     files[activeFile] !== undefined ? activeFile : Object.keys(files)[0] ?? "";
   const answer = answers[current];
@@ -459,6 +481,7 @@ export function PaneStudent() {
               oks={oks}
               flash={flash}
               onDelete={deleteFile}
+              onAddFileToFolder={addFileToFolder}
               emptyText="아직 파일이 없어요. 아래 터미널에 명령어를 한 줄씩 쳐 보세요."
             />
           </div>

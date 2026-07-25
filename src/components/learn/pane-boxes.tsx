@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   CheckCircle2,
   ChevronRight,
+  FilePlus2,
   Folder,
   Info,
   MessageSquare,
@@ -64,6 +65,7 @@ export function FileTreeBox({
   oks = [],
   flash = [],
   onDelete,
+  onAddFileToFolder,
   emptyText = "아직 파일이 없어요.",
   right,
   /** 두 칸에서 같은 크기가 되도록 기본값을 박아 둔다 */
@@ -83,6 +85,8 @@ export function FileTreeBox({
   flash?: string[];
   /** 학생 칸에서만 — 파일 지우기 */
   onDelete?: (path: string) => void;
+  /** 학생 칸에서만 — 이 폴더 안에 파일 만들기 (folder="" 는 루트) */
+  onAddFileToFolder?: (folder: string) => void;
   emptyText?: string;
   /** 제목줄 오른쪽에 붙일 것 (파일 개수 등) */
   right?: React.ReactNode;
@@ -135,6 +139,16 @@ export function FileTreeBox({
               <div className="flex items-center gap-1 px-1.5 py-1 text-[12px] font-semibold text-muted-foreground">
                 <Folder className="w-3.5 h-3.5" aria-hidden />
                 {folder ? folder.replace(/^\//, "") : "src"}
+                {onAddFileToFolder && (
+                  <button
+                    onClick={() => onAddFileToFolder(folder)}
+                    className="ml-auto flex items-center gap-0.5 text-[11px] font-medium text-primary hover:text-primary-dark px-1.5 py-0.5 rounded hover:bg-primary-50 transition"
+                    title="이 폴더 안에 파일 만들기"
+                  >
+                    <FilePlus2 className="w-3 h-3" aria-hidden />
+                    파일
+                  </button>
+                )}
               </div>
 
               {fs.map((p) => {
