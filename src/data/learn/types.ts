@@ -58,8 +58,8 @@ export const STAGE_LABELS: Record<StageId, string> = {
 export interface Paragraph {
   /** 화면에 타이핑될 문장 */
   text: string;
-  /** 말머리 아이콘 종류 — 목표/이유/할일/다음/위치 */
-  kind?: "goal" | "why" | "what" | "next" | "where" | "tip";
+  /** 말머리 아이콘 종류 — 목표/이유/할일/위치/결과/다음/꿀팁 */
+  kind?: "goal" | "why" | "what" | "next" | "where" | "result" | "tip";
 }
 
 /** 비교표·선택지 카드 (예: 경쟁 프로그램 비교, 서버 비교) */
@@ -141,6 +141,8 @@ export interface BuildStep {
   what: string;
   /** 코드를 어디에 넣어야 되는지 */
   where: string;
+  /** 결과 — 이 스텝으로 우리가 뭘 한 건지 (지난 일 정리) */
+  result?: string;
   /** 다음에는 뭘 할 건지 */
   next: string;
   /** 이번 스텝에서 새로 만드는 폴더 (예: "/src/pages") */
