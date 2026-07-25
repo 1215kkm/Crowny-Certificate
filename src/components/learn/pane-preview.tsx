@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
-import { ExternalLink, Monitor, Smartphone, Sparkles } from "lucide-react";
+import { ExternalLink, Monitor, Power, Smartphone, Sparkles } from "lucide-react";
 import { useLearn } from "./learn-store";
 
 const SandboxPreview = dynamic(() => import("./sandbox-preview"), {
@@ -25,7 +25,7 @@ const DEBOUNCE_MS = 600;
 const INTRO_KEY = "learn-preview-intro-seen";
 
 export function PanePreview() {
-  const { files, course } = useLearn();
+  const { files, course, scaffoldLines } = useLearn();
   const [debounced, setDebounced] = useState(files);
   /** 기본은 모바일(폰) 크기 — 만드는 앱이 폰용이라 처음부터 폰으로 본다 */
   const [phone, setPhone] = useState(true);
@@ -55,8 +55,28 @@ export function PanePreview() {
   };
 
   const hasFiles = Object.keys(debounced).length > 0;
-  /** 파일이 처음 생겼는데 아직 설명을 안 봤으면, 실행 화면 대신 설명부터 */
-  const showIntro = hasFiles && introSeen === false;
+
+  /**
+   * 이 코스가 `npm run dev`(serve) 를 가르치는가, 그리고 학생이 그 줄을 쳤는가.
+   * 진짜 개발처럼 — dev 를 켜기 전엔 미리보기가 안 뜬다.
+   */
+  const { teachesServe, serverStarted } = useMemo(() => {
+    let teaches = false;
+    let started = false;
+    for (const step of course?.buildSteps ?? []) {
+      const idx =
+        step.scaffold?.lines.findIndex((l) => l.effect === "serve") ?? -1;
+      if (idx < 0) continue;
+      teaches = true;
+      if ((scaffoldLines[step.id] ?? 0) > idx) started = true;
+    }
+    return { teachesServe: teaches, serverStarted: started };
+  }, [course, scaffoldLines]);
+
+  /* serve 를 가르치는 코스는 dev 를 켜야, 아니면 파일만 있으면 앱이 켜진 것 */
+  const appOn = hasFiles && (!teachesServe || serverStarted);
+  /** 앱이 켜졌는데 아직 설명을 안 봤으면, 실행 화면 대신 설명부터 */
+  const showIntro = appOn && introSeen === false;
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white">
@@ -108,6 +128,21 @@ export function PanePreview() {
               「내 차례」 칸에서 명령어를 실행해
               <br />
               프로젝트를 먼저 만들어 주세요.
+            </p>
+          </div>
+        </div>
+      ) : teachesServe && !serverStarted ? (
+        /* 파일은 생겼지만 아직 `npm run dev` 를 안 쳤다 — 진짜 개발처럼 앱이 꺼진 상태 */
+        <div className="flex-1 min-h-0 grid place-items-center px-6 text-center">
+          <div className="max-w-[280px]">
+            <div className="w-12 h-12 mx-auto rounded-full bg-muted grid place-items-center">
+              <Power className="w-6 h-6 text-muted-foreground" aria-hidden />
+            </div>
+            <p className="mt-3 text-[14px] font-semibold">앱을 아직 안 켰어요</p>
+            <p className="mt-1.5 text-[13px] text-muted-foreground leading-relaxed break-keep">
+              파일은 다 생겼어요. 이제 터미널에서 마지막 명령어{" "}
+              <b className="text-foreground font-mono">npm run dev</b> 를 치면, 여기에
+              앱 화면이 켜져요.
             </p>
           </div>
         </div>
