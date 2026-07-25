@@ -175,7 +175,8 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
 
             <FileTreeBox
               tree={tree}
-              current={shownFile}
+              /* 터미널이 열려 있을 땐 아래 칸에 파일이 열린 게 아니므로 선택 표시하지 않는다 */
+              current={termOpen ? "" : shownFile}
               /* 파일을 누르면 터미널을 접고 그 파일의 정답 코드를 아래 칸에 연다 */
               onPick={(p) => {
                 setAnswerFile(p);
@@ -203,41 +204,42 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
           </>
         }
         bottom={
-          termOpen ? (
-            <ScaffoldTerminal
-              lines={step.scaffold!.lines}
-              doneCount={linesDone}
-              readOnly
-              onFinish={() => setShowTerminal(false)}
-            />
-          ) : (
-            <>
-              <OpenFileBar path={shownFile ?? ""}>
-                {step.scaffold && (
-                  <button
-                    onClick={() => setShowTerminal(true)}
-                    className="shrink-0 flex items-center gap-1 text-[12px] text-muted-foreground px-1.5 py-1 rounded hover:bg-muted transition"
-                  >
-                    <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
-                    터미널
-                  </button>
-                )}
-                <span className="shrink-0 text-[11px] bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded">
-                  선생님 코드
-                </span>
-              </OpenFileBar>
-              <div className="flex-1 min-h-0">
-                {shownFile && (
-                  <CodeEditor
-                    key={shownFile}
-                    path={shownFile}
-                    value={files[shownFile] ?? ""}
-                    readOnly
-                  />
-                )}
-              </div>
-            </>
-          )
+          /* 상단 바(터미널 버튼 포함)를 터미널 위에도 계속 보여 준다 — 학생 칸과 같은 뼈대 */
+          <>
+            <OpenFileBar path={termOpen ? "" : (shownFile ?? "")}>
+              {step.scaffold && (
+                <button
+                  onClick={() => setShowTerminal(true)}
+                  className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded bg-[#1b1725] transition ${
+                    termOpen ? "text-white" : "text-white/50 hover:text-white/80"
+                  }`}
+                >
+                  <TerminalSquare className="w-3.5 h-3.5" aria-hidden />
+                  터미널
+                </button>
+              )}
+              <span className="shrink-0 text-[11px] bg-primary-100 text-primary-800 px-1.5 py-0.5 rounded">
+                선생님 코드
+              </span>
+            </OpenFileBar>
+            <div className="flex-1 min-h-0">
+              {termOpen ? (
+                <ScaffoldTerminal
+                  lines={step.scaffold!.lines}
+                  doneCount={linesDone}
+                  readOnly
+                  onFinish={() => setShowTerminal(false)}
+                />
+              ) : shownFile ? (
+                <CodeEditor
+                  key={shownFile}
+                  path={shownFile}
+                  value={files[shownFile] ?? ""}
+                  readOnly
+                />
+              ) : null}
+            </div>
+          </>
         }
       />
     );

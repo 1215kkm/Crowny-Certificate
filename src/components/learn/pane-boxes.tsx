@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { CheckCircle2, Folder, MessageSquare, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Folder,
+  Info,
+  MessageSquare,
+  Trash2,
+} from "lucide-react";
+import type { BuildStep } from "@/data/learn";
 import { baseName } from "./learn-utils";
 
 /**
@@ -213,6 +221,47 @@ export function FileTreeBox({
       </div>
 
       {tip && <HintBubble tip={tip} />}
+    </div>
+  );
+}
+
+/* ── 준비물 안내 (설치 스텝 맨 앞) ─────────────────── */
+
+/**
+ * "아무것도 설치 안 해도 된다"는 안심 문구 + 진짜 컴퓨터에서 하려는
+ * 사람을 위한 접이식 안내. 겁줘서 이탈시키지 않으려고 기본은 접어 둔다.
+ */
+export function PrereqCard({
+  prereq,
+}: {
+  prereq: NonNullable<BuildStep["prereq"]>;
+}) {
+  return (
+    <div className="shrink-0 rounded-lg border border-primary-200 bg-primary-50/60 px-2.5 py-2">
+      <div className="flex items-start gap-1.5">
+        <Info className="w-4 h-4 shrink-0 mt-[1px] text-primary" aria-hidden />
+        <p className="text-[12px] leading-snug text-primary-900 break-keep">
+          {prereq.reassure}
+        </p>
+      </div>
+
+      <details className="group mt-1.5">
+        <summary className="flex items-center gap-1 cursor-pointer list-none [&::-webkit-details-marker]:hidden text-[12px] font-semibold text-primary select-none">
+          <ChevronRight
+            className="w-3.5 h-3.5 shrink-0 transition-transform group-open:rotate-90"
+            aria-hidden
+          />
+          {prereq.moreTitle}
+        </summary>
+        <ul className="mt-1.5 space-y-1.5 pl-1">
+          {prereq.more.map((m, i) => (
+            <li key={i} className="text-[12px] leading-snug break-keep">
+              <b className="text-foreground">{m.label}</b>{" "}
+              <span className="text-muted-foreground">{m.body}</span>
+            </li>
+          ))}
+        </ul>
+      </details>
     </div>
   );
 }
