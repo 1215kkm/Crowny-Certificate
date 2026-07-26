@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { baseName } from "./learn-utils";
 
 /** 줄 단위 비교 — 공백·따옴표 종류·세미콜론 차이는 무시 (codeMatches 와 같은 기준) */
 function normLine(l: string) {
@@ -60,19 +61,34 @@ function diffLines(mine: string, answer: string): Row[] {
 export default function CodeDiff({
   mine,
   answer,
+  path,
+  otherTodo = [],
 }: {
   mine: string;
   answer: string;
+  /** 지금 비교 중인 파일 경로 (어떤 파일을 보는지 알려 준다) */
+  path?: string;
+  /** 이 스텝에서 아직 정답과 다른 다른 파일들 — 다음에 뭘 볼지 짚어 준다 */
+  otherTodo?: string[];
 }) {
   const rows = useMemo(() => diffLines(mine, answer), [mine, answer]);
   const diffs = rows.filter((r) => r.type !== "same").length;
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="shrink-0 flex items-center gap-3 px-3 py-1.5 border-b border-border text-[11px]">
+      <div className="shrink-0 flex items-center gap-2 flex-wrap px-3 py-1.5 border-b border-border text-[11px]">
+        <span className="font-bold text-foreground">
+          {path ? baseName(path) : "코드"} 비교
+        </span>
         {diffs === 0 ? (
           <span className="font-semibold text-success">
             선생님 코드와 똑같아요! 🎉
+            {otherTodo.length > 0 && (
+              <span className="ml-1 font-normal text-danger">
+                아직 {otherTodo.join(", ")} 이(가) 남았어요 — 그 파일을 열어
+                비교해 보세요.
+              </span>
+            )}
           </span>
         ) : (
           <>

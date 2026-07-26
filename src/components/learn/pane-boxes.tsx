@@ -365,6 +365,109 @@ export function TargetChips({
   );
 }
 
+/* ── 이 스텝 순서 (학생 칸) ─────────────────────────── */
+
+/**
+ * 이 스텝에서 만들/고칠 것을 **순서대로** 보여 준다.
+ * 폴더 → 파일 순, 각 파일은 완료(✓)·다음(← 지금)이 한눈에 보여
+ * "App.js 다음엔 styles.css 구나" 하는 흐름이 잡힌다.
+ */
+export function StepFileFlow({
+  folders = [],
+  createdFolders = [],
+  files,
+  matched,
+  current,
+  onPick,
+}: {
+  folders?: string[];
+  createdFolders?: string[];
+  files: { path: string; action: "create" | "edit" }[];
+  /** 이 파일이 정답과 같은가 */
+  matched: (path: string) => boolean;
+  current?: string;
+  onPick: (path: string) => void;
+}) {
+  const firstUndone = files.find((f) => !matched(f.path))?.path;
+  return (
+    <div className="shrink-0 rounded-lg bg-white border border-primary-200 px-2.5 py-2">
+      <div className="text-[11px] font-bold text-primary-800 mb-1">
+        이 스텝 순서
+      </div>
+
+      {folders.map((fo) => {
+        const made = createdFolders.includes(fo);
+        return (
+          <div
+            key={fo}
+            className="flex items-center gap-1.5 px-1.5 py-1 text-[12px]"
+          >
+            <span
+              className={`shrink-0 w-4 h-4 rounded-full grid place-items-center text-[10px] font-bold ${
+                made ? "bg-success text-white" : "bg-primary text-white"
+              }`}
+            >
+              {made ? "✓" : "📁"}
+            </span>
+            <span
+              className={
+                made ? "text-muted-foreground line-through" : "font-medium"
+              }
+            >
+              {fo.replace(/^\//, "")} 폴더 만들기
+            </span>
+          </div>
+        );
+      })}
+
+      <ol>
+        {files.map((f, i) => {
+          const done = matched(f.path);
+          const isNext = f.path === firstUndone;
+          const on = current === f.path;
+          return (
+            <li key={f.path}>
+              <button
+                onClick={() => onPick(f.path)}
+                className={`w-full flex items-center gap-1.5 text-left px-1.5 py-1 rounded transition ${
+                  on ? "bg-primary-50" : "hover:bg-muted"
+                }`}
+              >
+                <span
+                  className={`shrink-0 w-4 h-4 rounded-full grid place-items-center text-[10px] font-bold ${
+                    done
+                      ? "bg-success text-white"
+                      : isNext
+                        ? "bg-primary text-white"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {done ? "✓" : i + 1}
+                </span>
+                <span
+                  className={`flex-1 truncate text-[12px] ${
+                    done ? "text-muted-foreground line-through" : "font-medium"
+                  }`}
+                >
+                  {baseName(f.path)}
+                </span>
+                <span className="shrink-0 text-[10px] text-muted-foreground">
+                  {f.action === "create" ? "새로" : "고치기"}
+                </span>
+                {isNext && (
+                  <span className="shrink-0 text-[10px] font-bold text-primary">
+                    ← 지금
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 /**
  * 아래 큰 칸의 머리줄 — 열린 파일 이름 하나만 보여준다.
  * 선생 칸도 파일 탭 대신 이걸 써서 학생 칸과 같은 모양이 된다.

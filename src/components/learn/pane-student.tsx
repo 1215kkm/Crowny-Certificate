@@ -24,7 +24,7 @@ import { useLearn } from "./learn-store";
 import { PaneFrame, SectionLabel } from "./pane-frame";
 import { StudentNotes } from "./student-notes";
 import { useTracePractice, TraceTarget, TraceBox } from "./trace-input";
-import { FileTreeBox, OpenFileBar, TargetChips } from "./pane-boxes";
+import { FileTreeBox, OpenFileBar, StepFileFlow } from "./pane-boxes";
 import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
 import {
   baseName,
@@ -483,13 +483,21 @@ export function PaneStudent() {
           {step?.scaffold ? (
             <CommandList lines={step.scaffold.lines} doneCount={linesDone} />
           ) : (
-            <TargetChips
-              title="이번에 만들 것"
+            <StepFileFlow
               folders={expectedFolders}
-              files={expectedFiles}
-              doneFolders={folders}
-              doneFiles={Object.keys(files)}
-              onPickFile={createFile}
+              createdFolders={folders}
+              files={step?.files ?? []}
+              matched={(p) =>
+                answers[p] !== undefined &&
+                codeMatches(files[p] ?? "", answers[p])
+              }
+              current={current}
+              onPick={(p) => {
+                if (files[p] === undefined) createFile(p);
+                else setActiveFile(p);
+                setShowTerminal(false);
+                setCompare(false);
+              }}
             />
           )}
 
@@ -604,8 +612,8 @@ export function PaneStudent() {
               학생 코드
             </button>
 
-            {/* 붙여넣기·복사는 편집 모드(비교 아닐 때)에서만 */}
-            {!step?.scaffold && !compare && answer !== undefined && (
+            {/* 붙여넣기·복사는 코드 스텝에서 항상 (비교 중에도 현재 파일 기준으로 동작) */}
+            {!step?.scaffold && answer !== undefined && (
               <button
                 onClick={() => writeFile(current, answer)}
                 className="shrink-0 flex items-center gap-1 text-[12px] bg-muted px-2 py-1 rounded hover:bg-border transition"
@@ -616,7 +624,7 @@ export function PaneStudent() {
               </button>
             )}
 
-            {!step?.scaffold && !compare && (
+            {!step?.scaffold && (
               <button
                 onClick={() => {
                   navigator.clipboard?.writeText(files[current] ?? "");
@@ -644,6 +652,10 @@ export function PaneStudent() {
               <CodeDiff
                 mine={files[current] ?? ""}
                 answer={answers[current] ?? ""}
+                path={current}
+                otherTodo={unfinishedFiles
+                  .filter((p) => p !== current)
+                  .map(baseName)}
               />
             ) : current ? (
               <CodeEditor
