@@ -1,17 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare } from "lucide-react";
+import type { EditorView } from "@codemirror/view";
+import CodeEditor from "./code-editor";
 
 /**
- * 「코드 설명 보기」 — 코드는 그대로 두고 오른쪽에 **말풍선**으로 설명을 붙인다.
+ * 「코드 설명 보기」 — 진짜 선생님 코드(CodeMirror) 는 그대로 두고,
+ * 그 위에 **absolute 로 말풍선**을 얹는다. 그래서 말풍선을 켜고 꺼도 코드 모습이 안 바뀐다.
  *
- *  - 규칙 기반이라 스텝마다 손으로 안 쓰고 모든 코드에 자동 적용
- *  - 처음엔 말풍선을 모두 보여 주고, 하나를 누르면 그것만 남기고 나머진 접는다 (다시 누르면 전체)
- *  - return ( ... ) / map( ... ) 은 왼쪽 세로선으로 범위를 묶어 준다
+ *  - 규칙 기반 자동 설명 (import/export/useState/함수/map/onClick 등)
+ *  - 처음엔 말풍선 모두 표시, 하나 누르면 그것만 남기고 나머진 숨김 (다시 누르면 전체)
+ *  - return( ) / map( ) 은 왼쪽 세로선으로 범위를 묶어 준다
  */
 
-/** 문자열·괄호 안을 세며 open 에 짝이 되는 close 가 있는 줄을 찾는다 */
 function matchBracket(
   lines: string[],
   startLine: number,
@@ -61,24 +63,22 @@ function findRegions(lines: string[]): Region[] {
   return regions;
 }
 
-/** 한 줄이 무슨 뜻인지 — 알아본 패턴만 풀이한다 (없으면 null) */
 function lineNote(line: string): string | null {
   const t = line.trim();
   let m: RegExpMatchArray | null;
-
   if ((m = t.match(/^import\s*\{([^}]+)\}\s*from\s*["']([^"']+)["']/)))
     return `${m[2]} 에서 ${m[1].trim()} 기능을 불러와요.`;
   if ((m = t.match(/^import\s+(\w+)\s+from\s*["']([^"']+)["']/)))
     return `${m[1]} 를 ${m[2]} 에서 불러와요. (import = 불러오기)`;
   if ((m = t.match(/export\s+default\s+function\s+(\w+)/)))
-    return `이 파일을 밖에서 쓸 수 있게 내보내는 부품 ${m[1]} 이에요. (export default = 내보내기) 여는 { 부터 짝이 되는 } 까지가 이 함수의 몸통이에요.`;
+    return `이 파일을 밖에서 쓸 수 있게 내보내는 부품 ${m[1]} 이에요. (export default) 여는 { 부터 짝 } 까지가 이 함수의 몸통.`;
   if ((m = t.match(/const\s*\[(\w+),\s*(\w+)\]\s*=\s*useState\(([^)]*)\)/)))
-    return `${m[1]} = 지금 값, ${m[2]} = 값을 바꾸는 함수예요. 처음 값은 ${
+    return `${m[1]} = 지금 값, ${m[2]} = 값을 바꾸는 함수. 처음 값은 ${
       m[3].trim() || "빈 값"
     }. (useState = 기억하기)`;
   if ((m = t.match(/^function\s+(\w+)\s*\(([^)]*)\)/)))
-    return `${m[1]} 이라는 동작(함수)이에요${
-      m[2].trim() ? `. 괄호 안 ${m[2].trim()} 는 밖에서 받는 값` : ""
+    return `${m[1]} 이라는 동작(함수)${
+      m[2].trim() ? `. 괄호 안 ${m[2].trim()} 는 받는 값` : ""
     }.`;
   if ((m = t.match(/const\s+(\w+)\s*=\s*\([^)]*\)\s*=>/)))
     return `${m[1]} 이라는 동작(함수)을 만들어요.`;
@@ -90,36 +90,112 @@ function lineNote(line: string): string | null {
   return null;
 }
 
-type Note = { text: string; kind: "screen" | "map" | "note" };
+type Note = { line: number; text: string; kind: "screen" | "map" | "note" };
 
-export default function CodeExplain({ code }: { code: string; path?: string }) {
-  const { lines, regions, notes } = useMemo(() => {
+export default function CodeExplain({
+  code,
+  path,
+}: {
+  code: string;
+  path?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const viewRef = useRef<EditorView | null>(null);
+  const [ready, setReady] = useState(0); // recompute 트리거
+
+  const { noteList, regions } = useMemo(() => {
     const ls = code.replace(/\r\n/g, "\n").split("\n");
     const rs = findRegions(ls);
-    const ns: (Note | null)[] = ls.map((line, i) => {
+    const list: Note[] = [];
+    ls.forEach((line, i) => {
       const start = rs.find((r) => r.from === i);
-      if (start)
-        return {
+      if (start) {
+        list.push({
+          line: i,
           kind: start.kind,
           text:
             start.kind === "screen"
               ? "이 괄호 ( ) 안이 전부 화면이에요 — 태그·스타일이 여기 들어가요."
               : "여기 ( ) 안이 목록 하나하나가 될 화면이에요.",
-        };
-      const n = lineNote(line);
-      return n ? { kind: "note", text: n } : null;
+        });
+      } else {
+        const n = lineNote(line);
+        if (n) list.push({ line: i, kind: "note", text: n });
+      }
     });
-    return { lines: ls, regions: rs, notes: ns };
+    return { noteList: list, regions: rs };
   }, [code]);
 
-  /** null = 말풍선 모두 보기, 숫자 = 그 줄만 보기 */
   const [focused, setFocused] = useState<number | null>(null);
+  const [bubbleTops, setBubbleTops] = useState<Record<number, number>>({});
+  const [regionBars, setRegionBars] = useState<
+    { top: number; height: number; kind: "screen" | "map"; depth: number }[]
+  >([]);
+
+  const recompute = useCallback(() => {
+    const view = viewRef.current;
+    const cont = containerRef.current;
+    if (!view || !cont) return;
+    const cRect = cont.getBoundingClientRect();
+    const topOf = (lineIdx: number, useBottom = false) => {
+      try {
+        const pos = view.state.doc.line(lineIdx + 1).from;
+        const co = view.coordsAtPos(pos);
+        if (!co) return null;
+        return (useBottom ? co.bottom : co.top) - cRect.top;
+      } catch {
+        return null;
+      }
+    };
+
+    const tops: Record<number, number> = {};
+    noteList.forEach((n) => {
+      const t = topOf(n.line);
+      if (t !== null && t > -40 && t < cRect.height) tops[n.line] = t;
+    });
+    setBubbleTops(tops);
+
+    const bars: {
+      top: number;
+      height: number;
+      kind: "screen" | "map";
+      depth: number;
+    }[] = [];
+    regions.forEach((r) => {
+      const a = topOf(r.from);
+      const b = topOf(r.to, true);
+      if (a !== null && b !== null && b > a)
+        bars.push({ top: a, height: b - a, kind: r.kind, depth: r.depth });
+    });
+    setRegionBars(bars);
+  }, [noteList, regions]);
+
+  /* 코드가 그려진 뒤 위치를 잰다. 스크롤·리사이즈 때마다 다시 잰다. */
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    recompute();
+    const r1 = requestAnimationFrame(recompute);
+    const t1 = window.setTimeout(recompute, 120);
+    const scroller = view.scrollDOM;
+    scroller.addEventListener("scroll", recompute);
+    window.addEventListener("resize", recompute);
+    return () => {
+      cancelAnimationFrame(r1);
+      window.clearTimeout(t1);
+      scroller.removeEventListener("scroll", recompute);
+      window.removeEventListener("resize", recompute);
+    };
+  }, [recompute, ready]);
 
   const bubbleStyle: Record<Note["kind"], string> = {
     screen: "bg-primary-50 border-primary/50 text-primary-900",
     map: "bg-accent/10 border-accent/50 text-accent-dark",
     note: "bg-white border-primary-200 text-foreground",
   };
+
+  const visible =
+    focused === null ? noteList : noteList.filter((n) => n.line === focused);
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -131,83 +207,62 @@ export default function CodeExplain({ code }: { code: string; path?: string }) {
           <span className="w-[2px] h-3 bg-accent inline-block" /> map( ) 목록
         </span>
         <span className="ml-auto">
-          {focused === null
-            ? "말풍선을 누르면 그것만 봐요"
-            : "다시 누르면 전체 설명"}
+          {focused === null ? "말풍선을 누르면 그것만 봐요" : "다시 누르면 전체"}
         </span>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-auto py-1 font-mono text-[12.5px] leading-[1.7]">
-        {lines.map((line, i) => {
-          const here = regions.filter((r) => i >= r.from && i <= r.to);
-          const note = notes[i];
-          const showBubble = !!note && (focused === null || focused === i);
-          const showMarker = !!note && focused !== null && focused !== i;
+      {/* 코드는 그대로, 그 위에 말풍선을 absolute 로 얹는다 */}
+      <div ref={containerRef} className="relative flex-1 min-h-0 overflow-hidden">
+        <CodeEditor
+          key={path}
+          path={path ?? "/x.js"}
+          value={code}
+          readOnly
+          onCreateEditor={(v) => {
+            viewRef.current = v;
+            setReady((n) => n + 1);
+          }}
+        />
 
-          return (
-            <div key={i} className="flex items-stretch gap-1 px-2">
-              {/* 왼쪽 범위 세로선 (return=보라, map=분홍) */}
-              <div className="flex shrink-0">
-                {[0, 1].map((d) => {
-                  const reg = here.find((r) => r.depth === d);
-                  return (
-                    <div
-                      key={d}
-                      className="w-1.5 flex justify-center items-stretch"
-                    >
-                      {reg && (
-                        <div
-                          className={`w-[2px] ${
-                            reg.kind === "screen" ? "bg-primary" : "bg-accent"
-                          }`}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+        {/* 범위 세로선 (return=보라, map=분홍) */}
+        <div className="pointer-events-none absolute inset-0 z-10">
+          {regionBars.map((b, k) => (
+            <div
+              key={k}
+              className={`absolute w-[2px] rounded ${
+                b.kind === "screen" ? "bg-primary" : "bg-accent"
+              }`}
+              style={{
+                top: b.top,
+                height: b.height,
+                left: 4 + b.depth * 5,
+              }}
+            />
+          ))}
+        </div>
 
-              <span className="w-6 shrink-0 text-right text-muted-foreground/40 tabular-nums select-none self-start">
-                {i + 1}
-              </span>
-
-              <pre className="flex-1 min-w-0 m-0 whitespace-pre-wrap break-all self-start text-foreground">
-                {line || " "}
-              </pre>
-
-              {/* 오른쪽 말풍선 (또는 접힌 상태의 작은 💬) */}
-              {note && (
-                <div className="w-[46%] shrink-0 self-start">
-                  {showBubble && (
-                    <button
-                      onClick={() =>
-                        setFocused((f) => (f === i ? null : i))
-                      }
-                      className={`relative w-full text-left rounded-lg border px-2 py-1 text-[11.5px] leading-snug break-keep font-sans shadow-sm hover:brightness-95 transition ${
-                        bubbleStyle[note.kind]
-                      }`}
-                    >
-                      <span className="absolute -left-[5px] top-2.5 w-[9px] h-[9px] rotate-45 border-l border-b bg-inherit border-inherit" />
-                      <span className="flex items-start gap-1">
-                        <MessageSquare className="w-3 h-3 mt-[2px] shrink-0" />
-                        {note.text}
-                      </span>
-                    </button>
-                  )}
-                  {showMarker && (
-                    <button
-                      onClick={() => setFocused(i)}
-                      className="w-6 h-6 grid place-items-center rounded-full bg-muted text-muted-foreground hover:bg-primary-100 hover:text-primary transition"
-                      title="이 줄 설명 보기"
-                    >
-                      <MessageSquare className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {/* 말풍선 */}
+        <div className="pointer-events-none absolute inset-0 z-20">
+          {visible.map((n) =>
+            bubbleTops[n.line] === undefined ? null : (
+              <button
+                key={n.line}
+                onClick={() =>
+                  setFocused((f) => (f === n.line ? null : n.line))
+                }
+                style={{ top: bubbleTops[n.line] }}
+                className={`pointer-events-auto absolute right-2 max-w-[62%] text-left rounded-lg border px-2 py-1 text-[11.5px] leading-snug break-keep font-sans shadow-md hover:z-30 hover:brightness-95 transition ${
+                  bubbleStyle[n.kind]
+                }`}
+              >
+                <span className="flex items-start gap-1">
+                  <MessageSquare className="w-3 h-3 mt-[2px] shrink-0" />
+                  {n.text}
+                </span>
+              </button>
+            )
+          )}
+        </div>
       </div>
     </div>
   );
