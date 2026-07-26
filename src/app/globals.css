@@ -180,6 +180,29 @@ body {
   animation: learnChipIn 0.32s ease-out forwards;
 }
 
+/* 아직 안 된 파일을 흔들어 짚어 준다 (다음 버튼을 눌렀는데 미완성일 때) */
+@keyframes learnShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+.learn-shake {
+  animation: learnShake 0.45s ease-in-out;
+}
+
 /* 「다음 스텝 눌러요」 말풍선 — 위아래로 까딱이며 눈에 띈다 */
 @keyframes learnNudge {
   0%,

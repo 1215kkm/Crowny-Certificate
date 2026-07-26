@@ -98,6 +98,8 @@ export function PaneStudent() {
   );
   /** 비교 모드 — 켜면 편집창 대신 선생님 코드와의 차이(diff)를 보여준다 */
   const [compare, setCompare] = useState(false);
+  /** 다음 버튼을 눌렀는데 아직 미완성일 때 — 값이 올라갈 때마다 안 된 것을 흔든다 */
+  const [shakeN, setShakeN] = useState(0);
 
   /* 스텝이 바뀌면 아래 칸은 다시 터미널부터, 말풍선·폴더 선택·비교도 초기화 */
   useEffect(() => {
@@ -374,8 +376,16 @@ export function PaneStudent() {
     else goNextStage();
   };
   const finishLabel = isLastStep ? "다 했어요! 배포로 가기" : "다 했어요 다음 진행하기";
-  /* 버튼은 늘 같은 자리에 보이되, 스텝을 다 따라했을 때만 진하게(활성) 켜진다.
-     설치 스텝은 네 줄을 다 치면, 코드 스텝은 학생 코드가 정답과 같아지면. */
+  /* 버튼은 늘 눌리지만(활성), 다 안 됐으면 넘어가는 대신 안 된 것을 흔들어 짚어 준다 */
+  const handleFinish = () => {
+    if (stepReady) {
+      finishStep();
+    } else {
+      setShakeN((n) => n + 1); // StepFileFlow·안내 칩을 흔든다
+      if (step?.scaffold) setShowTerminal(true); // 설치 스텝은 터미널로 데려간다
+    }
+  };
+  /* 설치 스텝은 네 줄을 다 치면, 코드 스텝은 학생 코드가 정답과 같아지면 완료. */
   const scaffoldAllDone =
     !!step?.scaffold && linesDone >= step.scaffold.lines.length;
   const codeReady =
@@ -388,6 +398,23 @@ export function PaneStudent() {
         codeMatches(files[f.path] ?? "", answers[f.path])
     );
   const stepReady = !!step && (step.scaffold ? scaffoldAllDone : codeReady);
+
+  /* 따라해야 하는 개수 / 지금까지 한 개수 — 버튼에 1/4 식으로 보여 준다.
+     설치 스텝은 명령어 줄 수, 코드 스텝은 파일 수 기준. */
+  const stepTotal = step
+    ? step.scaffold
+      ? step.scaffold.lines.length
+      : step.files.length
+    : 0;
+  const stepDoneCount = step
+    ? step.scaffold
+      ? Math.min(linesDone, step.scaffold.lines.length)
+      : step.files.filter(
+          (f) =>
+            answers[f.path] !== undefined &&
+            codeMatches(files[f.path] ?? "", answers[f.path])
+        ).length
+    : 0;
 
   /* 아직 정답과 다른 파일들 — 여러 파일 스텝에서 "어느 파일이 안 됐는지" 짚어 준다.
      (styles.css 처럼 한 파일만 빼먹으면 버튼이 안 켜지던 문제 안내) */
@@ -498,6 +525,7 @@ export function PaneStudent() {
                 setShowTerminal(false);
                 setCompare(false);
               }}
+              shakeSignal={shakeN}
             />
           )}
 
@@ -671,13 +699,18 @@ export function PaneStudent() {
             )}
           </div>
 
-          {/* 다음 진행 버튼 — 모든 스텝에서 아래 칸 맨 아래 같은 자리.
-              다 따라하기 전엔 연하게, 다 하면 진한 초록으로 켜진다.
-              왼쪽엔 아직 정답과 다른 파일을 짚어 준다(여러 파일 스텝에서 하나 빼먹으면 안 켜지므로). */}
+          {/* 다음 진행 버튼 — 늘 눌리고, 번호 배지로 진행 개수(1/4)를 보여 준다.
+              다 안 됐는데 누르면 넘어가는 대신 아직 안 된 파일을 흔들어 짚어 준다.
+              왼쪽엔 아직 정답과 다른 파일 목록(누르면 열림). */}
           {step && (
             <div className="shrink-0 border-t border-border px-2 py-2 flex items-center gap-2 bg-white">
               {!stepReady && !step.scaffold && unfinishedFiles.length > 0 && (
-                <div className="flex-1 min-w-0 flex items-center gap-1 text-[11px] overflow-x-auto">
+                <div
+                  key={shakeN}
+                  className={`flex-1 min-w-0 flex items-center gap-1 text-[11px] overflow-x-auto ${
+                    shakeN > 0 ? "learn-shake" : ""
+                  }`}
+                >
                   <span className="shrink-0 text-muted-foreground">
                     아직 정답과 달라요:
                   </span>
@@ -698,14 +731,16 @@ export function PaneStudent() {
                 </div>
               )}
               <button
-                onClick={finishStep}
-                disabled={!stepReady}
-                className={`ml-auto shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[12px] font-semibold transition ${
-                  stepReady
-                    ? "bg-success text-white hover:opacity-90"
-                    : "bg-success/25 text-white/80 cursor-default"
+                onClick={handleFinish}
+                className={`ml-auto shrink-0 flex items-center gap-1.5 pl-1.5 pr-3 py-1.5 rounded-md text-[12px] font-semibold text-white transition ${
+                  stepReady ? "bg-success hover:opacity-90" : "bg-success/60 hover:bg-success/80"
                 }`}
               >
+                {stepTotal > 0 && (
+                  <span className="rounded bg-white/25 px-1.5 py-0.5 text-[11px] tabular-nums">
+                    {stepDoneCount}/{stepTotal}
+                  </span>
+                )}
                 {finishLabel}
                 <ChevronRight className="w-4 h-4" aria-hidden />
               </button>
