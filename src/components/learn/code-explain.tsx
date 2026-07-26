@@ -1,17 +1,21 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { MessageSquare } from "lucide-react";
 import type { EditorView } from "@codemirror/view";
 import CodeEditor from "./code-editor";
 
 /**
- * 「코드 설명 보기」 — 진짜 선생님 코드(CodeMirror) 는 그대로 두고,
- * 그 위에 **absolute 로 말풍선**을 얹는다. 그래서 말풍선을 켜고 꺼도 코드 모습이 안 바뀐다.
- *
- *  - 규칙 기반 자동 설명 (import/export/useState/함수/map/onClick 등)
- *  - 처음엔 말풍선 모두 표시, 하나 누르면 그것만 남기고 나머진 숨김 (다시 누르면 전체)
- *  - return( ) / map( ) 은 왼쪽 세로선으로 범위를 묶어 준다
+ * 「코드 설명 보기」 — 진짜 선생님 코드(CodeMirror) 위에 absolute 로 말풍선을 얹는다.
+ * 코드 모습은 그대로. 말풍선은 겹치면 아래로 밀고, 연결선(뾰족)으로 어느 줄인지 가리킨다.
+ *  - 처음엔 모두 표시, 말풍선이나 코드 줄을 누르면 그 줄만 (다시 누르면 전체)
  */
 
 function matchBracket(
@@ -71,7 +75,7 @@ function lineNote(line: string): string | null {
   if ((m = t.match(/^import\s+(\w+)\s+from\s*["']([^"']+)["']/)))
     return `${m[1]} 를 ${m[2]} 에서 불러와요. (import = 불러오기)`;
   if ((m = t.match(/export\s+default\s+function\s+(\w+)/)))
-    return `이 파일을 밖에서 쓸 수 있게 내보내는 부품 ${m[1]} 이에요. (export default) 여는 { 부터 짝 } 까지가 이 함수의 몸통.`;
+    return `이 파일을 밖에서 쓸 수 있게 내보내는 부품 ${m[1]} 이에요. (export default) 여는 { 부터 짝 } 까지가 함수의 몸통.`;
   if ((m = t.match(/const\s*\[(\w+),\s*(\w+)\]\s*=\s*useState\(([^)]*)\)/)))
     return `${m[1]} = 지금 값, ${m[2]} = 값을 바꾸는 함수. 처음 값은 ${
       m[3].trim() || "빈 값"
@@ -92,6 +96,17 @@ function lineNote(line: string): string | null {
 
 type Note = { line: number; text: string; kind: "screen" | "map" | "note" };
 
+const BUBBLE_STYLE: Record<Note["kind"], string> = {
+  screen: "bg-primary-50 border-primary/50 text-primary-900",
+  map: "bg-accent/10 border-accent/50 text-accent-dark",
+  note: "bg-white border-primary-200 text-foreground",
+};
+const LINE_COLOR: Record<Note["kind"], string> = {
+  screen: "bg-primary",
+  map: "bg-accent",
+  note: "bg-primary-300",
+};
+
 export default function CodeExplain({
   code,
   path,
@@ -101,7 +116,8 @@ export default function CodeExplain({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const [ready, setReady] = useState(0); // recompute 트리거
+  const bubbleRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+  const [ready, setReady] = useState(0);
 
   const { noteList, regions } = useMemo(() => {
     const ls = code.replace(/\r\n/g, "\n").split("\n");
@@ -127,7 +143,9 @@ export default function CodeExplain({
   }, [code]);
 
   const [focused, setFocused] = useState<number | null>(null);
-  const [bubbleTops, setBubbleTops] = useState<Record<number, number>>({});
+  const [rawTops, setRawTops] = useState<Record<number, number>>({});
+  const [heights, setHeights] = useState<Record<number, number>>({});
+  const [width, setWidth] = useState(0);
   const [regionBars, setRegionBars] = useState<
     { top: number; height: number; kind: "screen" | "map"; depth: number }[]
   >([]);
@@ -137,30 +155,23 @@ export default function CodeExplain({
     const cont = containerRef.current;
     if (!view || !cont) return;
     const cRect = cont.getBoundingClientRect();
+    setWidth(cRect.width);
     const topOf = (lineIdx: number, useBottom = false) => {
       try {
-        const pos = view.state.doc.line(lineIdx + 1).from;
-        const co = view.coordsAtPos(pos);
+        const co = view.coordsAtPos(view.state.doc.line(lineIdx + 1).from);
         if (!co) return null;
         return (useBottom ? co.bottom : co.top) - cRect.top;
       } catch {
         return null;
       }
     };
-
     const tops: Record<number, number> = {};
     noteList.forEach((n) => {
       const t = topOf(n.line);
-      if (t !== null && t > -40 && t < cRect.height) tops[n.line] = t;
+      if (t !== null && t > -60 && t < cRect.height) tops[n.line] = t;
     });
-    setBubbleTops(tops);
-
-    const bars: {
-      top: number;
-      height: number;
-      kind: "screen" | "map";
-      depth: number;
-    }[] = [];
+    setRawTops(tops);
+    const bars: typeof regionBars = [];
     regions.forEach((r) => {
       const a = topOf(r.from);
       const b = topOf(r.to, true);
@@ -170,7 +181,6 @@ export default function CodeExplain({
     setRegionBars(bars);
   }, [noteList, regions]);
 
-  /* 코드가 그려진 뒤 위치를 잰다. 스크롤·리사이즈 때마다 다시 잰다. */
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
@@ -188,82 +198,140 @@ export default function CodeExplain({
     };
   }, [recompute, ready]);
 
-  const bubbleStyle: Record<Note["kind"], string> = {
-    screen: "bg-primary-50 border-primary/50 text-primary-900",
-    map: "bg-accent/10 border-accent/50 text-accent-dark",
-    note: "bg-white border-primary-200 text-foreground",
-  };
+  /* 코드 줄을 클릭하면 그 줄 말풍선을 토글한다 */
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    const noteLines = new Set(noteList.map((n) => n.line));
+    const onClick = (e: MouseEvent) => {
+      const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+      if (pos == null) return;
+      const line = view.state.doc.lineAt(pos).number - 1;
+      if (noteLines.has(line)) setFocused((f) => (f === line ? null : line));
+    };
+    view.dom.addEventListener("click", onClick);
+    return () => view.dom.removeEventListener("click", onClick);
+  }, [noteList, ready]);
 
-  const visible =
-    focused === null ? noteList : noteList.filter((n) => n.line === focused);
+  const visible = useMemo(
+    () =>
+      focused === null ? noteList : noteList.filter((n) => n.line === focused),
+    [focused, noteList]
+  );
+
+  /* 겹치지 않게 아래로 밀어 최종 위치를 정한다 */
+  const tops = useMemo(() => {
+    const res: Record<number, number> = {};
+    let prevBottom = -Infinity;
+    [...visible]
+      .filter((n) => rawTops[n.line] !== undefined)
+      .sort((a, b) => rawTops[a.line] - rawTops[b.line])
+      .forEach((n) => {
+        const raw = rawTops[n.line];
+        const h = heights[n.line] ?? 42;
+        const top = Math.max(raw, prevBottom + 4);
+        res[n.line] = top;
+        prevBottom = top + h;
+      });
+    return res;
+  }, [visible, rawTops, heights]);
+
+  /* 렌더된 말풍선 높이를 재서 다음 계산에 쓴다 */
+  useLayoutEffect(() => {
+    let changed = false;
+    const next = { ...heights };
+    visible.forEach((n) => {
+      const el = bubbleRefs.current[n.line];
+      if (el) {
+        const h = el.offsetHeight;
+        if (Math.abs((heights[n.line] ?? 0) - h) > 1) {
+          next[n.line] = h;
+          changed = true;
+        }
+      }
+    });
+    if (changed) setHeights(next);
+  }); // 매 렌더 후 측정
+
+  const leftX = Math.round(width * 0.4);
+  const bubbleW = Math.max(120, width - leftX - 8);
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      <div className="shrink-0 flex items-center gap-3 px-3 py-1.5 border-b border-border text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1">
-          <span className="w-[2px] h-3 bg-primary inline-block" /> return( ) 화면
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="w-[2px] h-3 bg-accent inline-block" /> map( ) 목록
-        </span>
-        <span className="ml-auto">
-          {focused === null ? "말풍선을 누르면 그것만 봐요" : "다시 누르면 전체"}
-        </span>
+    <div
+      ref={containerRef}
+      className="relative h-full min-h-0 overflow-hidden"
+    >
+      <CodeEditor
+        key={path}
+        path={path ?? "/x.js"}
+        value={code}
+        readOnly
+        onCreateEditor={(v) => {
+          viewRef.current = v;
+          setReady((n) => n + 1);
+        }}
+      />
+
+      {/* return( )/map( ) 범위 세로선 */}
+      <div className="pointer-events-none absolute inset-0 z-10">
+        {regionBars.map((b, k) => (
+          <div
+            key={k}
+            className={`absolute w-[2px] rounded ${
+              b.kind === "screen" ? "bg-primary" : "bg-accent"
+            }`}
+            style={{ top: b.top, height: b.height, left: 4 + b.depth * 5 }}
+          />
+        ))}
       </div>
 
-      {/* 코드는 그대로, 그 위에 말풍선을 absolute 로 얹는다 */}
-      <div ref={containerRef} className="relative flex-1 min-h-0 overflow-hidden">
-        <CodeEditor
-          key={path}
-          path={path ?? "/x.js"}
-          value={code}
-          readOnly
-          onCreateEditor={(v) => {
-            viewRef.current = v;
-            setReady((n) => n + 1);
-          }}
-        />
-
-        {/* 범위 세로선 (return=보라, map=분홍) */}
-        <div className="pointer-events-none absolute inset-0 z-10">
-          {regionBars.map((b, k) => (
-            <div
-              key={k}
-              className={`absolute w-[2px] rounded ${
-                b.kind === "screen" ? "bg-primary" : "bg-accent"
-              }`}
-              style={{
-                top: b.top,
-                height: b.height,
-                left: 4 + b.depth * 5,
-              }}
-            />
-          ))}
-        </div>
-
-        {/* 말풍선 */}
+      {/* 말풍선 + 연결선 */}
+      {width > 0 && (
         <div className="pointer-events-none absolute inset-0 z-20">
-          {visible.map((n) =>
-            bubbleTops[n.line] === undefined ? null : (
-              <button
-                key={n.line}
-                onClick={() =>
-                  setFocused((f) => (f === n.line ? null : n.line))
-                }
-                style={{ top: bubbleTops[n.line] }}
-                className={`pointer-events-auto absolute right-2 max-w-[62%] text-left rounded-lg border px-2 py-1 text-[11.5px] leading-snug break-keep font-sans shadow-md hover:z-30 hover:brightness-95 transition ${
-                  bubbleStyle[n.kind]
-                }`}
-              >
-                <span className="flex items-start gap-1">
-                  <MessageSquare className="w-3 h-3 mt-[2px] shrink-0" />
-                  {n.text}
-                </span>
-              </button>
-            )
-          )}
+          {visible.map((n) => {
+            const raw = rawTops[n.line];
+            const top = tops[n.line];
+            if (raw === undefined || top === undefined) return null;
+            const connTop = raw + 8;
+            const connH = Math.max(2, top + 10 - connTop);
+            return (
+              <div key={n.line}>
+                {/* 연결선: 코드 줄 → 말풍선 (뾰족) */}
+                <div
+                  className={`absolute rounded-full ${LINE_COLOR[n.kind]}`}
+                  style={{ left: leftX - 1, top: connTop, width: 2, height: connH }}
+                />
+                <div
+                  className={`absolute w-1.5 h-1.5 rounded-full ${LINE_COLOR[n.kind]}`}
+                  style={{ left: leftX - 3, top: raw + 5 }}
+                />
+                <button
+                  ref={(el) => {
+                    bubbleRefs.current[n.line] = el;
+                  }}
+                  onClick={() =>
+                    setFocused((f) => (f === n.line ? null : n.line))
+                  }
+                  style={{ left: leftX, top, width: bubbleW }}
+                  className={`pointer-events-auto absolute text-left rounded-lg border px-2 py-1 text-[11.5px] leading-snug break-keep font-sans shadow-md hover:brightness-95 transition ${
+                    BUBBLE_STYLE[n.kind]
+                  }`}
+                >
+                  {/* 왼쪽 뾰족 꼬리 */}
+                  <span
+                    className="absolute -left-[5px] top-2 w-[9px] h-[9px] rotate-45 border-l border-b bg-inherit border-inherit"
+                    aria-hidden
+                  />
+                  <span className="flex items-start gap-1">
+                    <MessageSquare className="w-3 h-3 mt-[2px] shrink-0" />
+                    {n.text}
+                  </span>
+                </button>
+              </div>
+            );
+          })}
         </div>
-      </div>
+      )}
     </div>
   );
 }
