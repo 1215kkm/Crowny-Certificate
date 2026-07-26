@@ -11,6 +11,7 @@ import {
 import { MessageSquare } from "lucide-react";
 import type { EditorView } from "@codemirror/view";
 import CodeEditor from "./code-editor";
+import { baseName } from "./learn-utils";
 
 /**
  * 「코드 설명 보기」 — 진짜 선생님 코드(CodeMirror) 위에 absolute 로 말풍선을 얹는다.
@@ -67,13 +68,22 @@ function findRegions(lines: string[]): Region[] {
   return regions;
 }
 
-function lineNote(line: string): string | null {
+/** import 의 출처를 사람 말로 — 상대경로면 "그 파일", 아니면 "도구 모음" */
+function whereFrom(src: string): string {
+  return src.startsWith(".") ? `${src} 파일` : `${src} 라는 도구 모음`;
+}
+
+function lineNote(line: string, fileName: string): string | null {
   const t = line.trim();
   let m: RegExpMatchArray | null;
   if ((m = t.match(/^import\s*\{([^}]+)\}\s*from\s*["']([^"']+)["']/)))
-    return `${m[2]} 에서 ${m[1].trim()} 기능을 불러와요.`;
+    return `지금 이 파일(${fileName})로 ${m[1].trim()} 기능을 불러와요. ${m[1].trim()} 는 ${whereFrom(
+      m[2]
+    )} 안에 들어 있어요. (import = 불러오기)`;
   if ((m = t.match(/^import\s+(\w+)\s+from\s*["']([^"']+)["']/)))
-    return `${m[1]} 를 ${m[2]} 에서 불러와요. (import = 불러오기)`;
+    return `지금 이 파일(${fileName})로 ${m[1]} 를 불러와요. ${m[1]} 는 ${whereFrom(
+      m[2]
+    )}에 있어요. (import = 불러오기)`;
   if ((m = t.match(/export\s+default\s+function\s+(\w+)/)))
     return `이 파일을 밖에서 쓸 수 있게 내보내는 부품 ${m[1]} 이에요. (export default) 여는 { 부터 짝 } 까지가 함수의 몸통.`;
   if ((m = t.match(/const\s*\[(\w+),\s*(\w+)\]\s*=\s*useState\(([^)]*)\)/)))
@@ -120,6 +130,7 @@ export default function CodeExplain({
   const [ready, setReady] = useState(0);
 
   const { noteList, regions } = useMemo(() => {
+    const fileName = path ? baseName(path) : "이 파일";
     const ls = code.replace(/\r\n/g, "\n").split("\n");
     const rs = findRegions(ls);
     const list: Note[] = [];
@@ -135,12 +146,12 @@ export default function CodeExplain({
               : "여기 ( ) 안이 목록 하나하나가 될 화면이에요.",
         });
       } else {
-        const n = lineNote(line);
+        const n = lineNote(line, fileName);
         if (n) list.push({ line: i, kind: "note", text: n });
       }
     });
     return { noteList: list, regions: rs };
-  }, [code]);
+  }, [code, path]);
 
   const [focused, setFocused] = useState<number | null>(null);
   const [rawTops, setRawTops] = useState<Record<number, number>>({});
