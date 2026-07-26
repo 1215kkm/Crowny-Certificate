@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   GraduationCap,
+  MessageSquare,
   Rocket,
   Target,
   TerminalSquare,
@@ -31,6 +32,7 @@ const CodeEditor = dynamic(() => import("./code-editor"), {
     </div>
   ),
 });
+const CodeExplain = dynamic(() => import("./code-explain"), { ssr: false });
 
 /**
  * 2번칸 — 선생(시연).
@@ -50,11 +52,14 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
   const [answerFile, setAnswerFile] = useState<string | null>(null);
   /** 명령어 스텝에서 아래 큰 칸에 터미널을 보여줄지 (다 치면 코드로 바뀐다) */
   const [showTerminal, setShowTerminal] = useState(true);
+  /** 코드 설명 보기 — 켜면 정답 코드에 자동 설명·괄호 범위를 붙여 보여준다 */
+  const [explain, setExplain] = useState(false);
 
   /* 스텝이 바뀌면 아래 칸은 다시 터미널부터 */
   useEffect(() => {
     setShowTerminal(true);
     setAnswerFile(null);
+    setExplain(false);
   }, [stepIndex]);
 
   if (!course) return null;
@@ -230,14 +235,34 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
                 </button>
               )}
               <button
-                onClick={() => setShowTerminal(false)}
+                onClick={() => {
+                  setShowTerminal(false);
+                  setExplain(false);
+                }}
                 className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded transition ${
-                  !termOpen
+                  !termOpen && !explain
                     ? "bg-primary text-white"
                     : "bg-muted text-muted-foreground hover:bg-border"
                 }`}
               >
                 선생님 코드
+              </button>
+
+              {/* 코드 설명 보기 — 선생님 코드 옆. 켜면 자동 설명·괄호 범위 표시 */}
+              <button
+                onClick={() => {
+                  setShowTerminal(false);
+                  setExplain((v) => !v);
+                }}
+                className={`shrink-0 flex items-center gap-1 text-[12px] px-2 py-1 rounded transition ${
+                  explain && !termOpen
+                    ? "bg-accent text-white"
+                    : "bg-muted text-muted-foreground hover:bg-border"
+                }`}
+                title="코드에 설명과 괄호 범위를 붙여서 보여줘요"
+              >
+                <MessageSquare className="w-3.5 h-3.5" aria-hidden />
+                설명 보기
               </button>
             </OpenFileBar>
             <div className="flex-1 min-h-0">
@@ -246,6 +271,12 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
                   lines={step.scaffold!.lines}
                   doneCount={linesDone}
                   readOnly
+                />
+              ) : explain && shownFile ? (
+                <CodeExplain
+                  key={shownFile}
+                  code={files[shownFile] ?? ""}
+                  path={shownFile}
                 />
               ) : shownFile ? (
                 <CodeEditor
