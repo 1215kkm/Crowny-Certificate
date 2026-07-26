@@ -43,6 +43,31 @@ export default function LearnPage() {
   );
 }
 
+/** 칸 사이 진행 흐름 화살표 (점선/실선) */
+function FlowArrow({ left, dashed }: { left: string; dashed?: boolean }) {
+  return (
+    <div
+      className="pointer-events-none absolute top-1/2 z-30 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/95 shadow-md px-1.5 py-1 text-primary"
+      style={{ left }}
+      aria-hidden
+    >
+      <svg width="42" height="14" viewBox="0 0 42 14">
+        <line
+          x1="1"
+          y1="7"
+          x2="30"
+          y2="7"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeDasharray={dashed ? "3 4" : undefined}
+        />
+        <path d="M29 2 L41 7 L29 12 Z" fill="currentColor" />
+      </svg>
+    </div>
+  );
+}
+
 function LearnShell() {
   const { trackId, setTrack, themeId } = useLearn();
   const wide = useIsWide();
@@ -116,7 +141,7 @@ function LearnShell() {
           화면 준비 중…
         </div>
       ) : wide ? (
-        <div className="flex-1 min-h-0 flex gap-px bg-border">
+        <div className="relative flex-1 min-h-0 flex gap-px bg-border">
           <section className="w-[17%] min-w-[210px] min-h-0">
             <PaneStages />
           </section>
@@ -131,6 +156,10 @@ function LearnShell() {
           <section className="w-[21%] min-w-[250px] min-h-0">
             <PanePreview />
           </section>
+
+          {/* 진행 흐름: 선생님 →(점선) 따라 만들기 →(실선) 미리보기 */}
+          <FlowArrow left="48%" dashed />
+          <FlowArrow left="79%" />
         </div>
       ) : (
         <>

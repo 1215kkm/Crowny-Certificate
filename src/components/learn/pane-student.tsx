@@ -707,7 +707,7 @@ export function PaneStudent() {
               {!stepReady && !step.scaffold && unfinishedFiles.length > 0 && (
                 <div
                   key={shakeN}
-                  className={`flex-1 min-w-0 flex items-center gap-1 text-[11px] overflow-x-auto ${
+                  className={`flex-1 min-w-0 flex items-center gap-1.5 text-[16px] overflow-x-auto ${
                     shakeN > 0 ? "learn-shake" : ""
                   }`}
                 >
