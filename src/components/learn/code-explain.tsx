@@ -14,11 +14,17 @@ import CodeEditor from "./code-editor";
 import { baseName } from "./learn-utils";
 
 /**
- * 「코드 설명 보기」 — 진짜 선생님 코드(CodeMirror) 위에 absolute 로 말풍선을 얹는다.
- * 코드 모습은 그대로. 말풍선은 겹치면 아래로 밀고, 연결선(뾰족)으로 어느 줄인지 가리킨다.
- *  - 처음엔 모두 표시, 말풍선이나 코드 줄을 누르면 그 줄만 (다시 누르면 전체)
+ * 「코드 설명 보기」 — 진짜 선생님 코드(CodeMirror) 위에 absolute 로 얹는다.
+ *  - 말풍선 설명(import/export/useState/함수/map/onClick 등)
+ *  - 코드 블록 범위 세로선: return( )=보라, map( )=분홍, <태그>…</태그>=파랑
+ *  - 말풍선은 겹치면 아래로 밀고, 연결선(뾰족)으로 어느 줄인지 가리킴
+ *  - 모두 표시 → 말풍선·코드 줄을 누르면 그 줄만 (다시 누르면 전체)
  */
 
+type Kind = "screen" | "map" | "element";
+type Region = { from: number; to: number; kind: Kind };
+
+/** 문자열·괄호 안을 세며 open 의 짝 close 가 있는 줄을 찾는다 */
 function matchBracket(
   lines: string[],
   startLine: number,
@@ -47,28 +53,110 @@ function matchBracket(
   return -1;
 }
 
-type Region = { from: number; to: number; depth: number; kind: "screen" | "map" };
-
-function findRegions(lines: string[]): Region[] {
-  const regions: Region[] = [];
+/** return( ) 과 map( ) 범위 */
+function findParenRegions(lines: string[]): Region[] {
+  const out: Region[] = [];
   lines.forEach((line, i) => {
     const rIdx = line.search(/\breturn\s*\(/);
     if (rIdx >= 0) {
-      const col = line.indexOf("(", rIdx);
-      const end = matchBracket(lines, i, col, "(", ")");
-      if (end > i) regions.push({ from: i, to: end, depth: 0, kind: "screen" });
+      const end = matchBracket(lines, i, line.indexOf("(", rIdx), "(", ")");
+      if (end > i) out.push({ from: i, to: end, kind: "screen" });
     }
     const mIdx = line.indexOf(".map(");
     if (mIdx >= 0) {
-      const col = line.indexOf("(", mIdx + 4);
-      const end = matchBracket(lines, i, col, "(", ")");
-      if (end > i) regions.push({ from: i, to: end, depth: 1, kind: "map" });
+      const end = matchBracket(lines, i, line.indexOf("(", mIdx + 4), "(", ")");
+      if (end > i) out.push({ from: i, to: end, kind: "map" });
     }
   });
-  return regions;
+  return out;
 }
 
-/** import 의 출처를 사람 말로 — 상대경로면 "그 파일", 아니면 "도구 모음" */
+/**
+ * 여러 줄 JSX 태그 범위 (<div>…</div> 등).
+ * 문자열·{ } 식은 건너뛰며 스캔해서 onChange={(e) => ...} 의 > 에 안 속는다.
+ */
+function findJsxRegions(code: string): Region[] {
+  const out: Region[] = [];
+  const stack: { name: string; line: number }[] = [];
+  const n = code.length;
+  let i = 0;
+  let line = 0;
+  while (i < n) {
+    const ch = code[i];
+    if (ch === "\n") {
+      line++;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const q = ch;
+      i++;
+      while (i < n && !(code[i] === q && code[i - 1] !== "\\")) {
+        if (code[i] === "\n") line++;
+        i++;
+      }
+      i++;
+      continue;
+    }
+    if (ch === "<") {
+      const rest = code.slice(i);
+      const close = /^<\/([A-Za-z][\w.]*)\s*>/.exec(rest);
+      if (close) {
+        const name = close[1];
+        for (let s = stack.length - 1; s >= 0; s--) {
+          if (stack[s].name === name) {
+            const open = stack[s];
+            stack.length = s;
+            if (line > open.line)
+              out.push({ from: open.line, to: line, kind: "element" });
+            break;
+          }
+        }
+        i += close[0].length;
+        continue;
+      }
+      const openM = /^<([A-Za-z][\w.]*)/.exec(rest);
+      if (openM) {
+        const name = openM[1];
+        const startLine = line;
+        let j = i + openM[0].length;
+        let brace = 0;
+        let selfClose = false;
+        while (j < n) {
+          const c = code[j];
+          if (c === "\n") line++;
+          else if (c === '"' || c === "'" || c === "`") {
+            const q = c;
+            j++;
+            while (j < n && !(code[j] === q && code[j - 1] !== "\\")) {
+              if (code[j] === "\n") line++;
+              j++;
+            }
+          } else if (c === "{") brace++;
+          else if (c === "}") brace--;
+          else if (brace === 0) {
+            if (c === "/" && code[j + 1] === ">") {
+              selfClose = true;
+              j += 2;
+              break;
+            }
+            if (c === ">") {
+              j++;
+              break;
+            }
+          }
+          j++;
+        }
+        if (!selfClose) stack.push({ name, line: startLine });
+        i = j;
+        continue;
+      }
+    }
+    i++;
+  }
+  return out;
+}
+
 function whereFrom(src: string): string {
   return src.startsWith(".") ? `${src} 파일` : `${src} 라는 도구 모음`;
 }
@@ -111,10 +199,10 @@ const BUBBLE_STYLE: Record<Note["kind"], string> = {
   map: "bg-accent/10 border-accent/50 text-accent-dark",
   note: "bg-white border-primary-200 text-foreground",
 };
-const LINE_COLOR: Record<Note["kind"], string> = {
+const RANGE_COLOR: Record<Kind, string> = {
   screen: "bg-primary",
   map: "bg-accent",
-  note: "bg-primary-300",
+  element: "bg-[#3b82f6]",
 };
 
 export default function CodeExplain({
@@ -129,17 +217,17 @@ export default function CodeExplain({
   const bubbleRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const [ready, setReady] = useState(0);
 
-  const { noteList, regions } = useMemo(() => {
+  const { lines, noteList, regions } = useMemo(() => {
     const fileName = path ? baseName(path) : "이 파일";
     const ls = code.replace(/\r\n/g, "\n").split("\n");
-    const rs = findRegions(ls);
+    const rs = [...findParenRegions(ls), ...findJsxRegions(code)];
     const list: Note[] = [];
     ls.forEach((line, i) => {
-      const start = rs.find((r) => r.from === i);
+      const start = rs.find((r) => r.from === i && r.kind !== "element");
       if (start) {
         list.push({
           line: i,
-          kind: start.kind,
+          kind: start.kind === "map" ? "map" : "screen",
           text:
             start.kind === "screen"
               ? "이 괄호 ( ) 안이 전부 화면이에요 — 태그·스타일이 여기 들어가요."
@@ -150,15 +238,15 @@ export default function CodeExplain({
         if (n) list.push({ line: i, kind: "note", text: n });
       }
     });
-    return { noteList: list, regions: rs };
+    return { lines: ls, noteList: list, regions: rs };
   }, [code, path]);
 
   const [focused, setFocused] = useState<number | null>(null);
   const [rawTops, setRawTops] = useState<Record<number, number>>({});
   const [heights, setHeights] = useState<Record<number, number>>({});
   const [width, setWidth] = useState(0);
-  const [regionBars, setRegionBars] = useState<
-    { top: number; height: number; kind: "screen" | "map"; depth: number }[]
+  const [bars, setBars] = useState<
+    { top: number; height: number; left: number; kind: Kind }[]
   >([]);
 
   const recompute = useCallback(() => {
@@ -167,30 +255,43 @@ export default function CodeExplain({
     if (!view || !cont) return;
     const cRect = cont.getBoundingClientRect();
     setWidth(cRect.width);
-    const topOf = (lineIdx: number, useBottom = false) => {
+
+    const yx = (lineIdx: number, col: number, useBottom = false) => {
       try {
-        const co = view.coordsAtPos(view.state.doc.line(lineIdx + 1).from);
+        const from = view.state.doc.line(lineIdx + 1).from;
+        const co = view.coordsAtPos(from + col);
         if (!co) return null;
-        return (useBottom ? co.bottom : co.top) - cRect.top;
+        return {
+          y: (useBottom ? co.bottom : co.top) - cRect.top,
+          x: co.left - cRect.left,
+        };
       } catch {
         return null;
       }
     };
+
     const tops: Record<number, number> = {};
     noteList.forEach((n) => {
-      const t = topOf(n.line);
-      if (t !== null && t > -60 && t < cRect.height) tops[n.line] = t;
+      const p = yx(n.line, 0);
+      if (p && p.y > -60 && p.y < cRect.height) tops[n.line] = p.y;
     });
     setRawTops(tops);
-    const bars: typeof regionBars = [];
+
+    const b: typeof bars = [];
     regions.forEach((r) => {
-      const a = topOf(r.from);
-      const b = topOf(r.to, true);
-      if (a !== null && b !== null && b > a)
-        bars.push({ top: a, height: b - a, kind: r.kind, depth: r.depth });
+      const indent = lines[r.from].length - lines[r.from].trimStart().length;
+      const a = yx(r.from, indent);
+      const e = yx(r.to, 0, true);
+      if (a && e && e.y > a.y)
+        b.push({
+          top: a.y,
+          height: e.y - a.y,
+          left: Math.max(2, a.x - 6),
+          kind: r.kind,
+        });
     });
-    setRegionBars(bars);
-  }, [noteList, regions]);
+    setBars(b);
+  }, [noteList, regions, lines]);
 
   useEffect(() => {
     const view = viewRef.current;
@@ -209,7 +310,7 @@ export default function CodeExplain({
     };
   }, [recompute, ready]);
 
-  /* 코드 줄을 클릭하면 그 줄 말풍선을 토글한다 */
+  /* 코드 줄을 클릭하면 그 줄 말풍선을 토글 */
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
@@ -217,8 +318,8 @@ export default function CodeExplain({
     const onClick = (e: MouseEvent) => {
       const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
       if (pos == null) return;
-      const line = view.state.doc.lineAt(pos).number - 1;
-      if (noteLines.has(line)) setFocused((f) => (f === line ? null : line));
+      const l = view.state.doc.lineAt(pos).number - 1;
+      if (noteLines.has(l)) setFocused((f) => (f === l ? null : l));
     };
     view.dom.addEventListener("click", onClick);
     return () => view.dom.removeEventListener("click", onClick);
@@ -230,7 +331,6 @@ export default function CodeExplain({
     [focused, noteList]
   );
 
-  /* 겹치지 않게 아래로 밀어 최종 위치를 정한다 */
   const tops = useMemo(() => {
     const res: Record<number, number> = {};
     let prevBottom = -Infinity;
@@ -247,7 +347,6 @@ export default function CodeExplain({
     return res;
   }, [visible, rawTops, heights]);
 
-  /* 렌더된 말풍선 높이를 재서 다음 계산에 쓴다 */
   useLayoutEffect(() => {
     let changed = false;
     const next = { ...heights };
@@ -262,16 +361,13 @@ export default function CodeExplain({
       }
     });
     if (changed) setHeights(next);
-  }); // 매 렌더 후 측정
+  });
 
   const leftX = Math.round(width * 0.4);
   const bubbleW = Math.max(120, width - leftX - 8);
 
   return (
-    <div
-      ref={containerRef}
-      className="relative h-full min-h-0 overflow-hidden"
-    >
+    <div ref={containerRef} className="relative h-full min-h-0 overflow-hidden">
       <CodeEditor
         key={path}
         path={path ?? "/x.js"}
@@ -283,15 +379,13 @@ export default function CodeExplain({
         }}
       />
 
-      {/* return( )/map( ) 범위 세로선 */}
+      {/* 코드 블록 범위 세로선 */}
       <div className="pointer-events-none absolute inset-0 z-10">
-        {regionBars.map((b, k) => (
+        {bars.map((b, k) => (
           <div
             key={k}
-            className={`absolute w-[2px] rounded ${
-              b.kind === "screen" ? "bg-primary" : "bg-accent"
-            }`}
-            style={{ top: b.top, height: b.height, left: 4 + b.depth * 5 }}
+            className={`absolute w-[2px] rounded ${RANGE_COLOR[b.kind]}`}
+            style={{ top: b.top, height: b.height, left: b.left }}
           />
         ))}
       </div>
@@ -307,13 +401,16 @@ export default function CodeExplain({
             const connH = Math.max(2, top + 10 - connTop);
             return (
               <div key={n.line}>
-                {/* 연결선: 코드 줄 → 말풍선 (뾰족) */}
                 <div
-                  className={`absolute rounded-full ${LINE_COLOR[n.kind]}`}
+                  className={`absolute rounded-full ${
+                    n.kind === "map" ? "bg-accent" : n.kind === "screen" ? "bg-primary" : "bg-primary-300"
+                  }`}
                   style={{ left: leftX - 1, top: connTop, width: 2, height: connH }}
                 />
                 <div
-                  className={`absolute w-1.5 h-1.5 rounded-full ${LINE_COLOR[n.kind]}`}
+                  className={`absolute w-1.5 h-1.5 rounded-full ${
+                    n.kind === "map" ? "bg-accent" : n.kind === "screen" ? "bg-primary" : "bg-primary-300"
+                  }`}
                   style={{ left: leftX - 3, top: raw + 5 }}
                 />
                 <button
@@ -328,7 +425,6 @@ export default function CodeExplain({
                     BUBBLE_STYLE[n.kind]
                   }`}
                 >
-                  {/* 왼쪽 뾰족 꼬리 */}
                   <span
                     className="absolute -left-[5px] top-2 w-[9px] h-[9px] rotate-45 border-l border-b bg-inherit border-inherit"
                     aria-hidden
