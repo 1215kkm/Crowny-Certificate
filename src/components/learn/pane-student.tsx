@@ -591,6 +591,24 @@ export function PaneStudent() {
            파일명은 파일을 골랐을 때만, 터미널 버튼·「학생 코드」 배지는 언제나. */
         <>
           <OpenFileBar path={termOpen ? "" : current}>
+            {/* 비교 모드일 때 파일명 오른쪽에 범례 */}
+            {compare && !termOpen && (
+              <span className="shrink-0 flex items-center gap-2 text-[11px] text-muted-foreground mr-1">
+                <span className="flex items-center gap-1">
+                  <span className="w-3.5 h-3.5 grid place-items-center rounded bg-danger text-white text-[10px] font-bold leading-none">
+                    −
+                  </span>
+                  다른 줄
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-3.5 h-3.5 grid place-items-center rounded-full bg-success text-white text-[10px] font-bold leading-none">
+                    +
+                  </span>
+                  빠진 줄
+                </span>
+              </span>
+            )}
+
             {/* 터미널 ↔ 학생 코드 를 탭처럼 — 지금 보고 있는 쪽이 켜진 색, 다른 쪽은 연한 회색 */}
             {step?.scaffold && (
               <button
@@ -681,9 +699,6 @@ export function PaneStudent() {
                 mine={files[current] ?? ""}
                 answer={answers[current] ?? ""}
                 path={current}
-                otherTodo={unfinishedFiles
-                  .filter((p) => p !== current)
-                  .map(baseName)}
               />
             ) : current ? (
               <CodeEditor
