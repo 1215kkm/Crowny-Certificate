@@ -379,6 +379,7 @@ export function StepFileFlow({
   matched,
   current,
   onPick,
+  shakeSignal = 0,
 }: {
   folders?: string[];
   createdFolders?: string[];
@@ -387,8 +388,11 @@ export function StepFileFlow({
   matched: (path: string) => boolean;
   current?: string;
   onPick: (path: string) => void;
+  /** 값이 바뀔 때마다 아직 안 된 항목을 한 번 흔든다 (다음 버튼 눌렀는데 미완성일 때) */
+  shakeSignal?: number;
 }) {
   const firstUndone = files.find((f) => !matched(f.path))?.path;
+  const shakeCls = shakeSignal > 0 ? "learn-shake" : "";
   return (
     <div className="shrink-0 rounded-lg bg-white border border-primary-200 px-2.5 py-2">
       <div className="text-[11px] font-bold text-primary-800 mb-1">
@@ -399,8 +403,10 @@ export function StepFileFlow({
         const made = createdFolders.includes(fo);
         return (
           <div
-            key={fo}
-            className="flex items-center gap-1.5 px-1.5 py-1 text-[12px]"
+            key={made ? fo : `${fo}-${shakeSignal}`}
+            className={`flex items-center gap-1.5 px-1.5 py-1 text-[12px] ${
+              made ? "" : shakeCls
+            }`}
           >
             <span
               className={`shrink-0 w-4 h-4 rounded-full grid place-items-center text-[10px] font-bold ${
@@ -426,7 +432,10 @@ export function StepFileFlow({
           const isNext = f.path === firstUndone;
           const on = current === f.path;
           return (
-            <li key={f.path}>
+            <li
+              key={done ? f.path : `${f.path}-${shakeSignal}`}
+              className={done ? "" : shakeCls}
+            >
               <button
                 onClick={() => onPick(f.path)}
                 className={`w-full flex items-center gap-1.5 text-left px-1.5 py-1 rounded transition ${
