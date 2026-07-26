@@ -127,11 +127,14 @@ export default function CodeEditor({
   value,
   onChange,
   readOnly = false,
+  onCreateEditor,
 }: {
   path: string;
   value: string;
   onChange?: (next: string) => void;
   readOnly?: boolean;
+  /** CodeMirror 인스턴스를 바깥에 넘겨준다 (설명 말풍선 위치 계산용) */
+  onCreateEditor?: (view: EditorView) => void;
 }) {
   const { themeId } = useLearn();
   const isDark = getTheme(themeId).dark;
@@ -162,6 +165,7 @@ export default function CodeEditor({
       editable={!readOnly}
       readOnly={readOnly}
       onChange={onChange}
+      onCreateEditor={(view) => onCreateEditor?.(view)}
       basicSetup={{
         lineNumbers: true,
         foldGutter: false,
