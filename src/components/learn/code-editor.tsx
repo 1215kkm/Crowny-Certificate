@@ -5,11 +5,32 @@ import CodeMirror from "@uiw/react-codemirror";
 import { javascript } from "@codemirror/lang-javascript";
 import { html } from "@codemirror/lang-html";
 import { css } from "@codemirror/lang-css";
-import { EditorView, keymap } from "@codemirror/view";
-import { Prec } from "@codemirror/state";
+import { EditorView, keymap, Decoration } from "@codemirror/view";
+import type { DecorationSet } from "@codemirror/view";
+import { Prec, StateField } from "@codemirror/state";
 import { oneDark } from "@codemirror/theme-one-dark";
 import { getTheme } from "@/data/learn/themes";
 import { useLearn } from "./learn-store";
+
+/** 지정한 줄(0-index)에 클릭 가능 표시(연한 배경+손가락 커서) 클래스를 붙인다 */
+function clickableLines(lines: number[]) {
+  const build = (state: { doc: { lines: number; line: (n: number) => { from: number } } }) => {
+    const ranges = lines
+      .filter((ln) => ln + 1 <= state.doc.lines)
+      .sort((a, b) => a - b)
+      .map((ln) =>
+        Decoration.line({ class: "learn-clickable-line" }).range(
+          state.doc.line(ln + 1).from
+        )
+      );
+    return Decoration.set(ranges, true);
+  };
+  return StateField.define<DecorationSet>({
+    create: (state) => build(state),
+    update: (value, tr) => (tr.docChanged ? build(tr.state) : value),
+    provide: (f) => EditorView.decorations.from(f),
+  });
+}
 
 /** 파일 확장자로 문법 강조 언어를 고른다 */
 function extensionsFor(path: string) {
@@ -128,6 +149,7 @@ export default function CodeEditor({
   onChange,
   readOnly = false,
   onCreateEditor,
+  highlightLines,
 }: {
   path: string;
   value: string;
@@ -135,9 +157,12 @@ export default function CodeEditor({
   readOnly?: boolean;
   /** CodeMirror 인스턴스를 바깥에 넘겨준다 (설명 말풍선 위치 계산용) */
   onCreateEditor?: (view: EditorView) => void;
+  /** 이 줄들(0-index)에 클릭 가능 표시(연한 배경+손가락 커서) */
+  highlightLines?: number[];
 }) {
   const { themeId } = useLearn();
   const isDark = getTheme(themeId).dark;
+  const highlightKey = highlightLines?.join(",") ?? "";
 
   const extensions = useMemo(
     () => [
@@ -149,10 +174,14 @@ export default function CodeEditor({
       ...(!readOnly && !path.endsWith(".css")
         ? [buildEmmet(!path.endsWith(".html"))]
         : []),
+      ...(highlightLines && highlightLines.length
+        ? [clickableLines(highlightLines)]
+        : []),
       // 다크 테마에서는 문법 색까지 어두운 배경용으로 바꿔야 글자가 읽힌다
       ...(isDark ? [oneDark] : []),
     ],
-    [path, isDark, readOnly]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [path, isDark, readOnly, highlightKey]
   );
 
   return (

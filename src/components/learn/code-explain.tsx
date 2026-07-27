@@ -242,11 +242,13 @@ export default function CodeExplain({
   }, [code, path]);
 
   const [focused, setFocused] = useState<number | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
   const [rawTops, setRawTops] = useState<Record<number, number>>({});
   const [heights, setHeights] = useState<Record<number, number>>({});
   const [width, setWidth] = useState(0);
+  const [lineH, setLineH] = useState(20);
   const [bars, setBars] = useState<
-    { top: number; height: number; left: number; kind: Kind }[]
+    { from: number; top: number; height: number; left: number; kind: Kind }[]
   >([]);
 
   const recompute = useCallback(() => {
@@ -270,6 +272,13 @@ export default function CodeExplain({
       }
     };
 
+    try {
+      const c1 = view.coordsAtPos(view.state.doc.line(1).from);
+      if (c1) setLineH(Math.max(14, c1.bottom - c1.top));
+    } catch {
+      /* 무시 */
+    }
+
     const tops: Record<number, number> = {};
     noteList.forEach((n) => {
       const p = yx(n.line, 0);
@@ -284,6 +293,7 @@ export default function CodeExplain({
       const e = yx(r.to, 0, true);
       if (a && e && e.y > a.y)
         b.push({
+          from: r.from,
           top: a.y,
           height: e.y - a.y,
           left: Math.max(2, a.x - 6),
@@ -331,6 +341,20 @@ export default function CodeExplain({
     [focused, noteList]
   );
 
+  /* 말풍선에 마우스를 올리면 그 코드가 어디부터 어디까지인지 — 범위면 블록 전체, 아니면 한 줄 */
+  const hoverRange = useMemo(() => {
+    if (hovered === null) return null;
+    const note = noteList.find((n) => n.line === hovered);
+    if (!note) return null;
+    if (note.kind !== "note") {
+      const bar = bars.find((b) => b.from === hovered);
+      if (bar) return { top: bar.top, height: bar.height };
+    }
+    const t = rawTops[hovered];
+    if (t === undefined) return null;
+    return { top: t, height: lineH };
+  }, [hovered, noteList, bars, rawTops, lineH]);
+
   const tops = useMemo(() => {
     const res: Record<number, number> = {};
     let prevBottom = -Infinity;
@@ -373,11 +397,20 @@ export default function CodeExplain({
         path={path ?? "/x.js"}
         value={code}
         readOnly
+        highlightLines={noteList.map((n) => n.line)}
         onCreateEditor={(v) => {
           viewRef.current = v;
           setReady((n) => n + 1);
         }}
       />
+
+      {/* 말풍선에 마우스 올리면 해당 코드 범위를 강조 */}
+      {hoverRange && (
+        <div
+          className="pointer-events-none absolute left-0 right-0 z-[5] rounded bg-primary/15 ring-1 ring-primary/40"
+          style={{ top: hoverRange.top, height: hoverRange.height }}
+        />
+      )}
 
       {/* 코드 블록 범위 세로선 */}
       <div className="pointer-events-none absolute inset-0 z-10">
@@ -420,6 +453,8 @@ export default function CodeExplain({
                   onClick={() =>
                     setFocused((f) => (f === n.line ? null : n.line))
                   }
+                  onMouseEnter={() => setHovered(n.line)}
+                  onMouseLeave={() => setHovered((h) => (h === n.line ? null : h))}
                   style={{ left: leftX, top, width: bubbleW }}
                   className={`pointer-events-auto absolute text-left rounded-lg border px-2 py-1 text-[11.5px] leading-snug break-keep font-sans shadow-md hover:brightness-95 transition ${
                     BUBBLE_STYLE[n.kind]
