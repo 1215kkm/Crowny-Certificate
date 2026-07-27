@@ -79,8 +79,8 @@ function LearnShell() {
   const { trackId, setTrack, themeId, layoutMode, setLayoutMode } = useLearn();
   const isWide = useIsWide();
   const [tab, setTab] = useState<MobileTab>("stages");
-  /** 연습화면2에서 미리보기 칸을 접을지 (새 창으로 보면 접어서 선생님·학생 반반) */
-  const [previewOpen, setPreviewOpen] = useState(true);
+  /** 연습화면2에서 미리보기 칸을 펼칠지 — 처음엔 숨김(선생님·학생 넓게) */
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   const theme = getTheme(themeId);
   const wide2 = layoutMode === "wide";
@@ -174,9 +174,34 @@ function LearnShell() {
           화면 준비 중…
         </div>
       ) : isWide && wide2 ? (
-        /* 연습화면2 — 로고 밑 가로 목차 + [선생님 3칸][학생 3칸][미리보기(접힘 가능)] */
+        /* 연습화면2 — 로고 밑 가로 목차(+미리보기 토글) + [선생님][학생][미리보기(옵션)] */
         <div className="flex-1 min-h-0 flex flex-col">
-          <StagesStrip />
+          <div className="shrink-0 flex items-center bg-white border-b border-border">
+            <div className="flex-1 min-w-0">
+              <StagesStrip />
+            </div>
+            <button
+              onClick={() => setPreviewOpen((v) => !v)}
+              className={`shrink-0 mx-2 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[12px] font-semibold transition ${
+                previewOpen
+                  ? "bg-primary text-white border-primary"
+                  : "bg-white text-muted-foreground border-border hover:bg-muted"
+              }`}
+              title={
+                previewOpen
+                  ? "미리보기 접기 (선생님·학생 넓게)"
+                  : "미리보기 펼치기"
+              }
+            >
+              {previewOpen ? (
+                <PanelRightClose className="w-4 h-4" aria-hidden />
+              ) : (
+                <PanelLeftOpen className="w-4 h-4" aria-hidden />
+              )}
+              <Play className="w-3.5 h-3.5" aria-hidden />
+              미리보기
+            </button>
+          </div>
           <div className="relative flex-1 min-h-0 flex gap-px bg-border">
             <section className="flex-1 basis-0 min-w-[360px] min-h-0">
               <PaneTeacher wide />
@@ -184,26 +209,10 @@ function LearnShell() {
             <section className="flex-1 basis-0 min-w-[360px] min-h-0">
               <PaneStudent wide />
             </section>
-            {previewOpen ? (
-              <section className="w-[22%] min-w-[240px] min-h-0 relative">
+            {previewOpen && (
+              <section className="w-[24%] min-w-[240px] min-h-0">
                 <PanePreview />
-                <button
-                  onClick={() => setPreviewOpen(false)}
-                  className="absolute top-1.5 left-1.5 z-30 flex items-center gap-1 text-[11px] bg-white/90 border border-border rounded px-1.5 py-1 text-muted-foreground hover:text-foreground shadow-sm"
-                  title="미리보기 칸을 접고 선생님·학생을 넓게"
-                >
-                  <PanelRightClose className="w-3.5 h-3.5" aria-hidden />
-                  접기
-                </button>
               </section>
-            ) : (
-              <button
-                onClick={() => setPreviewOpen(true)}
-                className="shrink-0 w-7 grid place-items-center bg-white hover:bg-muted text-muted-foreground border-l border-border"
-                title="미리보기 칸 다시 열기"
-              >
-                <PanelLeftOpen className="w-4 h-4" aria-hidden />
-              </button>
             )}
           </div>
         </div>

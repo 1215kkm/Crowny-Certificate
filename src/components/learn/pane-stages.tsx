@@ -39,7 +39,7 @@ export function StagesStrip() {
   };
 
   return (
-    <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white border-b border-border overflow-x-auto">
+    <div className="flex items-center gap-1.5 px-3 py-1.5 overflow-x-auto">
       <span className="shrink-0 flex items-center gap-1 text-[12px] font-bold text-muted-foreground pr-1">
         <BookOpen className="w-4 h-4 text-primary" aria-hidden />
         학습 목차

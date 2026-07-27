@@ -514,6 +514,7 @@ export function PaneStudent({ wide = false }: { wide?: boolean } = {}) {
           <TypingParagraphs
             paragraphs={buildStepParagraphs(step)}
             active={false}
+            compact
             resetKey={`w-${course.id}-${step.id}`}
           />
         ) : (
