@@ -40,7 +40,13 @@ const CodeExplain = dynamic(() => import("./code-explain"), { ssr: false });
  * 3번칸(학생)과 똑같은 뼈대(PaneFrame)를 쓴다.
  *   머리줄 / 상단 왼쪽 = 설명 / 상단 오른쪽 = 내가 만드는 것 / 아래 = 내 코드
  */
-export function PaneTeacher({ active = true }: { active?: boolean }) {
+export function PaneTeacher({
+  active = true,
+  wide = false,
+}: {
+  active?: boolean;
+  wide?: boolean;
+}) {
   const {
     course,
     stage,
@@ -126,6 +132,7 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
     return (
       <PaneFrame
         bottomBias
+        wide={wide}
         header={
           <>
             <GraduationCap className="w-4 h-4 text-primary-800 shrink-0" aria-hidden />
@@ -300,6 +307,7 @@ export function PaneTeacher({ active = true }: { active?: boolean }) {
 
   return (
     <PaneFrame
+      wide={wide}
       header={
         <>
           {isDeploy ? (

@@ -3,12 +3,19 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ListChecks, GraduationCap, Code2, Play } from "lucide-react";
+import {
+  ListChecks,
+  GraduationCap,
+  Code2,
+  Play,
+  PanelRightClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { TRACKS } from "@/data/learn";
 import { getTheme, themeToCssVars } from "@/data/learn/themes";
 import { LearnProvider, useLearn } from "@/components/learn/learn-store";
 import { ThemeSelect } from "@/components/learn/theme-select";
-import { PaneStages } from "@/components/learn/pane-stages";
+import { PaneStages, StagesStrip } from "@/components/learn/pane-stages";
 import { PaneTeacher } from "@/components/learn/pane-teacher";
 import { PaneStudent } from "@/components/learn/pane-student";
 import { PanePreview } from "@/components/learn/pane-preview";
@@ -69,11 +76,14 @@ function FlowArrow({ left, dashed }: { left: string; dashed?: boolean }) {
 }
 
 function LearnShell() {
-  const { trackId, setTrack, themeId } = useLearn();
-  const wide = useIsWide();
+  const { trackId, setTrack, themeId, layoutMode, setLayoutMode } = useLearn();
+  const isWide = useIsWide();
   const [tab, setTab] = useState<MobileTab>("stages");
+  /** 연습화면2에서 미리보기 칸을 접을지 (새 창으로 보면 접어서 선생님·학생 반반) */
+  const [previewOpen, setPreviewOpen] = useState(true);
 
   const theme = getTheme(themeId);
+  const wide2 = layoutMode === "wide";
 
   return (
     // learn-root + 인라인 CSS 변수 = /learn 안에서만 테마가 갈린다.
@@ -129,18 +139,75 @@ function LearnShell() {
             })}
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
+            {/* 화면 보기 방식 — 연습화면1(4분할) / 연습화면2(가로 3칸) */}
+            <div className="hidden lg:flex items-center rounded-lg border border-border overflow-hidden text-[12px] font-semibold">
+              <button
+                onClick={() => setLayoutMode("classic")}
+                className={`px-2.5 py-1.5 transition ${
+                  !wide2
+                    ? "bg-primary text-white"
+                    : "bg-white text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                연습화면1
+              </button>
+              <button
+                onClick={() => setLayoutMode("wide")}
+                className={`px-2.5 py-1.5 transition ${
+                  wide2
+                    ? "bg-primary text-white"
+                    : "bg-white text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                연습화면2
+              </button>
+            </div>
             <ThemeSelect />
           </div>
         </div>
       </header>
 
-      {/* ── 하단: 4분할 (모바일은 탭) ───────────────── */}
-      {wide === null ? (
+      {/* ── 하단: 데스크톱은 화면1(4분할)/화면2(가로3칸), 모바일은 탭 ── */}
+      {isWide === null ? (
         <div className="flex-1 grid place-items-center text-[13px] text-muted-foreground">
           화면 준비 중…
         </div>
-      ) : wide ? (
+      ) : isWide && wide2 ? (
+        /* 연습화면2 — 로고 밑 가로 목차 + [선생님 3칸][학생 3칸][미리보기(접힘 가능)] */
+        <div className="flex-1 min-h-0 flex flex-col">
+          <StagesStrip />
+          <div className="relative flex-1 min-h-0 flex gap-px bg-border">
+            <section className="flex-1 basis-0 min-w-[360px] min-h-0">
+              <PaneTeacher wide />
+            </section>
+            <section className="flex-1 basis-0 min-w-[360px] min-h-0">
+              <PaneStudent wide />
+            </section>
+            {previewOpen ? (
+              <section className="w-[22%] min-w-[240px] min-h-0 relative">
+                <PanePreview />
+                <button
+                  onClick={() => setPreviewOpen(false)}
+                  className="absolute top-1.5 left-1.5 z-30 flex items-center gap-1 text-[11px] bg-white/90 border border-border rounded px-1.5 py-1 text-muted-foreground hover:text-foreground shadow-sm"
+                  title="미리보기 칸을 접고 선생님·학생을 넓게"
+                >
+                  <PanelRightClose className="w-3.5 h-3.5" aria-hidden />
+                  접기
+                </button>
+              </section>
+            ) : (
+              <button
+                onClick={() => setPreviewOpen(true)}
+                className="shrink-0 w-7 grid place-items-center bg-white hover:bg-muted text-muted-foreground border-l border-border"
+                title="미리보기 칸 다시 열기"
+              >
+                <PanelLeftOpen className="w-4 h-4" aria-hidden />
+              </button>
+            )}
+          </div>
+        </div>
+      ) : isWide ? (
         <div className="relative flex-1 min-h-0 flex gap-px bg-border">
           <section className="w-[17%] min-w-[210px] min-h-0">
             <PaneStages />

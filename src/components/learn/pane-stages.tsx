@@ -15,6 +15,71 @@ import { useLearn, useProgress } from "./learn-store";
  * 1번칸 — 주제 선택 + 학습 목차(7단계).
  * 주제를 누르면 바로 아래에 그 주제의 목차가 펼쳐진다.
  */
+/**
+ * 연습화면2 — 로고 밑 가로 한 줄짜리 학습 목차.
+ * 7단계를 알약 버튼으로 나란히, 완료는 초록 체크로.
+ */
+export function StagesStrip() {
+  const { course, stage, setStage, tracedStages, doneSteps, doneDeploy } =
+    useLearn();
+  if (!course) return null;
+
+  const isDone = (id: StageId): boolean => {
+    if (id === "build")
+      return (
+        course.buildSteps.length > 0 &&
+        doneSteps.length >= course.buildSteps.length
+      );
+    if (id === "deploy")
+      return (
+        course.deploySteps.length > 0 &&
+        doneDeploy.length >= course.deploySteps.length
+      );
+    return tracedStages.includes(id);
+  };
+
+  return (
+    <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-white border-b border-border overflow-x-auto">
+      <span className="shrink-0 flex items-center gap-1 text-[12px] font-bold text-muted-foreground pr-1">
+        <BookOpen className="w-4 h-4 text-primary" aria-hidden />
+        학습 목차
+      </span>
+      {STAGE_ORDER.map((id) => {
+        const s = course.stages.find((x) => x.id === id);
+        if (!s) return null;
+        const on = stage === id;
+        const fin = isDone(id);
+        return (
+          <button
+            key={id}
+            onClick={() => setStage(id)}
+            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] font-semibold transition ${
+              on
+                ? "border-primary bg-primary-50 text-primary-800"
+                : fin
+                  ? "border-success/40 bg-success/5 text-success"
+                  : "border-border text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            <span
+              className={`w-4 h-4 grid place-items-center rounded-full text-[10px] font-bold ${
+                fin
+                  ? "bg-success text-white"
+                  : on
+                    ? "bg-primary text-white"
+                    : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {fin ? <Check className="w-3 h-3" aria-hidden /> : s.no}
+            </span>
+            {s.title}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function PaneStages({ onPick }: { onPick?: () => void }) {
   const {
     trackId,

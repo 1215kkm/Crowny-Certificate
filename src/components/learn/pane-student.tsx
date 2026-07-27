@@ -28,11 +28,13 @@ import { FileTreeBox, OpenFileBar, StepFileFlow } from "./pane-boxes";
 import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
 import {
   baseName,
+  buildStepParagraphs,
   codeMatches,
   dirName,
   groupByFolder,
   teacherFilesUpTo,
 } from "./learn-utils";
+import { TypingParagraphs } from "./typing-paragraphs";
 import { downloadZip } from "./zip";
 import CodeDiff from "./code-diff";
 
@@ -53,7 +55,7 @@ const CodeEditor = dynamic(() => import("./code-editor"), {
  *   상단 오른쪽: 선생은 만드는 것 → 학생은 내 폴더 / 따라 칠 문장
  *   아래 큰 칸 : 선생은 정답 코드 → 학생은 내가 치는 에디터
  */
-export function PaneStudent() {
+export function PaneStudent({ wide = false }: { wide?: boolean } = {}) {
   const {
     course,
     stage,
@@ -168,6 +170,7 @@ export function PaneStudent() {
   if (isTraceStage) {
     return (
       <PaneFrame
+        wide={wide}
         header={
           <>
             <PenLine className="w-4 h-4 text-primary-800 shrink-0" aria-hidden />
@@ -214,6 +217,7 @@ export function PaneStudent() {
   if (stage === "deploy") {
     return (
       <PaneFrame
+        wide={wide}
         header={
           <>
             <Rocket className="w-4 h-4 text-primary-800 shrink-0" aria-hidden />
@@ -457,6 +461,7 @@ export function PaneStudent() {
   return (
     <PaneFrame
       bottomBias
+      wide={wide}
       header={
         <>
           <Hammer className="w-4 h-4 text-primary-800 shrink-0" aria-hidden />
@@ -502,7 +507,19 @@ export function PaneStudent() {
           </span>
         </>
       }
-      topLeft={<StudentNotes storageKey={noteKey} />}
+      topLeft={
+        /* 연습화면2: 학생 칸도 설명(목표/왜/할일/어디에/결과)을 보여 준다.
+           연습화면1: 내 메모장. */
+        wide && step ? (
+          <TypingParagraphs
+            paragraphs={buildStepParagraphs(step)}
+            active={false}
+            resetKey={`w-${course.id}-${step.id}`}
+          />
+        ) : (
+          <StudentNotes storageKey={noteKey} />
+        )
+      }
       topRight={
         /* 선생 칸(2번)과 **같은 순서·같은 크기**로 쌓는다.
            위 = 이번에 만들 것 / 아래 = 내 폴더 / 맨 아래 = 이 스텝 완료 */
