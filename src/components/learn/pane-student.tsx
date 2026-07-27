@@ -601,6 +601,12 @@ export function PaneStudent({ wide = false }: { wide?: boolean } = {}) {
             </div>
           )}
 
+          {/* 연습화면2 — 설명이 위로 갔으니 내 메모장은 여기(내 폴더 아래)로 */}
+          {wide && (
+            <div className="shrink-0 h-40 min-h-0">
+              <StudentNotes storageKey={noteKey} />
+            </div>
+          )}
         </>
       }
       bottom={
