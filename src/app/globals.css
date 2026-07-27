@@ -180,6 +180,16 @@ body {
   animation: learnChipIn 0.32s ease-out forwards;
 }
 
+/* 설명 보기 — 클릭할 수 있는(설명이 있는) 코드 줄: 연한 배경 + 손가락 커서 */
+.cm-line.learn-clickable-line {
+  background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+  cursor: pointer;
+  border-radius: 4px;
+}
+.cm-line.learn-clickable-line:hover {
+  background: color-mix(in srgb, var(--color-primary) 16%, transparent);
+}
+
 /* 아직 안 된 파일을 흔들어 짚어 준다 (다음 버튼을 눌렀는데 미완성일 때) */
 @keyframes learnShake {
   0%,
