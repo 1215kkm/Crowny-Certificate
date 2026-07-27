@@ -42,6 +42,8 @@ interface Persisted {
   scaffoldLines: Record<string, number>;
   /** 화면 테마 id — 상단 셀렉트로 바꾼다 */
   themeId: string;
+  /** 화면 보기 방식 — classic(연습화면1, 4분할) / wide(연습화면2, 가로 3칸) */
+  layoutMode: "classic" | "wide";
 }
 
 interface LearnState extends Persisted {
@@ -68,6 +70,7 @@ interface LearnState extends Persisted {
   toggleDeployDone: (id: string) => void;
   goNextStage: () => void;
   setThemeId: (id: string) => void;
+  setLayoutMode: (m: "classic" | "wide") => void;
   resetCourse: () => void;
   /** 저장된 진도가 있어 이어서 하는 중인가 */
   hydrated: boolean;
@@ -96,6 +99,7 @@ function initialState(): Persisted {
     doneDeploy: [],
     scaffoldLines: {},
     themeId: DEFAULT_THEME_ID,
+    layoutMode: "classic",
   };
 }
 
@@ -318,6 +322,10 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({ ...prev, themeId: id }));
   }, []);
 
+  const setLayoutMode = useCallback((m: "classic" | "wide") => {
+    setState((prev) => ({ ...prev, layoutMode: m }));
+  }, []);
+
   const resetCourse = useCallback(() => {
     setState((prev) => {
       const c = findCourse(prev.trackId, prev.courseId);
@@ -356,6 +364,7 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     toggleDeployDone,
     goNextStage,
     setThemeId,
+    setLayoutMode,
     resetCourse,
   };
 

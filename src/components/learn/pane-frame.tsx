@@ -22,13 +22,40 @@ export function PaneFrame({
   bottom,
   /** 아래 큰 칸(터미널·에디터)을 더 키운다 — 따라하기 스텝처럼 아래가 주인공일 때 */
   bottomBias = false,
+  /** 연습화면2 — 머리줄 아래를 가로 3칸으로: [만들것/내폴더 | 설명 | 코드(넓게)] */
+  wide = false,
 }: {
   header: React.ReactNode;
   topLeft: React.ReactNode;
   topRight: React.ReactNode;
   bottom: React.ReactNode;
   bottomBias?: boolean;
+  wide?: boolean;
 }) {
+  if (wide) {
+    return (
+      <div className="flex flex-col h-full min-h-0 bg-primary-100">
+        <div className="shrink-0 h-11 flex items-center gap-2 px-3 bg-primary-200 border-b border-primary-300">
+          {header}
+        </div>
+        <div className="flex-1 min-h-0 flex flex-row">
+          {/* 1칸: 이번에 만드는 것 / 내 폴더 */}
+          <div className="w-[24%] min-w-[150px] shrink-0 min-h-0 overflow-y-auto px-1.5 py-1.5 flex flex-col gap-1.5">
+            {topRight}
+          </div>
+          {/* 2칸: 목표·왜·할일·어디에·결과 설명 */}
+          <div className="w-[30%] min-w-[220px] shrink-0 min-h-0 my-1.5 rounded-lg bg-white overflow-hidden flex flex-col">
+            {topLeft}
+          </div>
+          {/* 3칸: 코드 (제일 넓게) */}
+          <div className="flex-1 min-w-0 min-h-0 m-1.5 rounded-lg bg-white overflow-hidden flex flex-col">
+            {bottom}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-full min-h-0 bg-primary-100">
       <div className="shrink-0 h-11 flex items-center gap-2 px-3 bg-primary-200 border-b border-primary-300">
