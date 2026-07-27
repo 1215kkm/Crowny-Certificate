@@ -184,6 +184,7 @@ export function PaneTeacher({
           <TypingParagraphs
             paragraphs={buildStepParagraphs(step)}
             active={active}
+            compact={wide}
             resetKey={`${course.id}-${step.id}`}
             /* 오른쪽에서 명령어를 한 줄 칠 때마다 설명도 한 단락씩 열린다 */
             advanceSignal={step.scaffold ? linesDone : undefined}
@@ -324,6 +325,7 @@ export function PaneTeacher({
         <TypingParagraphs
           paragraphs={stageContent.paragraphs}
           active={active}
+          compact={wide}
           resetKey={`${course.id}-${stageContent.id}`}
         />
       }

@@ -46,6 +46,8 @@ export function TypingParagraphs({
   onAllRevealed,
   /** 설명 문단들 맨 끝에 붙일 것 (예: 준비물 안내 카드) */
   trailing,
+  /** 좁은 칸(연습화면2)용 — 버튼 작게 한 줄, 남은 수·안내문 숨김 */
+  compact = false,
 }: {
   paragraphs: Paragraph[];
   active?: boolean;
@@ -59,6 +61,7 @@ export function TypingParagraphs({
   advanceSignal?: number;
   onAllRevealed?: () => void;
   trailing?: React.ReactNode;
+  compact?: boolean;
 }) {
   const [revealed, setRevealed] = useState(0); // 완전히 열린 단락 수
   const [typing, setTyping] = useState<{ index: number; chars: number } | null>(
@@ -268,14 +271,25 @@ export function TypingParagraphs({
         {trailing}
       </div>
 
-      <div className="shrink-0 border-t border-border bg-muted/40 px-3 py-2 flex items-center gap-2">
+      <div
+        className={`shrink-0 border-t border-border bg-muted/40 flex items-center ${
+          compact ? "px-2 py-1.5 gap-1.5" : "px-3 py-2 gap-2"
+        }`}
+      >
         <button
           onClick={advance}
           disabled={allDone}
-          className="flex items-center gap-1 bg-primary text-white px-4 py-2 rounded-md text-sm font-semibold disabled:opacity-40 disabled:cursor-default hover:bg-primary-dark transition"
+          className={`flex items-center gap-1 bg-primary text-white rounded-md font-semibold disabled:opacity-40 disabled:cursor-default hover:bg-primary-dark transition whitespace-nowrap ${
+            compact ? "px-2.5 py-1 text-[12px]" : "px-4 py-2 text-sm"
+          }`}
         >
           {allDone ? "설명 끝" : "NEXT"}
-          {!allDone && <ChevronRight className="w-4 h-4" aria-hidden />}
+          {!allDone && (
+            <ChevronRight
+              className={compact ? "w-3.5 h-3.5" : "w-4 h-4"}
+              aria-hidden
+            />
+          )}
         </button>
 
         <button
@@ -287,19 +301,26 @@ export function TypingParagraphs({
             setRevealed(paragraphs.length);
           }}
           disabled={allDone}
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-default px-2 py-2"
+          className={`flex items-center gap-1 text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-default whitespace-nowrap ${
+            compact ? "px-1.5 py-1 text-[12px]" : "px-2 py-2 text-sm"
+          }`}
         >
-          <FastForward className="w-4 h-4" aria-hidden />
-          한 번에 다 보기
+          <FastForward
+            className={compact ? "w-3.5 h-3.5" : "w-4 h-4"}
+            aria-hidden
+          />
+          {compact ? "다 보기" : "한 번에 다 보기"}
         </button>
 
-        <span className="ml-auto text-[13px] text-muted-foreground tabular-nums">
-          {Math.min(revealed + (typing ? 1 : 0), paragraphs.length)} /{" "}
-          {paragraphs.length}
-        </span>
+        {!compact && (
+          <span className="ml-auto text-[13px] text-muted-foreground tabular-nums">
+            {Math.min(revealed + (typing ? 1 : 0), paragraphs.length)} /{" "}
+            {paragraphs.length}
+          </span>
+        )}
       </div>
 
-      {!allDone && (
+      {!allDone && !compact && (
         <p className="shrink-0 px-3 pb-2 text-[12px] text-muted-foreground">
           아무 키나 누르거나 화면을 눌러도 다음 설명이 나와요.
         </p>
