@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -11,10 +11,12 @@ import {
   PanelRightClose,
   PanelLeftOpen,
   RotateCcw,
+  X,
+  GripVertical,
 } from "lucide-react";
 import { TRACKS } from "@/data/learn";
 import { getTheme, themeToCssVars } from "@/data/learn/themes";
-import { LearnProvider, useLearn } from "@/components/learn/learn-store";
+import { LearnProvider, useLearn, useProgress } from "@/components/learn/learn-store";
 import { ThemeSelect } from "@/components/learn/theme-select";
 import { PaneStages, StagesStrip } from "@/components/learn/pane-stages";
 import { PaneTeacher } from "@/components/learn/pane-teacher";
@@ -77,12 +79,15 @@ function FlowArrow({ left, dashed }: { left: string; dashed?: boolean }) {
 }
 
 function LearnShell() {
-  const { trackId, setTrack, themeId, layoutMode, setLayoutMode, resetCourse } =
+  const { trackId, setTrack, themeId, layoutMode, resetCourse, stage } =
     useLearn();
   const isWide = useIsWide();
+  const { percent } = useProgress();
   const [tab, setTab] = useState<MobileTab>("stages");
   /** 연습화면2에서 미리보기 칸을 펼칠지 — 처음엔 숨김(선생님·학생 넓게) */
   const [previewOpen, setPreviewOpen] = useState(false);
+  /** 떠다니는(드래그·크기조절) 미리보기 창을 띄울지 */
+  const [floatOpen, setFloatOpen] = useState(false);
 
   const theme = getTheme(themeId);
   const wide2 = layoutMode === "wide";
@@ -142,30 +147,19 @@ function LearnShell() {
           </div>
 
           <div className="shrink-0 flex items-center gap-2">
-            {/* 화면 보기 방식 — 연습화면1(4분할) / 연습화면2(가로 3칸) */}
-            <div className="hidden lg:flex items-center rounded-lg border border-border overflow-hidden text-[12px] font-semibold">
-              <button
-                onClick={() => setLayoutMode("classic")}
-                className={`px-2.5 py-1.5 transition ${
-                  !wide2
-                    ? "bg-primary text-white"
-                    : "bg-white text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                연습화면1
-              </button>
-              <button
-                onClick={() => setLayoutMode("wide")}
-                className={`px-2.5 py-1.5 transition ${
-                  wide2
-                    ? "bg-primary text-white"
-                    : "bg-white text-muted-foreground hover:bg-muted"
-                }`}
-              >
-                연습화면2
-              </button>
-            </div>
             <ThemeSelect />
+            {/* 학습 목차 진행률 */}
+            <span className="hidden sm:flex items-center gap-1.5">
+              <span className="w-24 h-1.5 rounded-full bg-primary-100 overflow-hidden">
+                <span
+                  className="block h-full bg-gradient-brand transition-all duration-500"
+                  style={{ width: `${percent}%` }}
+                />
+              </span>
+              <span className="text-[12px] font-semibold text-primary tabular-nums">
+                {percent}%
+              </span>
+            </span>
           </div>
         </div>
       </header>
@@ -198,13 +192,27 @@ function LearnShell() {
               <RotateCcw className="w-3.5 h-3.5" aria-hidden />
               처음부터 다시
             </button>
-            {/* 미리보기 토글 */}
+            {/* 떠다니는 미리보기 창 열기 (삼각형) */}
+            <button
+              onClick={() => setFloatOpen((v) => !v)}
+              className={`shrink-0 ml-2 grid place-items-center rounded-md border w-8 h-8 transition ${
+                floatOpen
+                  ? "bg-accent text-white border-accent"
+                  : "bg-white/10 text-white/80 border-white/20 hover:bg-white/20"
+              }`}
+              title="크기조절·이동 가능한 미리보기 창 띄우기"
+            >
+              <Play className="w-4 h-4" aria-hidden />
+            </button>
+            {/* 미리보기 토글 — 따라하기 단계에선 눈에 띄게 + 튕김 */}
             <button
               onClick={() => setPreviewOpen((v) => !v)}
-              className={`shrink-0 mx-2 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[12px] font-semibold transition ${
+              className={`shrink-0 mx-2 flex items-center gap-1 rounded-md border px-3 py-1.5 text-[12px] font-bold transition ${
                 previewOpen
                   ? "bg-primary text-white border-primary"
-                  : "bg-white/10 text-white/80 border-white/20 hover:bg-white/20"
+                  : stage === "build"
+                    ? "bg-[#ffb020] text-black border-[#ffb020] learn-bounce5"
+                    : "bg-white/10 text-white/80 border-white/20 hover:bg-white/20"
               }`}
               title={
                 previewOpen
@@ -217,7 +225,6 @@ function LearnShell() {
               ) : (
                 <PanelLeftOpen className="w-4 h-4" aria-hidden />
               )}
-              <Play className="w-3.5 h-3.5" aria-hidden />
               미리보기
             </button>
           </div>
@@ -284,6 +291,63 @@ function LearnShell() {
           </nav>
         </>
       )}
+
+      {/* 떠다니는 미리보기 창 — 드래그로 옮기고 모서리로 크기 조절 */}
+      {floatOpen && <FloatingPreview onClose={() => setFloatOpen(false)} />}
+    </div>
+  );
+}
+
+/** 드래그로 옮기고(제목줄) 모서리로 크기 조절되는 떠다니는 미리보기 창 */
+function FloatingPreview({ onClose }: { onClose: () => void }) {
+  const [pos, setPos] = useState({ x: 160, y: 120 });
+  const dragRef = useRef<{ dx: number; dy: number } | null>(null);
+
+  useEffect(() => {
+    const move = (e: MouseEvent) => {
+      if (!dragRef.current) return;
+      setPos({
+        x: Math.max(0, e.clientX - dragRef.current.dx),
+        y: Math.max(0, e.clientY - dragRef.current.dy),
+      });
+    };
+    const up = () => {
+      dragRef.current = null;
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+  }, []);
+
+  return (
+    <div
+      className="fixed z-50 w-[380px] h-[480px] min-w-[240px] min-h-[220px] resize overflow-hidden rounded-xl border-2 border-primary shadow-2xl bg-white flex flex-col"
+      style={{ top: pos.y, left: pos.x }}
+    >
+      <div
+        className="shrink-0 h-8 flex items-center gap-1.5 px-2 bg-primary text-white cursor-move select-none"
+        onMouseDown={(e) =>
+          (dragRef.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y })
+        }
+      >
+        <GripVertical className="w-4 h-4 shrink-0" aria-hidden />
+        <span className="text-[12px] font-bold truncate">
+          미리보기 — 끌어서 이동 · 모서리로 크기조절
+        </span>
+        <button
+          onClick={onClose}
+          className="ml-auto shrink-0 p-0.5 rounded hover:bg-white/20"
+          aria-label="닫기"
+        >
+          <X className="w-4 h-4" aria-hidden />
+        </button>
+      </div>
+      <div className="flex-1 min-h-0">
+        <PanePreview />
+      </div>
     </div>
   );
 }

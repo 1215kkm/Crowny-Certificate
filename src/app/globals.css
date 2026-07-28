@@ -180,6 +180,20 @@ body {
   animation: learnChipIn 0.32s ease-out forwards;
 }
 
+/* 미리보기 버튼을 눈에 띄게 — 위아래로 5번 튕긴 뒤 멈춘다 */
+@keyframes learnBounce5 {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.learn-bounce5 {
+  animation: learnBounce5 0.5s ease-in-out 5;
+}
+
 /* 연습화면2 — 설명/메모 상자(초록 #61a985) 안은 글자·아이콘을 흰색으로 */
 .learn-topbox-green,
 .learn-topbox-green * {
