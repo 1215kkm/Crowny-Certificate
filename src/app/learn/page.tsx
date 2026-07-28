@@ -13,6 +13,7 @@ import {
   RotateCcw,
   X,
   GripVertical,
+  Check,
 } from "lucide-react";
 import { TRACKS } from "@/data/learn";
 import { getTheme, themeToCssVars } from "@/data/learn/themes";
@@ -88,7 +89,12 @@ function LearnShell() {
     stage,
     course,
     scaffoldLines,
+    courseId,
+    setCourse,
+    completedCourses,
   } = useLearn();
+  /** 지금 고른 언어에 준비된 예제들 */
+  const courseList = TRACKS.find((t) => t.id === trackId)?.courses ?? [];
   const isWide = useIsWide();
   const { percent } = useProgress();
   const [tab, setTab] = useState<MobileTab>("stages");
@@ -168,6 +174,38 @@ function LearnShell() {
                 </button>
               );
             })}
+
+            {/* 고른 언어에 준비된 예제들 — 끝낸 예제는 ✓ */}
+            {courseList.length > 0 && (
+              <>
+                <span className="shrink-0 mx-1 w-px h-5 bg-border" aria-hidden />
+                <span className="shrink-0 text-[12px] font-bold text-muted-foreground pr-0.5">
+                  예제
+                </span>
+                {courseList.map((c) => {
+                  const on = c.id === courseId;
+                  const done = completedCourses.includes(c.id);
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => setCourse(c.id)}
+                      title={c.subtitle}
+                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full border text-[13px] font-semibold transition ${
+                        on
+                          ? "bg-primary-50 border-primary text-primary-800"
+                          : done
+                            ? "bg-success/10 border-success/40 text-success"
+                            : "bg-white border-border text-muted-foreground hover:border-primary-300"
+                      }`}
+                    >
+                      {done && <Check className="w-3.5 h-3.5" aria-hidden />}
+                      {c.title.replace(" 만들기", "")}
+                      <span className="text-[10px] opacity-70">{c.level}</span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
           </div>
 
           <div className="shrink-0 flex items-center gap-2">

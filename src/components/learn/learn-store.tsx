@@ -44,6 +44,8 @@ interface Persisted {
   themeId: string;
   /** 화면 보기 방식 — classic(연습화면1, 4분할) / wide(연습화면2, 가로 3칸) */
   layoutMode: "classic" | "wide";
+  /** 끝까지 마친 코스 id 들 — 코스를 바꿔도 남는다(예제 목록의 ✓ 표시) */
+  completedCourses: string[];
 }
 
 interface LearnState extends Persisted {
@@ -100,6 +102,7 @@ function initialState(): Persisted {
     scaffoldLines: {},
     themeId: DEFAULT_THEME_ID,
     layoutMode: "wide",
+    completedCourses: [],
   };
 }
 
@@ -153,6 +156,28 @@ export function LearnProvider({ children }: { children: React.ReactNode }) {
     () => findCourse(state.trackId, state.courseId),
     [state.trackId, state.courseId]
   );
+
+  /* 이 코스를 끝까지 마쳤으면 완료 목록에 남긴다 (코스를 바꿔도 ✓ 가 유지되게) */
+  useEffect(() => {
+    if (!hydrated || !course) return;
+    const doneAll =
+      state.tracedStages.filter((s) => STAGE_ORDER.indexOf(s) < 5).length >= 5 &&
+      state.doneSteps.length >= course.buildSteps.length &&
+      state.doneDeploy.length >= course.deploySteps.length;
+    if (doneAll && !state.completedCourses.includes(course.id)) {
+      setState((prev) => ({
+        ...prev,
+        completedCourses: [...prev.completedCourses, course.id],
+      }));
+    }
+  }, [
+    hydrated,
+    course,
+    state.tracedStages,
+    state.doneSteps,
+    state.doneDeploy,
+    state.completedCourses,
+  ]);
 
   const setTrack = useCallback((id: TrackId) => {
     setState((prev) => {
