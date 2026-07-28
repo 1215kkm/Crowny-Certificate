@@ -99,7 +99,7 @@ function initialState(): Persisted {
     doneDeploy: [],
     scaffoldLines: {},
     themeId: DEFAULT_THEME_ID,
-    layoutMode: "classic",
+    layoutMode: "wide",
   };
 }
 
