@@ -10,6 +10,7 @@ import {
   Play,
   PanelRightClose,
   PanelLeftOpen,
+  RotateCcw,
 } from "lucide-react";
 import { TRACKS } from "@/data/learn";
 import { getTheme, themeToCssVars } from "@/data/learn/themes";
@@ -76,7 +77,8 @@ function FlowArrow({ left, dashed }: { left: string; dashed?: boolean }) {
 }
 
 function LearnShell() {
-  const { trackId, setTrack, themeId, layoutMode, setLayoutMode } = useLearn();
+  const { trackId, setTrack, themeId, layoutMode, setLayoutMode, resetCourse } =
+    useLearn();
   const isWide = useIsWide();
   const [tab, setTab] = useState<MobileTab>("stages");
   /** 연습화면2에서 미리보기 칸을 펼칠지 — 처음엔 숨김(선생님·학생 넓게) */
@@ -176,16 +178,33 @@ function LearnShell() {
       ) : isWide && wide2 ? (
         /* 연습화면2 — 로고 밑 가로 목차(+미리보기 토글) + [선생님][학생][미리보기(옵션)] */
         <div className="flex-1 min-h-0 flex flex-col">
-          <div className="shrink-0 flex items-center bg-white border-b border-border">
+          <div className="shrink-0 flex items-center bg-[#1b1725] border-b border-black/40">
             <div className="flex-1 min-w-0">
               <StagesStrip />
             </div>
+            {/* 처음부터 다시 */}
+            <button
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "처음부터 다시 시작할까요? 지금까지 친 코드는 사라져요."
+                  )
+                )
+                  resetCourse();
+              }}
+              className="shrink-0 ml-1 flex items-center gap-1 rounded-md border border-white/20 bg-white/10 text-white/80 px-2.5 py-1.5 text-[12px] font-semibold hover:bg-white/20 transition"
+              title="처음부터 다시 시작"
+            >
+              <RotateCcw className="w-3.5 h-3.5" aria-hidden />
+              처음부터 다시
+            </button>
+            {/* 미리보기 토글 */}
             <button
               onClick={() => setPreviewOpen((v) => !v)}
               className={`shrink-0 mx-2 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-[12px] font-semibold transition ${
                 previewOpen
                   ? "bg-primary text-white border-primary"
-                  : "bg-white text-muted-foreground border-border hover:bg-muted"
+                  : "bg-white/10 text-white/80 border-white/20 hover:bg-white/20"
               }`}
               title={
                 previewOpen
