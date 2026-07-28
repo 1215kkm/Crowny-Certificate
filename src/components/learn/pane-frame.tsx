@@ -39,9 +39,9 @@ export function PaneFrame({
           {header}
         </div>
         <div className="flex-1 min-h-0 flex flex-row">
-          {/* 왼쪽 칸: 설명(위) → 만들것/내폴더(아래) */}
+          {/* 왼쪽 칸: 설명/메모(위, 초록) → 만들것/내폴더(아래) */}
           <div className="w-[30%] min-w-[200px] shrink-0 min-h-0 flex flex-col gap-1.5 p-1.5">
-            <div className="h-[42%] min-h-0 rounded-lg bg-white overflow-hidden flex flex-col">
+            <div className="learn-topbox-green h-[42%] min-h-0 rounded-lg overflow-hidden flex flex-col bg-[#61a985]">
               {topLeft}
             </div>
             <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1.5">

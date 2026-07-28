@@ -188,9 +188,11 @@ export function PaneTeacher({
             resetKey={`${course.id}-${step.id}`}
             /* 오른쪽에서 명령어를 한 줄 칠 때마다 설명도 한 단락씩 열린다 */
             advanceSignal={step.scaffold ? linesDone : undefined}
-            /* 설치 스텝이면 설명 맨 끝에 「준비물」 안내를 붙인다 */
+            /* 설치 스텝이면 설명 맨 끝에 「준비물」 안내를 붙인다 (초록 상자엔 넣지 않음) */
             trailing={
-              step.prereq ? <PrereqCard prereq={step.prereq} /> : undefined
+              step.prereq && !wide ? (
+                <PrereqCard prereq={step.prereq} />
+              ) : undefined
             }
           />
         }

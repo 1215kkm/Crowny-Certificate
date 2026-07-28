@@ -28,13 +28,11 @@ import { FileTreeBox, OpenFileBar, StepFileFlow } from "./pane-boxes";
 import { CommandList, ScaffoldTerminal } from "./scaffold-terminal";
 import {
   baseName,
-  buildStepParagraphs,
   codeMatches,
   dirName,
   groupByFolder,
   teacherFilesUpTo,
 } from "./learn-utils";
-import { TypingParagraphs } from "./typing-paragraphs";
 import { downloadZip } from "./zip";
 import CodeDiff from "./code-diff";
 
@@ -507,20 +505,7 @@ export function PaneStudent({ wide = false }: { wide?: boolean } = {}) {
           </span>
         </>
       }
-      topLeft={
-        /* 연습화면2: 학생 칸도 설명(목표/왜/할일/어디에/결과)을 보여 준다.
-           연습화면1: 내 메모장. */
-        wide && step ? (
-          <TypingParagraphs
-            paragraphs={buildStepParagraphs(step)}
-            active={false}
-            compact
-            resetKey={`w-${course.id}-${step.id}`}
-          />
-        ) : (
-          <StudentNotes storageKey={noteKey} />
-        )
-      }
+      topLeft={<StudentNotes storageKey={noteKey} />}
       topRight={
         /* 선생 칸(2번)과 **같은 순서·같은 크기**로 쌓는다.
            위 = 이번에 만들 것 / 아래 = 내 폴더 / 맨 아래 = 이 스텝 완료 */
@@ -602,12 +587,6 @@ export function PaneStudent({ wide = false }: { wide?: boolean } = {}) {
             </div>
           )}
 
-          {/* 연습화면2 — 설명이 위로 갔으니 내 메모장은 여기(내 폴더 아래)로 */}
-          {wide && (
-            <div className="shrink-0 h-40 min-h-0">
-              <StudentNotes storageKey={noteKey} />
-            </div>
-          )}
         </>
       }
       bottom={
