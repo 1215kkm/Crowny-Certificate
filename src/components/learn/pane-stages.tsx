@@ -40,8 +40,8 @@ export function StagesStrip() {
 
   return (
     <div className="flex items-center gap-1.5 px-3 py-1.5 overflow-x-auto">
-      <span className="shrink-0 flex items-center gap-1 text-[12px] font-bold text-muted-foreground pr-1">
-        <BookOpen className="w-4 h-4 text-primary" aria-hidden />
+      <span className="shrink-0 flex items-center gap-1 text-[12px] font-bold text-white/70 pr-1">
+        <BookOpen className="w-4 h-4 text-white/80" aria-hidden />
         학습 목차
       </span>
       {STAGE_ORDER.map((id) => {
@@ -53,21 +53,21 @@ export function StagesStrip() {
           <button
             key={id}
             onClick={() => setStage(id)}
-            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[12px] font-semibold transition ${
+            className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold transition ${
               on
-                ? "border-primary bg-primary-50 text-primary-800"
+                ? "bg-primary text-white"
                 : fin
-                  ? "border-success/40 bg-success/5 text-success"
-                  : "border-border text-muted-foreground hover:bg-muted"
+                  ? "bg-success text-white"
+                  : "bg-white/10 text-white/80 hover:bg-white/20"
             }`}
           >
             <span
               className={`w-4 h-4 grid place-items-center rounded-full text-[10px] font-bold ${
                 fin
-                  ? "bg-success text-white"
+                  ? "bg-white text-success"
                   : on
-                    ? "bg-primary text-white"
-                    : "bg-muted text-muted-foreground"
+                    ? "bg-white text-primary"
+                    : "bg-white/25 text-white"
               }`}
             >
               {fin ? <Check className="w-3 h-3" aria-hidden /> : s.no}
