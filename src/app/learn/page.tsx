@@ -200,7 +200,9 @@ function LearnShell() {
                     >
                       {done && <Check className="w-3.5 h-3.5" aria-hidden />}
                       {c.title.replace(" 만들기", "")}
-                      <span className="text-[10px] opacity-70">{c.level}</span>
+                      <span className="text-[10px] opacity-70">
+                        {c.pages.length}페이지
+                      </span>
                     </button>
                   );
                 })}
