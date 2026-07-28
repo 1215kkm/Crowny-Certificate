@@ -272,8 +272,8 @@ export function TypingParagraphs({
       </div>
 
       <div
-        className={`shrink-0 border-t border-border bg-muted/40 flex items-center ${
-          compact ? "px-2 py-1.5 gap-1.5" : "px-3 py-2 gap-2"
+        className={`shrink-0 border-t border-border flex items-center ${
+          compact ? "px-2 py-1.5 gap-1.5" : "bg-muted/40 px-3 py-2 gap-2"
         }`}
       >
         <button
