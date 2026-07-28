@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -79,8 +79,16 @@ function FlowArrow({ left, dashed }: { left: string; dashed?: boolean }) {
 }
 
 function LearnShell() {
-  const { trackId, setTrack, themeId, layoutMode, resetCourse, stage } =
-    useLearn();
+  const {
+    trackId,
+    setTrack,
+    themeId,
+    layoutMode,
+    resetCourse,
+    stage,
+    course,
+    scaffoldLines,
+  } = useLearn();
   const isWide = useIsWide();
   const { percent } = useProgress();
   const [tab, setTab] = useState<MobileTab>("stages");
@@ -88,6 +96,22 @@ function LearnShell() {
   const [previewOpen, setPreviewOpen] = useState(false);
   /** 떠다니는(드래그·크기조절) 미리보기 창을 띄울지 */
   const [floatOpen, setFloatOpen] = useState(false);
+
+  /* npm run dev(serve) 를 친 순간 떠다니는 미리보기를 저절로 띄운다 (한 번만) */
+  const serverStarted = useMemo(() => {
+    for (const s of course?.buildSteps ?? []) {
+      const idx = s.scaffold?.lines.findIndex((l) => l.effect === "serve") ?? -1;
+      if (idx >= 0 && (scaffoldLines[s.id] ?? 0) > idx) return true;
+    }
+    return false;
+  }, [course, scaffoldLines]);
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    if (serverStarted && !autoOpenedRef.current) {
+      autoOpenedRef.current = true;
+      setFloatOpen(true);
+    }
+  }, [serverStarted]);
 
   const theme = getTheme(themeId);
   const wide2 = layoutMode === "wide";
@@ -298,10 +322,17 @@ function LearnShell() {
   );
 }
 
-/** 드래그로 옮기고(제목줄) 모서리로 크기 조절되는 떠다니는 미리보기 창 */
+/** 떠다니는 미리보기 창 — 처음 9:16(폰 비율), 끌어서 이동 · 모서리로 크기조절.
+ *  줄이면 창만 잘리지 않고 안의 화면이 통째로 같이 축소된다(scale). */
+const FP_BASE_W = 300; // 9:16 기준 내부 폭
+const FP_BASE_H = 533; // 300 * 16/9
+
 function FloatingPreview({ onClose }: { onClose: () => void }) {
-  const [pos, setPos] = useState({ x: 160, y: 120 });
+  const [pos, setPos] = useState({ x: 180, y: 90 });
   const dragRef = useRef<{ dx: number; dy: number } | null>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const [bodySize, setBodySize] = useState({ w: FP_BASE_W, h: FP_BASE_H });
 
   useEffect(() => {
     const move = (e: MouseEvent) => {
@@ -322,9 +353,23 @@ function FloatingPreview({ onClose }: { onClose: () => void }) {
     };
   }, []);
 
+  /* 창(본문) 크기가 바뀌면 그 크기에 맞춰 내부 화면을 통째로 축소/확대 */
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      setBodySize({ w, h });
+      setScale(Math.min(w / FP_BASE_W, h / FP_BASE_H) || 1);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div
-      className="fixed z-50 w-[380px] h-[480px] min-w-[240px] min-h-[220px] resize overflow-hidden rounded-xl border-2 border-primary shadow-2xl bg-white flex flex-col"
+      className="fixed z-50 w-[300px] h-[565px] min-w-[160px] min-h-[300px] resize overflow-hidden rounded-xl border-2 border-primary shadow-2xl bg-white flex flex-col"
       style={{ top: pos.y, left: pos.x }}
     >
       <div
@@ -345,8 +390,20 @@ function FloatingPreview({ onClose }: { onClose: () => void }) {
           <X className="w-4 h-4" aria-hidden />
         </button>
       </div>
-      <div className="flex-1 min-h-0">
-        <PanePreview />
+      <div ref={bodyRef} className="relative flex-1 min-h-0 overflow-hidden bg-white">
+        <div
+          style={{
+            position: "absolute",
+            width: FP_BASE_W,
+            height: FP_BASE_H,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            left: Math.max(0, (bodySize.w - FP_BASE_W * scale) / 2),
+            top: Math.max(0, (bodySize.h - FP_BASE_H * scale) / 2),
+          }}
+        >
+          <PanePreview fill />
+        </div>
       </div>
     </div>
   );
