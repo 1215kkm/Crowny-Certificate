@@ -1,5 +1,7 @@
 import type { Track, TrackId, Course } from "./types";
 import { reactTodoCourse } from "./courses/react-todo";
+import { reactMoodCourse } from "./courses/react-mood";
+import { reactShopCourse } from "./courses/react-shop";
 
 export * from "./types";
 
@@ -35,7 +37,7 @@ export const TRACKS: Track[] = [
     label: "React",
     tagline: "화면을 부품으로",
     ready: true,
-    courses: [reactTodoCourse],
+    courses: [reactTodoCourse, reactMoodCourse, reactShopCourse],
   },
   {
     id: "vue",
