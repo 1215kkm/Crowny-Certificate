@@ -2,6 +2,12 @@ import type { Track, TrackId, Course } from "./types";
 import { reactTodoCourse } from "./courses/react-todo";
 import { reactMoodCourse } from "./courses/react-mood";
 import { reactShopCourse } from "./courses/react-shop";
+import { htmlProfileCourse } from "./courses/html-profile";
+import { htmlTimetableCourse } from "./courses/html-timetable";
+import { jqueryGreetCourse } from "./courses/jquery-greet";
+import { jqueryFaqCourse } from "./courses/jquery-faq";
+import { jsCounterCourse } from "./courses/js-counter";
+import { jsRpsCourse } from "./courses/js-rps";
 
 export * from "./types";
 
@@ -15,22 +21,22 @@ export const TRACKS: Track[] = [
     id: "html",
     label: "HTML",
     tagline: "웹의 뼈대",
-    ready: false,
-    courses: [],
-  },
-  {
-    id: "javascript",
-    label: "JavaScript",
-    tagline: "웹을 움직이게",
-    ready: false,
-    courses: [],
+    ready: true,
+    courses: [htmlProfileCourse, htmlTimetableCourse],
   },
   {
     id: "jquery",
     label: "jQuery",
     tagline: "짧게 쓰는 JS",
-    ready: false,
-    courses: [],
+    ready: true,
+    courses: [jqueryGreetCourse, jqueryFaqCourse],
+  },
+  {
+    id: "javascript",
+    label: "JavaScript",
+    tagline: "웹을 움직이게",
+    ready: true,
+    courses: [jsCounterCourse, jsRpsCourse],
   },
   {
     id: "react",
@@ -38,20 +44,6 @@ export const TRACKS: Track[] = [
     tagline: "화면을 부품으로",
     ready: true,
     courses: [reactTodoCourse, reactMoodCourse, reactShopCourse],
-  },
-  {
-    id: "vue",
-    label: "Vue",
-    tagline: "쉬운 문법",
-    ready: false,
-    courses: [],
-  },
-  {
-    id: "angular",
-    label: "Angular",
-    tagline: "규칙이 촘촘한",
-    ready: false,
-    courses: [],
   },
 ];
 
