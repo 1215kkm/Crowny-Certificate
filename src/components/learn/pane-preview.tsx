@@ -24,11 +24,13 @@ const DEBOUNCE_MS = 600;
 /** 앱이 처음 켜졌을 때 "방금 뭘 했길래 이게 뜨는지"를 한 번만 설명한다 */
 const INTRO_KEY = "learn-preview-intro-seen";
 
-export function PanePreview() {
+export function PanePreview({ fill = false }: { fill?: boolean } = {}) {
   const { files, course, scaffoldLines } = useLearn();
   const [debounced, setDebounced] = useState(files);
-  /** 기본은 모바일(폰) 크기 — 만드는 앱이 폰용이라 처음부터 폰으로 본다 */
+  /** 기본은 모바일(폰) 크기 — 만드는 앱이 폰용이라 처음부터 폰으로 본다.
+      fill(떠다니는 9:16 창)에선 창 자체가 폰 모양이라 앱을 꽉 채운다. */
   const [phone, setPhone] = useState(true);
+  const usePhone = phone && !fill;
   /** null = 아직 확인 전(깜빡임 방지), false = 설명 보여줄 차례, true = 봤음 */
   const [introSeen, setIntroSeen] = useState<boolean | null>(null);
 
@@ -80,7 +82,9 @@ export function PanePreview() {
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-white">
-      {/* 2·3번칸 머리줄(h-11)과 같은 높이 — 네 칸의 가로줄이 맞아야 덜 어지럽다 */}
+      {/* 2·3번칸 머리줄(h-11)과 같은 높이 — 네 칸의 가로줄이 맞아야 덜 어지럽다.
+          fill(떠다니는 창)에선 머리줄을 숨긴다 — 창에 자체 제목줄이 있다. */}
+      {!fill && (
       <div className="shrink-0 h-11 px-3 border-b border-border flex items-center gap-2">
         <span className="text-[14px] font-bold">미리보기</span>
 
@@ -117,6 +121,7 @@ export function PanePreview() {
           </a>
         </div>
       </div>
+      )}
 
       {/* 아직 프로젝트를 안 만들었으면 실행할 게 없다 — 빈 Sandpack 을 띄우면
           템플릿 기본 화면이 나와서 "내가 안 만들었는데 왜 뜨지?" 로 헷갈린다 */}
@@ -187,7 +192,7 @@ export function PanePreview() {
       <div className="flex-1 min-h-0 bg-muted/40 grid place-items-center overflow-hidden">
         <div
           className={
-            phone
+            usePhone
               ? "w-[320px] max-w-full h-full max-h-[640px] my-2 rounded-2xl border-4 border-foreground/80 overflow-hidden bg-white"
               : "w-full h-full"
           }
