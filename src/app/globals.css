@@ -192,6 +192,11 @@ body {
 .learn-topbox-green textarea::placeholder {
   color: rgba(255, 255, 255, 0.7) !important;
 }
+/* 초록 상자 안 제목(목표·왜·할일·어디에·결과·다음·꿀팁)은 노랑으로 */
+.learn-topbox-green .learn-para-label,
+.learn-topbox-green .learn-para-label * {
+  color: #ffd24d !important;
+}
 
 /* 설명 보기 — 클릭할 수 있는(설명이 있는) 코드 줄: 연한 배경 + 손가락 커서 */
 .cm-line.learn-clickable-line {

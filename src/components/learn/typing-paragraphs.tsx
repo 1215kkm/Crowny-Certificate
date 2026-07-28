@@ -251,7 +251,7 @@ export function TypingParagraphs({
             >
               {meta && Icon && (
                 <div
-                  className={`flex items-center gap-1.5 mb-1 text-[13px] font-bold ${meta.color}`}
+                  className={`learn-para-label flex items-center gap-1.5 mb-1 text-[13px] font-bold ${meta.color}`}
                 >
                   <Icon className="w-4 h-4" aria-hidden />
                   {meta.label}
