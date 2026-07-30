@@ -81,8 +81,19 @@ export default function AppSubmitPage() {
           <CheckCircle className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-2xl font-bold mb-2">앱(실기) 제출 완료</h1>
-        <p className="text-muted-foreground mb-6">제출이 접수되었습니다. 관리자 채점 후 결과가 마이페이지에 표시됩니다.</p>
-        <a href="/mypage" className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition inline-block">마이페이지에서 확인</a>
+        <p className="text-muted-foreground mb-2">제출이 접수되었습니다. 관리자 채점 후 결과가 마이페이지에 표시됩니다.</p>
+        <p className="text-sm text-muted-foreground mb-6">
+          채점이 시작되기 전까지는 <strong>다시 제출해서 고칠 수 있습니다.</strong> (마지막 제출로 덮어써집니다)
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <button
+            onClick={() => setSubmitted(false)}
+            className="border-2 border-primary text-primary px-8 py-3 rounded-lg font-medium hover:bg-primary/5 transition"
+          >
+            제출 내용 수정하기
+          </button>
+          <a href="/mypage" className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition inline-block">마이페이지에서 확인</a>
+        </div>
       </div>
     );
   }

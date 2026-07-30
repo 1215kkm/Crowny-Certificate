@@ -19,6 +19,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Send,
+  CheckCircle,
 } from "lucide-react";
 
 interface Question {
@@ -170,7 +171,12 @@ export default function ExamTakePage() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [timeLeft, setTimeLeft] = useState(0);
+  /** 최종 제출 완료 — 점수·정답이 공개된 상태 */
   const [isSubmitted, setIsSubmitted] = useState(false);
+  /** 시간 내 임시 제출 — 아직 고칠 수 있고, 점수·정답은 안 보인다 */
+  const [savedOnce, setSavedOnce] = useState(false);
+  /** 임시 제출 후 「답안 수정하기」를 눌러 다시 푸는 중 */
+  const [editing, setEditing] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [totalPoints, setTotalPoints] = useState(0);
   const [passed, setPassed] = useState(false);
@@ -233,51 +239,72 @@ export default function ExamTakePage() {
     fetchExam();
   }, [examId, user, authLoading, router]);
 
-  const handleSubmit = useCallback(async () => {
-    if (isSubmitted || submitting || !user) return;
-    setSubmitting(true);
+  /**
+   * 답안 제출.
+   *  final=false — 시간 내 임시 제출. 답안만 저장되고 점수·정답은 공개되지 않아,
+   *                남은 시간 동안 몇 번이든 고쳐 낼 수 있다.
+   *  final=true  — 최종 제출. 이때 점수와 정답·해설이 공개된다.
+   */
+  const handleSubmit = useCallback(
+    async (final: boolean) => {
+      if (isSubmitted || submitting || !user) return;
+      setSubmitting(true);
 
-    try {
-      const { getFirebaseAuth } = await import("@/lib/firebase");
-      const token = await getFirebaseAuth().currentUser?.getIdToken();
+      try {
+        const { getFirebaseAuth } = await import("@/lib/firebase");
+        const token = await getFirebaseAuth().currentUser?.getIdToken();
 
-      const res = await fetch("/api/exams/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          examId,
-          answers,
-          violations,
-          questionIds: questions.map((q) => q.id),
-        }),
-      });
+        const res = await fetch("/api/exams/submit", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            examId,
+            answers,
+            violations,
+            questionIds: questions.map((q) => q.id),
+            final,
+            remainingSec: timeLeft,
+          }),
+        });
 
-      const data = await res.json();
-      if (res.ok) {
-        setScore(data.score);
-        setTotalPoints(data.totalPoints);
-        setPassed(data.passed);
-        setReview(Array.isArray(data.review) ? data.review : []);
-        setIsSubmitted(true);
-      } else {
-        alert(data.error || "제출에 실패했습니다.");
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "제출에 실패했습니다.");
+          return;
+        }
+
+        if (data.final) {
+          // 최종 제출 — 점수·정답 공개
+          setScore(data.score);
+          setTotalPoints(data.totalPoints);
+          setPassed(data.passed);
+          setReview(Array.isArray(data.review) ? data.review : []);
+          setIsSubmitted(true);
+        } else {
+          // 임시 제출 — 저장만. 점수는 서버가 알려주지 않는다.
+          setSavedOnce(true);
+          setEditing(false);
+        }
+      } catch {
+        alert("제출 중 오류가 발생했습니다.");
+      } finally {
+        setSubmitting(false);
       }
-    } catch {
-      alert("제출 중 오류가 발생했습니다.");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [examId, answers, user, isSubmitted, submitting, violations, questions]);
+    },
+    [examId, answers, user, isSubmitted, submitting, violations, questions, timeLeft]
+  );
 
+  /* 시계는 임시 제출한 뒤에도 계속 간다 — 그동안은 고칠 수 있고,
+     시간이 다 되면 그 답안 그대로 자동 최종 제출된다. */
   useEffect(() => {
     if (isSubmitted || loading || !exam || !examStarted) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          handleSubmit();
+          handleSubmit(true);
           return 0;
         }
         return prev - 1;
@@ -342,6 +369,10 @@ export default function ExamTakePage() {
               <p>• 시험 시간: <strong>{exam.duration}분</strong> (시간 초과 시 자동 제출)</p>
               <p>• 문제 수: <strong>{questions.length}문항</strong></p>
               <p>• 합격 기준: <strong>70점 이상</strong></p>
+              <p>
+                • 제출한 뒤에도 <strong>시간이 남아 있으면 답안을 고쳐 낼 수 있습니다.</strong>{" "}
+                점수와 정답은 최종 제출(또는 시간 종료) 후에 공개됩니다.
+              </p>
             </div>
             <hr className="my-4" />
             <div className="space-y-2 text-red-600">
@@ -368,6 +399,73 @@ export default function ExamTakePage() {
           >
             시험 시작하기
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* 임시 제출 완료 화면 — 시간이 남아 있고 아직 고칠 수 있는 상태.
+     점수·정답은 일부러 보여주지 않는다. 보여주면 고쳐서 만점을 만들 수 있으니까. */
+  if (savedOnce && !editing && !isSubmitted) {
+    const answeredCount = Object.keys(answers).length;
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <div className="bg-white border border-border rounded-2xl p-8 text-center shadow-sm">
+          <div className="w-20 h-20 rounded-full mx-auto mb-6 bg-green-500 flex items-center justify-center">
+            <CheckCircle className="w-10 h-10 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">제출되었습니다</h1>
+          <p className="text-muted-foreground mb-6">
+            시험 시간이 남아 있어요. 시간 안에는 답안을 다시 고쳐 낼 수 있습니다.
+          </p>
+
+          <div className="bg-gray-50 rounded-xl p-6 mb-6 space-y-2 text-left">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">남은 시간</span>
+              <strong
+                className={`tabular-nums ${
+                  timeLeft < 300 ? "text-red-600" : "text-foreground"
+                }`}
+              >
+                {formatTime(timeLeft)}
+              </strong>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">답한 문항</span>
+              <strong>
+                {answeredCount} / {questions.length}
+              </strong>
+            </div>
+            <hr className="my-3" />
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              점수와 정답·해설은 <strong>최종 제출한 뒤</strong>에 공개됩니다.
+              시간이 다 되면 지금 제출된 답안으로 자동 채점됩니다.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => setEditing(true)}
+              className="flex-1 border-2 border-primary text-primary px-6 py-3 rounded-xl font-bold hover:bg-primary/5 transition"
+            >
+              답안 수정하기
+            </button>
+            <button
+              onClick={() => {
+                if (
+                  confirm(
+                    "최종 제출하면 더 이상 고칠 수 없고, 점수와 정답이 공개됩니다.\n최종 제출할까요?"
+                  )
+                ) {
+                  handleSubmit(true);
+                }
+              }}
+              disabled={submitting}
+              className="flex-1 bg-primary text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-dark transition disabled:opacity-50"
+            >
+              {submitting ? "제출 중..." : "최종 제출하기"}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -693,13 +791,18 @@ export default function ExamTakePage() {
                     ) {
                       return;
                     }
-                    handleSubmit();
+                    // 시간이 남아 있으면 임시 제출 — 나중에 고쳐 낼 수 있다
+                    handleSubmit(false);
                   }}
                   disabled={submitting}
                   className="flex items-center gap-2 bg-red-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-red-600 transition disabled:opacity-50"
                 >
                   <Send className="w-4 h-4" />
-                  {submitting ? "제출 중..." : "시험 제출하기"}
+                  {submitting
+                    ? "제출 중..."
+                    : savedOnce
+                      ? "수정한 답안 제출하기"
+                      : "시험 제출하기"}
                 </button>
               ) : (
                 <button

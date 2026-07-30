@@ -66,7 +66,7 @@ export default function MyPage() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [enrollments, setEnrollments] = useState<{ id: string; courseTitle: string; grade: string; gradeColor: string; progress: number; courseId: string }[]>([]);
-  const [examResults, setExamResults] = useState<{ id: string; examTitle: string; grade: string; score: number | null; passed: boolean | null; date: string; feedback: string | null }[]>([]);
+  const [examResults, setExamResults] = useState<{ id: string; examTitle: string; grade: string; score: number | null; passed: boolean | null; date: string; feedback: string | null; status: string }[]>([]);
   const [certificates, setCertificates] = useState<{ id: string; grade: string; issueNumber: string; issuedAt: string; status: string; statusClassName: string; method: string; trackingNumber: string | null; pdfUrl: string | null }[]>([]);
   const [practicals, setPracticals] = useState<{ id: string; themeName: string; status: string; statusClassName: string; detail: string; eligible: boolean }[]>([]);
   const [appSubs, setAppSubs] = useState<{ id: string; themeName: string; appUrl: string; status: string; statusClassName: string; detail: string; eligible: boolean }[]>([]);
@@ -200,6 +200,7 @@ export default function MyPage() {
               passed: s.passed,
               date: formatTimestamp(s.submittedAt),
               feedback: s.feedback,
+              status: s.status,
             };
           })
         );
@@ -565,20 +566,29 @@ export default function MyPage() {
         <h2 className="text-xl font-bold mb-4">시험 결과 (필기)</h2>
         {examResults.length > 0 ? (
           <div className="space-y-4">
-            {examResults.map((result) => (
+            {examResults.map((result) => {
+              // IN_PROGRESS = 시간 내 임시 제출 (아직 고칠 수 있어 점수를 공개하지 않는다)
+              const pending = result.status === "IN_PROGRESS";
+              return (
               <div key={result.id} className="border border-border rounded-xl p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className={`text-xs px-2 py-0.5 rounded mr-2 ${result.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                      {result.passed ? "합격" : "불합격"}
+                    <span className={`text-xs px-2 py-0.5 rounded mr-2 ${pending ? "bg-orange-100 text-orange-700" : result.passed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                      {pending ? "제출됨 (수정 가능)" : result.passed ? "합격" : "불합격"}
                     </span>
                     <span className="font-medium">{result.examTitle}</span>
                     <div className="text-sm text-muted-foreground mt-1">
-                      점수: {result.score ?? "-"}점 | 응시일: {result.date}
+                      {pending
+                        ? `점수는 최종 제출 후 공개 | 제출일: ${result.date}`
+                        : `점수: ${result.score ?? "-"}점 | 응시일: ${result.date}`}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    {result.passed ? (
+                    {pending ? (
+                      <Link href="/exams" className="border border-border px-4 py-2 rounded-lg text-sm font-medium hover:bg-muted transition">
+                        시험으로 돌아가기
+                      </Link>
+                    ) : result.passed ? (
                       <Link href="/certificates" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition">
                         인증서 발급
                       </Link>
@@ -589,13 +599,14 @@ export default function MyPage() {
                     )}
                   </div>
                 </div>
-                {!result.passed && result.feedback && (
+                {!pending && !result.passed && result.feedback && (
                   <div className="text-sm text-red-600 mt-3 bg-red-50 rounded-lg p-3">
                     <span className="font-medium">불합격 사유: </span>{result.feedback}
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">시험 결과가 없습니다.</div>

@@ -13,11 +13,22 @@ export async function POST(request: Request) {
     const decodedToken = await adminAuth.verifyIdToken(token);
     const userId = decodedToken.uid;
 
-    const { examId, answers, questionIds } = await request.json();
+    const {
+      examId,
+      answers,
+      questionIds,
+      /** false = 시간 내 임시 제출(수정 가능, 점수·정답 비공개), true = 최종 제출 */
+      final,
+      /** 첫 제출 때 남은 시간(초) — 서버가 수정 가능 기한을 못박는 데 쓴다 */
+      remainingSec,
+    } = await request.json();
 
     if (!examId || !answers || typeof answers !== "object") {
       return NextResponse.json({ error: "필수 정보가 누락되었습니다." }, { status: 400 });
     }
+
+    // 예전 클라이언트(final 미전달)는 기존처럼 바로 최종 제출로 본다
+    const wantFinal = final !== false;
 
     // 시험 정보 조회
     const examDoc = await adminDb.collection("exams").doc(examId).get();
@@ -120,44 +131,116 @@ export async function POST(request: Request) {
     const scorePercentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
     const passed = scorePercentage >= passingScore;
 
-    // examSubmission 저장
-    const submissionRef = await adminDb.collection("examSubmissions").add({
-      userId,
-      examId,
-      status: "GRADED",
-      score: earnedPoints,
-      totalPoints,
-      passed,
-      startedAt: new Date(),
-      submittedAt: new Date(),
-      gradedAt: new Date(),
-      gradedBy: "SYSTEM",
-      paymentId: null,
-      feedback: null,
-    });
+    /* ── 제출 저장 ─────────────────────────────────────
+     * 시간 내에는 같은 제출을 고쳐 쓴다(새 제출을 만들지 않는다).
+     * status IN_PROGRESS = 제출했지만 수정 가능한 상태 (관리자 채점 목록엔 안 잡힌다)
+     * status GRADED      = 최종 제출 (점수·정답 공개)
+     * ────────────────────────────────────────────────── */
+    const now = new Date();
 
-    // 개별 답안 저장
+    // 이 시험의 「수정 가능한 제출」이 이미 있으면 그걸 고쳐 쓴다
+    const openSnap = await adminDb
+      .collection("examSubmissions")
+      .where("userId", "==", userId)
+      .where("examId", "==", examId)
+      .where("status", "==", "IN_PROGRESS")
+      .limit(1)
+      .get();
+    const openDoc = openSnap.docs[0];
+
+    // 이미 최종 제출한 시험은 다시 손대지 못하게 막는다
+    if (!openDoc) {
+      const doneSnap = await adminDb
+        .collection("examSubmissions")
+        .where("userId", "==", userId)
+        .where("examId", "==", examId)
+        .where("status", "==", "GRADED")
+        .limit(1)
+        .get();
+      if (!doneSnap.empty) {
+        return NextResponse.json(
+          { error: "이미 최종 제출한 시험입니다." },
+          { status: 409 }
+        );
+      }
+    }
+
+    /* 수정 가능 기한 — 첫 제출 때 못박고, 그다음부터는 서버가 가진 값만 믿는다.
+       그래서 첫 제출 이후에는 클라이언트가 시간을 조작해도 늘릴 수 없다. */
+    let editableUntil: Date;
+    if (openDoc) {
+      const raw = openDoc.data().editableUntil;
+      editableUntil = raw?.toDate ? raw.toDate() : new Date(0);
+    } else {
+      const capSec = Math.max(0, (examData.duration ?? 0) * 60);
+      const askedSec = Number.isFinite(remainingSec)
+        ? Math.max(0, Math.floor(remainingSec))
+        : 0;
+      editableUntil = new Date(now.getTime() + Math.min(askedSec, capSec) * 1000);
+    }
+
+    // 기한이 지났으면 학생이 「임시 제출」을 눌러도 최종 제출로 확정한다
+    const isFinal = wantFinal || now.getTime() >= editableUntil.getTime();
+
+    const submissionRef = openDoc
+      ? openDoc.ref
+      : adminDb.collection("examSubmissions").doc();
+
+    /* 최종 제출이 아니면 채점 결과를 **문서에도 남기지 않는다.**
+       examSubmissions 는 학생이 읽을 수 있어서(마이페이지), 점수를 적어 두면
+       거기서 점수를 엿보고 돌아와 답을 고칠 수 있게 된다. */
+    await submissionRef.set(
+      {
+        userId,
+        examId,
+        status: isFinal ? "GRADED" : "IN_PROGRESS",
+        score: isFinal ? earnedPoints : null,
+        totalPoints: isFinal ? totalPoints : null,
+        passed: isFinal ? passed : null,
+        startedAt: openDoc ? openDoc.data().startedAt ?? now : now,
+        submittedAt: now,
+        gradedAt: isFinal ? now : null,
+        gradedBy: isFinal ? "SYSTEM" : null,
+        editableUntil,
+        paymentId: null,
+        feedback: null,
+      },
+      { merge: true }
+    );
+
+    // 개별 답안 저장 (고칠 때마다 덮어쓴다).
+    // 임시 제출 동안은 정답 여부·점수를 비워 둔다 — 같은 이유로 엿보기를 막는다.
     const batch = adminDb.batch();
     for (const [questionId, result] of Object.entries(answerResults)) {
-      const answerRef = adminDb
-        .collection("examSubmissions")
-        .doc(submissionRef.id)
-        .collection("answers")
-        .doc(questionId);
-
+      const answerRef = submissionRef.collection("answers").doc(questionId);
       batch.set(answerRef, {
         submissionId: submissionRef.id,
         questionId,
         answer: result.answer,
         fileUrl: null,
-        points: result.points,
-        isCorrect: result.isCorrect,
+        points: isFinal ? result.points : 0,
+        isCorrect: isFinal ? result.isCorrect : null,
       });
     }
     await batch.commit();
 
+    /* 최종 제출이 아니면 점수·정답·해설을 **응답에 담지 않는다.**
+       (담아 보내면 개발자도구로 볼 수 있어서 고쳐 쓰는 의미가 없어진다) */
+    if (!isFinal) {
+      return NextResponse.json({
+        submissionId: submissionRef.id,
+        final: false,
+        saved: true,
+        editableUntil: editableUntil.toISOString(),
+        answeredCount: Object.keys(answerResults).filter(
+          (id) => answerResults[id].answer !== ""
+        ).length,
+      });
+    }
+
     return NextResponse.json({
       submissionId: submissionRef.id,
+      final: true,
       score: earnedPoints,
       totalPoints,
       scorePercentage,

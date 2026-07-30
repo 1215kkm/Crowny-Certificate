@@ -69,7 +69,41 @@ export async function POST(request: Request) {
     );
 
     const now = Timestamp.now();
-    const ref = await adminDb.collection("practicalSubmissions").add({
+
+    /* 채점 전(SUBMITTED)이면 새 제출을 만들지 않고 기존 제출을 고쳐 쓴다.
+       — 파일·링크를 잘못 낸 경우 채점 시작 전까지 바로잡을 수 있게. */
+    const openSnap = await adminDb
+      .collection("practicalSubmissions")
+      .where("userId", "==", userId)
+      .where("examId", "==", examId)
+      .where("status", "==", "SUBMITTED")
+      .limit(1)
+      .get();
+    const openDoc = openSnap.docs[0];
+
+    // 이미 채점이 끝난 제출은 손대지 못하게 막는다
+    if (!openDoc) {
+      const gradedSnap = await adminDb
+        .collection("practicalSubmissions")
+        .where("userId", "==", userId)
+        .where("examId", "==", examId)
+        .where("status", "==", "GRADED")
+        .limit(1)
+        .get();
+      if (!gradedSnap.empty) {
+        return NextResponse.json(
+          { error: "이미 채점이 끝난 제출입니다. 수정할 수 없습니다." },
+          { status: 409 }
+        );
+      }
+    }
+
+    // 발표일은 첫 제출 기준을 유지한다 (고쳐 낼 때마다 밀리면 안 된다)
+    const announceTs = openDoc
+      ? openDoc.data().announceAt ?? Timestamp.fromDate(announce)
+      : Timestamp.fromDate(announce);
+
+    const payload = {
       userId,
       userName,
       examId,
@@ -90,13 +124,28 @@ export async function POST(request: Request) {
       passed: null,
       feedback: null,
       submittedAt: now,
-      announceAt: Timestamp.fromDate(announce),
+      announceAt: announceTs,
       gradedAt: null,
-      createdAt: now,
       updatedAt: now,
-    });
+    };
 
-    return NextResponse.json({ id: ref.id, announceAt: announce.toISOString() });
+    if (openDoc) {
+      await openDoc.ref.set(payload, { merge: true });
+      return NextResponse.json({
+        id: openDoc.id,
+        updated: true,
+        announceAt: announceTs.toDate().toISOString(),
+      });
+    }
+
+    const ref = await adminDb
+      .collection("practicalSubmissions")
+      .add({ ...payload, createdAt: now });
+    return NextResponse.json({
+      id: ref.id,
+      updated: false,
+      announceAt: announceTs.toDate().toISOString(),
+    });
   } catch (error) {
     console.error("Practical submit error:", error);
     return NextResponse.json(
