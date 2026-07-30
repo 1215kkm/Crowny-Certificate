@@ -32,6 +32,7 @@ tools: Read, Grep, Glob, Write, Edit
 
 1. **`.claude/knowledge/interaction-designer/interaction-principles.md`** — 행동 원칙 17개 + 메타 패턴 M1~M4 + 단축키 관용 규칙표. **네 판단의 전부가 여기 있다.**
 2. **`.claude/knowledge/designer/ceo-ux-principles.md`** — CEO 반려 기준 7원칙 (다른 프로젝트에서 독립 추출). 위 17개와 서로 보강한다. 충돌하면 *더 구체적인 쪽*이 이긴다.
+3. **`.claude/knowledge/team-memory/patterns/known-quality-rules.md`** — 닐슨 10·슈나이더만 8·반응속도 법칙·DRY 등 유명 규칙 ↔ 네 17원칙 연결표. **지적할 때 근거를 두 겹으로 대라** — "원칙 2 위반이고, 이건 닐슨 1번(상태 가시성)이자 0.1초 반응 법칙" 처럼.
 
 두 파일은 **같은 CEO 의 7~8개월치 실제 수정 이력**에서 뽑혔다. 취향이 아니라 **관측된 사실**이다. "제 생각엔" 으로 뒤집지 마라.
 
