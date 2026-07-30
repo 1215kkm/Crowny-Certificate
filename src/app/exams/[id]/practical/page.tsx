@@ -28,6 +28,8 @@ export default function PracticalExamPage() {
   const [wireframes, setWireframes] = useState<PracticalWireframe[]>(DEFAULT_WIREFRAMES);
   const [started, setStarted] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  /** 한 번이라도 제출했는가 — 두 번째부터는 「시간 내 수정」으로 다룬다 */
+  const [submittedOnce, setSubmittedOnce] = useState(false);
   const [announceAt, setAnnounceAt] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [startTs] = useState(() => `${Math.floor(Math.random() * 1e9)}`);
@@ -136,6 +138,11 @@ export default function PracticalExamPage() {
 
   const handleSubmit = async () => {
     if (!user || !theme || !wireframe) return;
+    // 이미 한 번 낸 뒤 고쳐 내는 것은 시간 안에서만 허용한다
+    if (submittedOnce && timedOut) {
+      alert("시험 시간이 끝나 더 이상 수정할 수 없습니다. 먼저 낸 제출로 채점됩니다.");
+      return;
+    }
     if (!zipFile) {
       alert("결과물(압축 파일, .zip)을 첨부해주세요.");
       return;
@@ -180,8 +187,10 @@ export default function PracticalExamPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        localStorage.removeItem(lsKey);
+        /* 시작 시각(lsKey)은 지우지 않는다 — 지우면 수정하러 돌아갈 때
+           남은 시간이 처음부터 다시 계산돼 제한 시간이 무의미해진다. */
         setAnnounceAt(data.announceAt || "");
+        setSubmittedOnce(true);
         setSubmitted(true);
       } else {
         alert(data.error || "제출에 실패했습니다.");
@@ -211,10 +220,17 @@ export default function PracticalExamPage() {
           <CheckCircle className="w-10 h-10 text-white" />
         </div>
         <h1 className="text-2xl font-bold mb-2">실기 제출 완료</h1>
-        <p className="text-muted-foreground mb-6">
+        <p className="text-muted-foreground mb-2">
           제출이 정상적으로 접수되었습니다. 실기는 수동 채점 후 발표됩니다.
         </p>
-        <div className="bg-muted rounded-xl p-6 mb-6">
+        {/* 제한 시간이 남아 있으면 다시 내서 고칠 수 있다 (마지막 제출로 덮어써짐) */}
+        {!timedOut && (
+          <p className="text-sm text-muted-foreground mb-2">
+            시험 시간이 남아 있어요{timeLeft !== null && ` (${fmtTime(timeLeft)})`}. 시간
+            안에는 <strong>다시 제출해서 고칠 수 있습니다.</strong>
+          </p>
+        )}
+        <div className="bg-muted rounded-xl p-6 my-6">
           <div className="text-sm text-muted-foreground mb-1">결과 발표 예정</div>
           <div className="text-2xl font-bold text-primary">
             {announceDate
@@ -222,9 +238,19 @@ export default function PracticalExamPage() {
               : "제출일로부터 15일 후 오후 1시"}
           </div>
         </div>
-        <a href="/mypage" className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition inline-block">
-          마이페이지에서 확인
-        </a>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {!timedOut && (
+            <button
+              onClick={() => setSubmitted(false)}
+              className="border-2 border-primary text-primary px-8 py-3 rounded-lg font-medium hover:bg-primary/5 transition"
+            >
+              제출 내용 수정하기
+            </button>
+          )}
+          <a href="/mypage" className="bg-primary text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-dark transition inline-block">
+            마이페이지에서 확인
+          </a>
+        </div>
       </div>
     );
   }

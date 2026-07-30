@@ -159,6 +159,12 @@ export interface ExamSubmissionDoc {
   gradedBy: string | null;
   paymentId: string | null;
   feedback: string | null;
+  /**
+   * 객관식 — 이 시각까지는 제출 후에도 답안을 고칠 수 있다.
+   * 첫 제출 때 서버가 못박으므로 이후 클라이언트가 늘릴 수 없다.
+   * status 가 IN_PROGRESS 인 동안만 의미가 있다.
+   */
+  editableUntil?: Timestamp | null;
 }
 
 export interface SubmissionAnswerDoc {
