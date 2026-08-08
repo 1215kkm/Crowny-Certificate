@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import "./globals.css";
 import { SiteChrome } from "@/components/layout/site-chrome";
 import { AuthProvider } from "@/contexts/auth-context";
+import { GoatCounter } from "@/components/analytics/goatcounter";
 
 const SITE_URL = "https://kaiat.co.kr";
 const SITE_NAME = "KAIAT · Korea AI Ability Test";
@@ -106,6 +108,11 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen flex flex-col bg-background text-foreground">
+        {/* 방문자 집계 — 주소창 값을 읽으므로 Suspense 로 감싼다.
+            안 감싸면 사이트 전체가 미리 만들어지지 않고 매번 새로 그려진다. */}
+        <Suspense fallback={null}>
+          <GoatCounter />
+        </Suspense>
         <AuthProvider>
           <SiteChrome>{children}</SiteChrome>
         </AuthProvider>
