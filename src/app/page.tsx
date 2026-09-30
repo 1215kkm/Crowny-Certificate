@@ -276,8 +276,15 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/courses"
+              href="/exams/sample"
               className="group inline-flex items-center justify-center gap-2 bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/90 transition-all shadow-lg shadow-black/10"
+            >
+              <Sparkles className="w-5 h-5" />
+              샘플 시험 체험하기
+            </Link>
+            <Link
+              href="/courses"
+              className="group inline-flex items-center justify-center gap-2 border-2 border-white/40 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 hover:border-white/60 transition-all backdrop-blur-sm"
             >
               <BookOpen className="w-5 h-5" />
               강의 둘러보기
@@ -290,6 +297,9 @@ export default function HomePage() {
               시험 신청하기
             </Link>
           </div>
+          <p className="mt-4 text-sm text-white/60">
+            샘플 시험은 로그인 없이 바로 응시할 수 있습니다
+          </p>
         </div>
       </section>
 

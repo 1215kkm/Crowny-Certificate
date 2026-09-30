@@ -139,9 +139,28 @@ export default function ExamsPage() {
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-12">
       <h1 className="text-3xl font-bold mb-2">시험 신청</h1>
-      <p className="text-muted-foreground mb-8">
+      <p className="text-muted-foreground mb-6">
         원하는 등급의 시험을 선택하고 신청하세요
       </p>
+
+      {/* 로그인 없이 샘플 시험 체험 배너 */}
+      <div className="bg-gradient-brand text-white rounded-2xl p-6 mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-2">
+            로그인 불필요
+          </div>
+          <h2 className="text-xl font-bold mb-1">먼저 체험해보세요</h2>
+          <p className="text-white/85 text-sm">
+            회원가입·결제 없이 AI 자격증 3급 샘플 시험을 바로 응시하고 채점 결과를 확인할 수 있습니다.
+          </p>
+        </div>
+        <Link
+          href="/exams/sample"
+          className="whitespace-nowrap bg-white text-primary px-6 py-3 rounded-xl font-bold hover:bg-white/90 transition shadow-sm"
+        >
+          샘플 시험 체험하기 →
+        </Link>
+      </div>
 
       {exams.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
