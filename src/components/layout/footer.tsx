@@ -65,6 +65,11 @@ export function Footer() {
               </Link>
             </li>
             <li>
+              <Link href="/showcase" className="hover:text-white transition">
+                합격작 쇼케이스
+              </Link>
+            </li>
+            <li>
               <Link href="/certificates" className="hover:text-white transition">
                 인증서 발급
               </Link>

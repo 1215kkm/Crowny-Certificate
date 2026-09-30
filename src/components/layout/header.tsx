@@ -9,6 +9,7 @@ import { signOut } from "@/lib/firebase-auth";
 const NAV_ITEMS = [
   { label: "강의", href: "/courses" },
   { label: "시험 신청", href: "/exams" },
+  { label: "합격작", href: "/showcase" },
   { label: "인증서 발급", href: "/certificates" },
   { label: "마이페이지", href: "/mypage" },
 ];
